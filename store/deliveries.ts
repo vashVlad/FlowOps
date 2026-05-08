@@ -6,15 +6,17 @@ import {
   fetchDeliveries,
   createDelivery as dbCreate,
   setDeliveryStatus,
+  deleteDelivery as dbDelete,
 } from "@/supabase/queries";
 
 interface DeliveriesStore {
   deliveries: Delivery[];
   loading:    boolean;
   error:      string | null;
-  hydrate:      () => Promise<void>;
-  addDelivery:  (input: CreateDeliveryInput) => Promise<MutationResult<Delivery>>;
-  setStatus:    (id: string, status: DeliveryStatus) => Promise<MutationResult<undefined>>;
+  hydrate:        () => Promise<void>;
+  addDelivery:    (input: CreateDeliveryInput) => Promise<MutationResult<Delivery>>;
+  setStatus:      (id: string, status: DeliveryStatus) => Promise<MutationResult<undefined>>;
+  deleteDelivery: (id: string) => Promise<MutationResult<undefined>>;
   // ── Subscription callbacks (realtime — do not call directly) ──────────────
   upsertDelivery: (delivery: Delivery) => void;  // INSERT / UPDATE
   removeDelivery: (id: string) => void;          // DELETE
@@ -76,6 +78,19 @@ export const useDeliveriesStore = create<DeliveriesStore>()((set) => ({
       return ok(undefined);
     } catch (e) {
       const message = logMutationError("setStatus:delivery", e);
+      set({ error: message });
+      return err(message);
+    }
+  },
+
+  deleteDelivery: async (id) => {
+    set({ error: null });
+    try {
+      await dbDelete(id);
+      set((state) => ({ deliveries: state.deliveries.filter((d) => d.id !== id) }));
+      return ok(undefined);
+    } catch (e) {
+      const message = logMutationError("deleteDelivery", e);
       set({ error: message });
       return err(message);
     }

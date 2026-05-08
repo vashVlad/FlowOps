@@ -95,14 +95,58 @@ function RackCard({
   onAdvance: () => void;
   onClick: () => void;
 }) {
+  const updateRack  = useRacksStore((s) => s.updateRack);
+  const deleteRack  = useRacksStore((s) => s.deleteRack);
+  const addToast    = useToastStore((s) => s.add);
+
+  const [editOpen,      setEditOpen]      = useState(false);
+  const [editRackCode,  setEditRackCode]  = useState("");
+  const [editPriority,  setEditPriority]  = useState<Priority>("normal");
+  const [editNotes,     setEditNotes]     = useState("");
+  const [editError,     setEditError]     = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+
   const isCompleted = rack.status === "completed";
   const nextLabel   = NEXT_STAGE_LABEL[rack.status];
   const isCritical  = stuck && rack.priority === "high";
 
+  function openEdit(e: React.MouseEvent) {
+    e.stopPropagation();
+    setEditRackCode(rack.rackCode);
+    setEditPriority(rack.priority);
+    setEditNotes(rack.notes ?? "");
+    setEditError("");
+    setDeleteConfirm(false);
+    setEditOpen(true);
+  }
+
+  async function handleSave(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!editRackCode.trim()) return setEditError("Rack ID required.");
+    setEditError("");
+    const result = await updateRack(rack.id, {
+      rackCode: editRackCode.trim(),
+      priority: editPriority,
+      notes: editNotes.trim() || null,
+    });
+    if (!result.ok) { setEditError(result.error); return; }
+    setEditOpen(false);
+    addToast("Rack updated");
+  }
+
+  async function handleDelete(e: React.MouseEvent) {
+    e.stopPropagation();
+    const result = await deleteRack(rack.id);
+    if (!result.ok) { setEditError(result.error); return; }
+    addToast(`${rack.rackCode} deleted`);
+  }
+
   return (
     <li
-      onClick={onClick}
-      className={`cursor-pointer rounded-xl border border-stone-200 bg-white shadow-sm hover:shadow-md hover:-translate-y-px transition-all duration-150 overflow-hidden ${rackBorderCls(rack.priority, stuck)}`}
+      onClick={editOpen ? undefined : onClick}
+      className={`rounded-xl border border-stone-200 bg-white shadow-sm transition-all duration-150 overflow-hidden ${
+        editOpen ? "" : "cursor-pointer hover:shadow-md hover:-translate-y-px"
+      } ${rackBorderCls(rack.priority, stuck)}`}
     >
       {/* TOP — ID · urgency · age */}
       <div className="px-4 pt-2.5 pb-1.5 flex items-center justify-between gap-2">
@@ -150,21 +194,15 @@ function RackCard({
 
         <div className="flex items-center gap-1.5 text-[11px] flex-wrap">
           {zone && (
-            <Link
-              href={`/zones/${zone.id}`}
-              onClick={(e) => e.stopPropagation()}
-              className="font-medium text-stone-500 hover:text-orange-600 transition-colors"
-            >
+            <Link href={`/zones/${zone.id}`} onClick={(e) => e.stopPropagation()}
+              className="font-medium text-stone-500 hover:text-orange-600 transition-colors">
               {zone.name}
             </Link>
           )}
           {zone && delivery && <span className="text-stone-200">·</span>}
           {delivery && (
-            <Link
-              href={`/deliveries/${delivery.id}`}
-              onClick={(e) => e.stopPropagation()}
-              className="text-stone-400 hover:text-orange-600 transition-colors"
-            >
+            <Link href={`/deliveries/${delivery.id}`} onClick={(e) => e.stopPropagation()}
+              className="text-stone-400 hover:text-orange-600 transition-colors">
               {delivery.deliveryCode}
             </Link>
           )}
@@ -177,7 +215,7 @@ function RackCard({
         </div>
       </div>
 
-      {/* BOTTOM — primary action + edit */}
+      {/* BOTTOM — primary action + edit toggle */}
       <div className="px-4 pb-2.5 flex items-center gap-2">
         <button
           onClick={(e) => { e.stopPropagation(); onAdvance(); }}
@@ -192,14 +230,51 @@ function RackCard({
         >
           {isCompleted ? "Completed" : `Move to ${nextLabel} →`}
         </button>
-        <Link
-          href={`/racks/${rack.id}`}
-          onClick={(e) => e.stopPropagation()}
+        <button
+          onClick={editOpen ? (e) => { e.stopPropagation(); setEditOpen(false); } : openEdit}
           className="shrink-0 rounded-lg border border-stone-200 px-2 py-1 text-xs text-stone-500 hover:bg-stone-50 hover:text-stone-800 transition-colors"
         >
-          Edit
-        </Link>
+          {editOpen ? "Cancel" : "Edit"}
+        </button>
       </div>
+
+      {/* INLINE EDIT PANEL */}
+      {editOpen && (
+        <div onClick={(e) => e.stopPropagation()}
+          className="border-t border-stone-100 px-4 pb-3 pt-3 space-y-2 bg-stone-50">
+          <input type="text" placeholder="Rack ID" value={editRackCode}
+            onChange={(e) => { setEditRackCode(e.target.value); setEditError(""); }}
+            className={inputCls} />
+          <PriorityPicker value={editPriority} onChange={setEditPriority} />
+          <input type="text" placeholder="Notes (optional)" value={editNotes}
+            onChange={(e) => setEditNotes(e.target.value)} className={inputCls} />
+          {editError && <p className="text-xs text-red-500">{editError}</p>}
+          <div className="flex items-center justify-between gap-2">
+            <button onClick={handleSave}
+              className="rounded-lg bg-orange-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-700 transition-colors">
+              Save
+            </button>
+            {!deleteConfirm ? (
+              <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm(true); }}
+                className="text-xs text-red-400 hover:text-red-600 transition-colors">
+                Delete
+              </button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-stone-400">Delete?</span>
+                <button onClick={handleDelete}
+                  className="text-xs font-medium text-red-500 hover:text-red-700 transition-colors">
+                  Yes
+                </button>
+                <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm(false); }}
+                  className="text-xs text-stone-400 hover:text-stone-600 transition-colors">
+                  No
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </li>
   );
 }

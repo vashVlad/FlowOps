@@ -28,14 +28,15 @@ const NEXT_STATUS: Record<DeliveryStatus, DeliveryStatus | null> = {
 export default function DeliveryDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { deliveries, setStatus } = useDeliveriesStore();
+  const { deliveries, setStatus, deleteDelivery } = useDeliveriesStore();
   const { racks, addRack, advanceStatus } = useRacksStore();
   const addToast = useToastStore((s) => s.add);
 
-  const [addOpen, setAddOpen]         = useState(false);
-  const [addPriority, setAddPriority] = useState<Priority>("normal");
-  const [addRackCode, setAddRackCode] = useState("");
+  const [addOpen, setAddOpen]           = useState(false);
+  const [addPriority, setAddPriority]   = useState<Priority>("normal");
+  const [addRackCode, setAddRackCode]   = useState("");
   const [addRackError, setAddRackError] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   const delivery = deliveries.find((d) => d.id === id);
 
@@ -114,17 +115,41 @@ export default function DeliveryDetailPage() {
                   <p className="mt-0.5 text-xs text-stone-400 font-mono">{delivery.consignerJNumber}</p>
                 )}
               </div>
-              {nextStatus && (
-                <button
-                  onClick={async () => {
-                    const result = await setStatus(delivery.id, nextStatus);
-                    if (result.ok) addToast(`Delivery ${DELIVERY_STATUS_LABEL[nextStatus].toLowerCase()}`);
-                  }}
-                  className={`shrink-0 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${DELIVERY_NEXT_BTN[delivery.status]}`}
-                >
-                  {DELIVERY_NEXT_LABEL[delivery.status]}
-                </button>
-              )}
+              <div className="flex items-center gap-2 shrink-0">
+                {!deleteConfirm ? (
+                  <button onClick={() => setDeleteConfirm(true)}
+                    className="text-xs text-stone-400 hover:text-red-500 transition-colors">
+                    Delete
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-stone-400">Delete?</span>
+                    <button onClick={async () => {
+                      const result = await deleteDelivery(delivery.id);
+                      if (!result.ok) return;
+                      addToast(`${delivery.deliveryCode} deleted`);
+                      router.push("/deliveries");
+                    }} className="text-xs font-medium text-red-500 hover:text-red-700 transition-colors">
+                      Yes
+                    </button>
+                    <button onClick={() => setDeleteConfirm(false)}
+                      className="text-xs text-stone-400 hover:text-stone-600 transition-colors">
+                      No
+                    </button>
+                  </div>
+                )}
+                {nextStatus && (
+                  <button
+                    onClick={async () => {
+                      const result = await setStatus(delivery.id, nextStatus);
+                      if (result.ok) addToast(`Delivery ${DELIVERY_STATUS_LABEL[nextStatus].toLowerCase()}`);
+                    }}
+                    className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${DELIVERY_NEXT_BTN[delivery.status]}`}
+                  >
+                    {DELIVERY_NEXT_LABEL[delivery.status]}
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Metadata */}

@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useRacksStore } from "@/store/racks";
 import { STATUS_ORDER } from "@/lib/racks";
@@ -29,16 +29,18 @@ const STAGE_STEPS = PIPELINE_STAGES.map((s) => s.status);
 
 export default function RackDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { racks, history, advanceStatus, moveToZone, updateRack } = useRacksStore();
+  const router = useRouter();
+  const { racks, history, advanceStatus, moveToZone, updateRack, deleteRack } = useRacksStore();
   const addToast = useToastStore((s) => s.add);
   const { deliveries } = useDeliveriesStore();
   const { zones } = useZonesStore();
 
-  const [editOpen,     setEditOpen]     = useState(false);
-  const [editRackCode, setEditRackCode] = useState("");
-  const [editPriority, setEditPriority] = useState<Priority>("normal");
-  const [editNotes,    setEditNotes]    = useState("");
-  const [editError,    setEditError]    = useState("");
+  const [editOpen,      setEditOpen]      = useState(false);
+  const [editRackCode,  setEditRackCode]  = useState("");
+  const [editPriority,  setEditPriority]  = useState<Priority>("normal");
+  const [editNotes,     setEditNotes]     = useState("");
+  const [editError,     setEditError]     = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   const rack = racks.find((r) => r.id === id);
 
@@ -95,12 +97,16 @@ export default function RackDetailPage() {
       priority: editPriority,
       notes: editNotes.trim() || null,
     });
-    if (!result.ok) {
-      setEditError(result.error);
-      return;
-    }
+    if (!result.ok) { setEditError(result.error); return; }
     setEditOpen(false);
     addToast("Rack updated");
+  }
+
+  async function handleDelete() {
+    const result = await deleteRack(rack!.id);
+    if (!result.ok) { setEditError(result.error); return; }
+    addToast(`${rack!.rackCode} deleted`);
+    router.push("/racks");
   }
 
   return (
@@ -127,15 +133,35 @@ export default function RackDetailPage() {
                 <input type="text" placeholder="Notes (optional)" value={editNotes}
                   onChange={(e) => setEditNotes(e.target.value)} className={inputCls} />
                 {editError && <p className="text-xs text-red-500">{editError}</p>}
-                <div className="flex gap-2">
-                  <button type="submit"
-                    className="rounded-lg bg-orange-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-700 transition-colors">
-                    Save
-                  </button>
-                  <button type="button" onClick={() => setEditOpen(false)}
-                    className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm font-medium text-stone-600 hover:bg-stone-50 transition-colors">
-                    Cancel
-                  </button>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex gap-2">
+                    <button type="submit"
+                      className="rounded-lg bg-orange-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-700 transition-colors">
+                      Save
+                    </button>
+                    <button type="button" onClick={() => { setEditOpen(false); setDeleteConfirm(false); }}
+                      className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm font-medium text-stone-600 hover:bg-stone-50 transition-colors">
+                      Cancel
+                    </button>
+                  </div>
+                  {!deleteConfirm ? (
+                    <button type="button" onClick={() => setDeleteConfirm(true)}
+                      className="text-xs text-red-400 hover:text-red-600 transition-colors">
+                      Delete rack
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-stone-400">Delete?</span>
+                      <button type="button" onClick={handleDelete}
+                        className="text-xs font-medium text-red-500 hover:text-red-700 transition-colors">
+                        Yes
+                      </button>
+                      <button type="button" onClick={() => setDeleteConfirm(false)}
+                        className="text-xs text-stone-400 hover:text-stone-600 transition-colors">
+                        No
+                      </button>
+                    </div>
+                  )}
                 </div>
               </form>
             )}

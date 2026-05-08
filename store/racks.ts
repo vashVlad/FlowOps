@@ -8,6 +8,7 @@ import {
   fetchAllRackEvents,
   createRack as dbCreate,
   updateRack as dbUpdate,
+  deleteRack as dbDelete,
   advanceRackStatus as dbAdvance,
   moveRackToZone as dbMoveToZone,
   archiveCompletedRacks as dbArchiveCompleted,
@@ -21,6 +22,7 @@ interface RacksStore {
   hydrate:            () => Promise<void>;
   addRack:            (input: CreateRackInput) => Promise<MutationResult<Rack>>;
   updateRack:         (id: string, patch: UpdateRackInput) => Promise<MutationResult<Rack>>;
+  deleteRack:         (id: string) => Promise<MutationResult<undefined>>;
   advanceStatus:      (id: string) => Promise<MutationResult<undefined>>;
   moveToZone:         (rackId: string, zoneId: string | undefined) => Promise<MutationResult<undefined>>;
   closeAuctionCycle:  () => Promise<MutationResult<number>>;
@@ -78,6 +80,22 @@ export const useRacksStore = create<RacksStore>()((set, get) => ({
     } catch (e) {
       const isUnique = typeof e === "object" && e !== null && "code" in e && (e as { code: string }).code === "23505";
       const message  = isUnique ? "Rack ID already exists" : logMutationError("updateRack", e);
+      set({ error: message });
+      return err(message);
+    }
+  },
+
+  deleteRack: async (id) => {
+    set({ error: null });
+    try {
+      await dbDelete(id);
+      set((state) => ({
+        racks:   state.racks.filter((r) => r.id !== id),
+        history: state.history.filter((e) => e.rackId !== id),
+      }));
+      return ok(undefined);
+    } catch (e) {
+      const message = logMutationError("deleteRack", e);
       set({ error: message });
       return err(message);
     }

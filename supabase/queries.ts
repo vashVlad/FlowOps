@@ -403,6 +403,18 @@ export async function archiveCompletedRacks(): Promise<number> {
   return (data as { id: string }[]).length;
 }
 
+/** Permanently delete a rack and its events (cascade). */
+export async function deleteRack(rackId: string): Promise<void> {
+  const { error } = await supabase.from("racks").delete().eq("id", rackId);
+  if (error) throw error;
+}
+
+/** Permanently delete a delivery. */
+export async function deleteDelivery(deliveryId: string): Promise<void> {
+  const { error } = await supabase.from("deliveries").delete().eq("id", deliveryId);
+  if (error) throw error;
+}
+
 /** Create a zone. */
 export async function createZone(input: {
   name: string;

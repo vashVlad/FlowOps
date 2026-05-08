@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -19,6 +20,10 @@ const links = [
 export default function Header() {
   const pathname          = usePathname();
   const { user, signOut } = useAuthStore();
+  const [profileOpen, setProfileOpen] = useState(false);
+
+  const email    = user?.email ?? "";
+  const initials = email.slice(0, 2).toUpperCase();
 
   return (
     <header className="sticky top-0 z-40 border-b border-stone-200 bg-white px-4 sm:px-6 lg:px-10">
@@ -59,21 +64,40 @@ export default function Header() {
           </nav>
         </div>
 
-        {/* Right: bell + logout */}
+        {/* Right: bell + profile */}
         <div className="flex items-center gap-1 shrink-0">
           <NotificationBell />
-          <button
-            onClick={() => signOut()}
-            aria-label={`Sign out${user?.email ? ` (${user.email})` : ""}`}
-            title={user?.email ?? "Sign out"}
-            className="flex items-center justify-center rounded-lg p-1.5 text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="h-4.5 w-4.5 h-[18px] w-[18px]">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-              <polyline points="16 17 21 12 16 7"/>
-              <line x1="21" y1="12" x2="9" y2="12"/>
-            </svg>
-          </button>
+
+          <div className="relative">
+            <button
+              onClick={() => setProfileOpen((v) => !v)}
+              className="flex items-center gap-1.5 rounded-lg px-1.5 py-1 hover:bg-stone-100 transition-colors"
+            >
+              <span className="h-6 w-6 rounded-full bg-orange-100 flex items-center justify-center text-[11px] font-bold text-orange-700 shrink-0 select-none">
+                {initials}
+              </span>
+              <span className="hidden sm:block text-xs text-stone-600 max-w-[140px] truncate">
+                {email}
+              </span>
+            </button>
+
+            {profileOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} />
+                <div className="absolute right-0 top-full mt-1 z-50 w-52 rounded-xl border border-stone-200 bg-white shadow-lg overflow-hidden">
+                  <div className="px-4 py-3 border-b border-stone-100">
+                    <p className="text-[11px] text-stone-400 truncate">{email}</p>
+                  </div>
+                  <button
+                    onClick={() => { setProfileOpen(false); signOut(); }}
+                    className="w-full text-left px-4 py-2.5 text-sm text-stone-600 hover:bg-stone-50 hover:text-stone-900 transition-colors"
+                  >
+                    Sign out
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
       </div>
