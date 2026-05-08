@@ -234,7 +234,7 @@ export default function RackDetailPage() {
                   <dt className="text-[11px] font-medium uppercase tracking-wide text-stone-400 mb-1">Delivery</dt>
                   <dd>
                     <Link href={`/deliveries/${delivery.id}`} className="text-sm font-medium text-orange-600 hover:underline transition-colors">
-                      {delivery.deliveryCode}
+                      {delivery.consignerJNumber ?? delivery.deliveryCode}
                     </Link>
                   </dd>
                 </div>

@@ -19,6 +19,7 @@ export interface RackResult {
   zoneName?: string;
   zoneId?: string;
   deliveryCode?: string;
+  deliveryJNumber?: string;
   deliveryId?: string;
   stuck: boolean;
   isBlocked: boolean;
@@ -30,6 +31,7 @@ export interface DeliveryResult {
   type: "delivery";
   id: string;
   deliveryCode: string;
+  consignerJNumber?: string;
   consignerName: string;
   status: DeliveryStatus;
   linkedRackCount: number;
@@ -85,8 +87,9 @@ export function search(
       return (
         hit(rack.rackCode,           q) ||
         hit(rack.consignerName,      q) ||
-        hit(delivery?.deliveryCode,  q) ||
-        hit(delivery?.consignerName, q) ||
+        hit(delivery?.deliveryCode,      q) ||
+        hit(delivery?.consignerJNumber,  q) ||
+        hit(delivery?.consignerName,     q) ||
         hit(zone?.name,              q) ||
         hit(zone?.label,             q)
       );
@@ -110,6 +113,7 @@ export function search(
         zoneName: zone?.name,
         deliveryId: rack.deliveryId,
         deliveryCode: delivery?.deliveryCode,
+        deliveryJNumber: delivery?.consignerJNumber,
         stuck,
         isBlocked,
         isCritical,
@@ -128,11 +132,12 @@ export function search(
   ];
 
   const deliveryResults: DeliveryResult[] = deliveries
-    .filter((d) => hit(d.deliveryCode, q) || hit(d.consignerName, q))
+    .filter((d) => hit(d.deliveryCode, q) || hit(d.consignerName, q) || hit(d.consignerJNumber, q))
     .map((d): DeliveryResult => ({
       type: "delivery",
       id: d.id,
       deliveryCode: d.deliveryCode,
+      consignerJNumber: d.consignerJNumber,
       consignerName: d.consignerName,
       status: d.status,
       linkedRackCount: linkedCounts.get(d.id) ?? 0,

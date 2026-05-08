@@ -95,7 +95,7 @@ export default function LottingPage() {
                           onClick={(e) => e.stopPropagation()}
                           className="text-xs text-stone-400 hover:text-orange-600"
                         >
-                          {delivery.deliveryCode}
+                          {delivery.consignerJNumber ?? delivery.deliveryCode}
                         </Link>
                       )}
                     </div>

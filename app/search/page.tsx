@@ -206,7 +206,9 @@ function DeliveryRow({ result }: { result: DeliveryResult }) {
       <Link href={`/deliveries/${result.id}`} className="flex items-center justify-between gap-4 px-4 py-3">
         <div className="min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="font-mono text-sm font-bold text-stone-900">{result.deliveryCode}</span>
+            <span className="font-mono text-sm font-bold text-stone-900">
+              {result.consignerJNumber ?? result.deliveryCode}
+            </span>
             <DeliveryStatusBadge status={result.status} />
           </div>
           <p className="text-xs text-stone-400 mt-0.5">
@@ -259,7 +261,9 @@ function RackRow({ result, onNavigate }: { result: RackResult; onNavigate: () =>
           <p className="text-xs text-stone-400 mt-0.5 capitalize">
             {result.status}
             <span className="text-stone-300"> · </span>{formatDuration(result.timeInStageMs)}
-            {result.deliveryCode && <><span className="text-stone-300"> · </span>{result.deliveryCode}</>}
+            {(result.deliveryJNumber ?? result.deliveryCode) && (
+              <><span className="text-stone-300"> · </span>{result.deliveryJNumber ?? result.deliveryCode}</>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">

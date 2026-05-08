@@ -46,7 +46,7 @@ export function exportRacks(
   history:    HistoryEvent[]
 ): void {
   const zoneMap     = new Map(zones.map((z) => [z.id, z.name]));
-  const deliveryMap = new Map(deliveries.map((d) => [d.id, d.deliveryCode]));
+  const deliveryMap = new Map(deliveries.map((d) => [d.id, d.consignerJNumber ?? d.deliveryCode]));
 
   const headers = [
     "Rack Code", "Consigner", "Status", "Priority",
@@ -87,7 +87,7 @@ export function exportDeliveries(
     const total  = Math.max(d.expectedRackCount, linked.length);
     const pct    = total > 0 ? Math.round((done.length / total) * 100) : 0;
     return [
-      d.deliveryCode,
+      d.consignerJNumber ?? d.deliveryCode,
       d.consignerName,
       d.consignerJNumber ?? "",
       d.type,
@@ -113,7 +113,7 @@ export function exportStuckRacks(
   history:    HistoryEvent[]
 ): void {
   const zoneMap     = new Map(zones.map((z) => [z.id, z.name]));
-  const deliveryMap = new Map(deliveries.map((d) => [d.id, d.deliveryCode]));
+  const deliveryMap = new Map(deliveries.map((d) => [d.id, d.consignerJNumber ?? d.deliveryCode]));
 
   const stuck = racks.filter((r) => isRackStuck(r, history));
 

@@ -108,7 +108,9 @@ export default function DeliveryDetailPage() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="font-mono text-xl font-bold text-stone-900 tracking-tight">{delivery.deliveryCode}</h1>
+                  <h1 className="font-mono text-xl font-bold text-stone-900 tracking-tight">
+                    {delivery.consignerJNumber ?? delivery.deliveryCode}
+                  </h1>
                   <DeliveryStatusBadge status={delivery.status} />
                   {delivery.type === "walkin" && (
                     <span className="rounded-md bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-500">walk-in</span>
@@ -131,7 +133,7 @@ export default function DeliveryDetailPage() {
                     <button onClick={async () => {
                       const result = await deleteDelivery(delivery.id);
                       if (!result.ok) return;
-                      addToast(`${delivery.deliveryCode} deleted`);
+                      addToast(`${delivery.consignerJNumber ?? delivery.deliveryCode} deleted`);
                       router.push("/deliveries");
                     }} className="text-xs font-medium text-red-500 hover:text-red-700 transition-colors">
                       Yes
