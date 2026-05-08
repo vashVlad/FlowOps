@@ -238,7 +238,9 @@ export default function DeliveriesPage() {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="font-mono text-sm font-bold text-stone-900">{delivery.deliveryCode}</span>
+                      <span className="font-mono text-sm font-bold text-stone-900">
+                        {delivery.consignerJNumber ?? delivery.deliveryCode}
+                      </span>
                       <DeliveryStatusBadge status={delivery.status} />
                       {delivery.type === "walkin" && (
                         <span className="rounded-md bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-500">
@@ -247,9 +249,6 @@ export default function DeliveriesPage() {
                       )}
                     </div>
                     <p className="text-sm text-stone-600">{delivery.consignerName}</p>
-                    {delivery.consignerJNumber && (
-                      <p className="text-xs text-stone-400 font-mono">{delivery.consignerJNumber}</p>
-                    )}
                     <p className="mt-1 text-xs text-stone-400">
                       {delivery.type === "walkin" ? "Arrived today" : `Scheduled ${formatDate(delivery.scheduledDate)}`}
                       {" · "}

@@ -95,61 +95,17 @@ function RackCard({
   onAdvance: () => void;
   onClick: () => void;
 }) {
-  const updateRack  = useRacksStore((s) => s.updateRack);
-  const deleteRack  = useRacksStore((s) => s.deleteRack);
-  const addToast    = useToastStore((s) => s.add);
-
-  const [editOpen,      setEditOpen]      = useState(false);
-  const [editRackCode,  setEditRackCode]  = useState("");
-  const [editPriority,  setEditPriority]  = useState<Priority>("normal");
-  const [editNotes,     setEditNotes]     = useState("");
-  const [editError,     setEditError]     = useState("");
-  const [deleteConfirm, setDeleteConfirm] = useState(false);
-
   const isCompleted = rack.status === "completed";
   const nextLabel   = NEXT_STAGE_LABEL[rack.status];
   const isCritical  = stuck && rack.priority === "high";
 
-  function openEdit(e: React.MouseEvent) {
-    e.stopPropagation();
-    setEditRackCode(rack.rackCode);
-    setEditPriority(rack.priority);
-    setEditNotes(rack.notes ?? "");
-    setEditError("");
-    setDeleteConfirm(false);
-    setEditOpen(true);
-  }
-
-  async function handleSave(e: React.MouseEvent) {
-    e.stopPropagation();
-    if (!editRackCode.trim()) return setEditError("Rack ID required.");
-    setEditError("");
-    const result = await updateRack(rack.id, {
-      rackCode: editRackCode.trim(),
-      priority: editPriority,
-      notes: editNotes.trim() || null,
-    });
-    if (!result.ok) { setEditError(result.error); return; }
-    setEditOpen(false);
-    addToast("Rack updated");
-  }
-
-  async function handleDelete(e: React.MouseEvent) {
-    e.stopPropagation();
-    const result = await deleteRack(rack.id);
-    if (!result.ok) { setEditError(result.error); return; }
-    addToast(`${rack.rackCode} deleted`);
-  }
-
   return (
     <li
-      onClick={editOpen ? undefined : onClick}
-      className={`rounded-xl border border-stone-200 bg-white shadow-sm transition-all duration-150 overflow-hidden ${
-        editOpen ? "" : "cursor-pointer hover:shadow-md hover:-translate-y-px"
-      } ${rackBorderCls(rack.priority, stuck)}`}
+      onClick={onClick}
+      className={`cursor-pointer rounded-xl border border-stone-200 bg-white shadow-sm hover:shadow-md hover:-translate-y-px transition-all duration-150 overflow-hidden ${rackBorderCls(rack.priority, stuck)}`}
     >
       {/* TOP — ID · urgency · age */}
-      <div className="px-4 pt-2.5 pb-1.5 flex items-center justify-between gap-2">
+      <div className="px-4 pt-2.5 pb-1 flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 flex-wrap min-w-0">
           <span className="font-mono text-sm font-bold text-stone-900 tracking-tight">
             {rack.rackCode}
@@ -176,10 +132,18 @@ function RackCard({
         <span className="text-[11px] text-stone-400 shrink-0">{timeAgo(rack.updatedAt)}</span>
       </div>
 
-      {/* MIDDLE — consigner · stage flow · stage label · zone/delivery */}
-      <div className="px-4 pb-1.5 space-y-1.5">
-        <p className="text-xs text-stone-400 truncate">{rack.consignerName}</p>
+      {/* CONSIGNER — name · J-Number on one line */}
+      <div className="px-4 pb-1.5">
+        <p className="text-xs text-stone-400 truncate">
+          {rack.consignerName}
+          {delivery?.consignerJNumber && (
+            <span className="font-mono ml-1.5">{delivery.consignerJNumber}</span>
+          )}
+        </p>
+      </div>
 
+      {/* MIDDLE — stage flow · stage label · zone */}
+      <div className="px-4 pb-1.5 space-y-1.5">
         <div className="space-y-1">
           <StageStrip status={rack.status} />
           <div className="flex items-center justify-between">
@@ -192,31 +156,22 @@ function RackCard({
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 text-[11px] flex-wrap">
-          {zone && (
+        {zone && (
+          <div className="text-[11px]">
             <Link href={`/zones/${zone.id}`} onClick={(e) => e.stopPropagation()}
               className="font-medium text-stone-500 hover:text-orange-600 transition-colors">
               {zone.name}
             </Link>
-          )}
-          {delivery?.consignerJNumber && (
-            <>
-              {zone && <span className="text-stone-200">·</span>}
-              <Link href={`/deliveries/${delivery.id}`} onClick={(e) => e.stopPropagation()}
-                className="font-mono text-stone-400 hover:text-orange-600 transition-colors">
-                {delivery.consignerJNumber}
-              </Link>
-            </>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
-      {/* BOTTOM — primary action + edit toggle */}
-      <div className="px-4 pb-2.5 flex items-center gap-2">
+      {/* BOTTOM — primary action */}
+      <div className="px-4 pb-2.5">
         <button
           onClick={(e) => { e.stopPropagation(); onAdvance(); }}
           disabled={isCompleted}
-          className={`flex-1 rounded-lg py-1 text-xs font-medium transition-colors ${
+          className={`w-full rounded-lg py-1 text-xs font-medium transition-colors ${
             isCompleted
               ? "bg-stone-50 text-stone-300 cursor-default border border-stone-100"
               : isCritical
@@ -226,51 +181,7 @@ function RackCard({
         >
           {isCompleted ? "Completed" : `Move to ${nextLabel} →`}
         </button>
-        <button
-          onClick={editOpen ? (e) => { e.stopPropagation(); setEditOpen(false); } : openEdit}
-          className="shrink-0 rounded-lg border border-stone-200 px-2 py-1 text-xs text-stone-500 hover:bg-stone-50 hover:text-stone-800 transition-colors"
-        >
-          {editOpen ? "Cancel" : "Edit"}
-        </button>
       </div>
-
-      {/* INLINE EDIT PANEL */}
-      {editOpen && (
-        <div onClick={(e) => e.stopPropagation()}
-          className="border-t border-stone-100 px-4 pb-3 pt-3 space-y-2 bg-stone-50">
-          <input type="text" placeholder="Rack ID" value={editRackCode}
-            onChange={(e) => { setEditRackCode(e.target.value); setEditError(""); }}
-            className={inputCls} />
-          <PriorityPicker value={editPriority} onChange={setEditPriority} />
-          <input type="text" placeholder="Notes (optional)" value={editNotes}
-            onChange={(e) => setEditNotes(e.target.value)} className={inputCls} />
-          {editError && <p className="text-xs text-red-500">{editError}</p>}
-          <div className="flex items-center justify-between gap-2">
-            <button onClick={handleSave}
-              className="rounded-lg bg-orange-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-700 transition-colors">
-              Save
-            </button>
-            {!deleteConfirm ? (
-              <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm(true); }}
-                className="text-xs text-red-400 hover:text-red-600 transition-colors">
-                Delete
-              </button>
-            ) : (
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-stone-400">Delete?</span>
-                <button onClick={handleDelete}
-                  className="text-xs font-medium text-red-500 hover:text-red-700 transition-colors">
-                  Yes
-                </button>
-                <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm(false); }}
-                  className="text-xs text-stone-400 hover:text-stone-600 transition-colors">
-                  No
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </li>
   );
 }
@@ -291,7 +202,6 @@ function RacksContent() {
   const [query, setQuery]                 = useState("");
   const [filter, setFilter]               = useState<RackFilter>("all");
   const [showForm, setShowForm]           = useState(!!preselectedDelivery);
-  const [consignerName, setConsignerName] = useState("");
   const [rackCodeInput, setRackCodeInput] = useState("");
   const [priority, setPriority]           = useState<Priority>("normal");
   const [zoneId, setZoneId]               = useState("");
@@ -303,11 +213,12 @@ function RacksContent() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!consignerName.trim()) return setFormError("Consigner name required.");
-    if (!deliveryId)           return setFormError("Select a delivery.");
+    if (!deliveryId) return setFormError("Select a delivery.");
+    const selectedDelivery = activeDeliveries.find((d) => d.id === deliveryId);
+    if (!selectedDelivery) return setFormError("Select a delivery.");
     setFormError("");
     const result = await addRack({
-      consignerName: consignerName.trim(),
+      consignerName: selectedDelivery.consignerName,
       priority,
       zoneId: zoneId || undefined,
       deliveryId,
@@ -318,7 +229,7 @@ function RacksContent() {
       setFormError(result.error);
       return;
     }
-    setConsignerName(""); setRackCodeInput(""); setPriority("normal"); setZoneId("");
+    setRackCodeInput(""); setPriority("normal"); setZoneId("");
     setDeliveryId(preselectedDelivery); setNotes("");
     setShowForm(false);
     addToast(`${result.data.rackCode} added`);
@@ -363,11 +274,16 @@ function RacksContent() {
       {showForm && (
         <form onSubmit={handleSubmit} className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm space-y-3">
           <p className="text-sm font-semibold text-stone-900">New rack</p>
-          <input type="text" placeholder="Consigner name" value={consignerName}
-            onChange={(e) => setConsignerName(e.target.value)} className={inputCls} autoFocus />
           <input type="text" placeholder="Rack ID (optional — auto-generated if blank)" value={rackCodeInput}
-            onChange={(e) => { setRackCodeInput(e.target.value); setFormError(""); }} className={inputCls} />
-          <PriorityPicker value={priority} onChange={setPriority} />
+            onChange={(e) => { setRackCodeInput(e.target.value); setFormError(""); }} className={inputCls} autoFocus />
+          <Select value={deliveryId} onChange={(e) => setDeliveryId(e.target.value)}>
+            <option value="">Select a delivery</option>
+            {activeDeliveries.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.consignerName}{d.consignerJNumber ? ` · ${d.consignerJNumber}` : ""}
+              </option>
+            ))}
+          </Select>
           <Select value={zoneId} onChange={(e) => setZoneId(e.target.value)}>
             <option value="">No zone assigned</option>
             {zones.map((z) => {
@@ -377,12 +293,7 @@ function RacksContent() {
               return <option key={z.id} value={z.id}>{z.name}{desc}{cap}</option>;
             })}
           </Select>
-          <Select value={deliveryId} onChange={(e) => setDeliveryId(e.target.value)}>
-            <option value="">Select a delivery</option>
-            {activeDeliveries.map((d) => (
-              <option key={d.id} value={d.id}>{d.deliveryCode} — {d.consignerName}</option>
-            ))}
-          </Select>
+          <PriorityPicker value={priority} onChange={setPriority} />
           <input type="text" placeholder="Notes (optional)" value={notes}
             onChange={(e) => setNotes(e.target.value)} className={inputCls} />
           {formError && <p className="text-xs text-red-500">{formError}</p>}
