@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background -->
+  <rect width="512" height="512" rx="80" fill="#1c1c1c"/>
+
+  <!-- Spine -->
+  <rect x="72" y="60" width="88" height="420" rx="20" fill="#f0ede8"/>
+
+  <!-- Top arm — orange ribbon, pill cap right -->
+  <path d="M 160 84 L 370 84 A 68 68 0 0 1 370 220 L 160 220 Z" fill="#ea580c"/>
+
+  <!-- Rack ticks on top arm — dark lines, invisible outside arm against dark bg -->
+  <rect x="288" y="84"  width="14" height="136" fill="#1c1c1c" opacity="0.22"/>
+  <rect x="314" y="84"  width="14" height="136" fill="#1c1c1c" opacity="0.22"/>
+  <rect x="340" y="84"  width="14" height="136" fill="#1c1c1c" opacity="0.22"/>
+
+  <!-- Middle arm — orange ribbon, shorter pill cap -->
+  <path d="M 160 264 L 310 264 A 52 52 0 0 1 310 368 L 160 368 Z" fill="#ea580c"/>
+
+  <!-- Rack ticks on middle arm -->
+  <rect x="240" y="264" width="12" height="104" fill="#1c1c1c" opacity="0.22"/>
+  <rect x="266" y="264" width="12" height="104" fill="#1c1c1c" opacity="0.22"/>
+</svg>
