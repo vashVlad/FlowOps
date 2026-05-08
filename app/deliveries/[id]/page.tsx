@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useDeliveriesStore } from "@/store/deliveries";
 import { useRacksStore } from "@/store/racks";
+import { useZonesStore } from "@/store/zones";
 import DeliveryStatusBadge from "@/components/DeliveryStatusBadge";
 import PriorityPicker from "@/components/ui/PriorityPicker";
 import { StageStrip } from "@/app/racks/page";
@@ -28,8 +29,9 @@ const NEXT_STATUS: Record<DeliveryStatus, DeliveryStatus | null> = {
 export default function DeliveryDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { deliveries, setStatus, deleteDelivery } = useDeliveriesStore();
+  const { deliveries, setStatus, deleteDelivery, updateDelivery } = useDeliveriesStore();
   const { racks, addRack, advanceStatus } = useRacksStore();
+  const { zones } = useZonesStore();
   const addToast = useToastStore((s) => s.add);
 
   const [addOpen, setAddOpen]           = useState(false);
@@ -37,6 +39,8 @@ export default function DeliveryDetailPage() {
   const [addRackCode, setAddRackCode]   = useState("");
   const [addRackError, setAddRackError] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [notesEditing, setNotesEditing] = useState(false);
+  const [notesValue,   setNotesValue]   = useState("");
 
   const delivery = deliveries.find((d) => d.id === id);
 
@@ -182,11 +186,59 @@ export default function DeliveryDetailPage() {
                     : `${linked.length} linked`}
                 </dd>
               </div>
+              {delivery.zoneId && (() => {
+                const zone = zones.find((z) => z.id === delivery.zoneId);
+                return zone ? (
+                  <div>
+                    <dt className="text-[11px] font-medium uppercase tracking-wide text-stone-400 mb-1">Zone</dt>
+                    <dd className="text-sm font-medium text-stone-700">{zone.name}</dd>
+                  </div>
+                ) : null;
+              })()}
             </dl>
 
-            {delivery.notes && (
-              <p className="border-t border-stone-100 pt-4 text-xs text-stone-400 italic">{delivery.notes}</p>
-            )}
+            {/* Notes — editable */}
+            <div className="border-t border-stone-100 pt-4">
+              {notesEditing ? (
+                <div className="space-y-2">
+                  <textarea
+                    value={notesValue}
+                    onChange={(e) => setNotesValue(e.target.value)}
+                    placeholder="Add notes…"
+                    rows={3}
+                    className={`${inputCls} resize-none`}
+                    autoFocus
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={async () => {
+                        const result = await updateDelivery(delivery.id, { notes: notesValue.trim() || null });
+                        if (result.ok) { setNotesEditing(false); addToast("Notes saved"); }
+                      }}
+                      className="rounded-lg bg-orange-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-700 transition-colors"
+                    >
+                      Save
+                    </button>
+                    <button onClick={() => setNotesEditing(false)}
+                      className="rounded-lg border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-600 hover:bg-stone-50 transition-colors">
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-start justify-between gap-4">
+                  <p className="text-xs text-stone-400 italic flex-1">
+                    {delivery.notes || "No notes"}
+                  </p>
+                  <button
+                    onClick={() => { setNotesValue(delivery.notes ?? ""); setNotesEditing(true); }}
+                    className="shrink-0 text-xs text-stone-400 hover:text-stone-700 transition-colors"
+                  >
+                    {delivery.notes ? "Edit" : "Add"}
+                  </button>
+                </div>
+              )}
+            </div>
 
             {/* Progress */}
             <div className="border-t border-stone-100 pt-4 space-y-3">

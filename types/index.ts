@@ -63,6 +63,7 @@ export interface Delivery {
   deliveryCode: string;
   consignerName: string;
   consignerJNumber?: string; // optional warehouse J-Number
+  zoneId?: string;           // receiving zone
   expectedRackCount: number; // 0 = unknown (common for walk-ins)
   type: DeliveryType;
   status: DeliveryStatus;
@@ -72,6 +73,11 @@ export interface Delivery {
   notes?: string;
   createdAt: string;     // ISO 8601
   updatedAt: string;     // ISO 8601
+}
+
+export interface UpdateDeliveryInput {
+  notes?: string | null;
+  zoneId?: string | null;
 }
 
 // ── Zone ─────────────────────────────────────────────────────────────────────
@@ -96,6 +102,7 @@ export interface CreateDeliveryInput {
   type: DeliveryType;
   consignerName: string;
   consignerJNumber?: string;
+  zoneId?: string;
   expectedRackCount: number;
   scheduledDate?: string; // optional for walk-ins (defaults to today)
   notes?: string;

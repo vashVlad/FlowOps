@@ -12,7 +12,7 @@
  */
 
 import { supabase } from "@/lib/supabase";
-import type { Rack, Delivery, Zone, HistoryEvent, RackStatus, Priority, DeliveryStatus, DeliveryType, UpdateRackInput } from "@/types";
+import type { Rack, Delivery, Zone, HistoryEvent, RackStatus, Priority, DeliveryStatus, DeliveryType, UpdateRackInput, UpdateDeliveryInput } from "@/types";
 
 // ── DB row types (snake_case, nullable where Postgres allows NULL) ─────────────
 // Replace these with the generated types from `supabase gen types` in production.
@@ -36,6 +36,7 @@ export interface DeliveryRow {
   delivery_code: string;
   consigner_name: string;
   consigner_j_number: string | null;
+  zone_id: string | null;
   expected_rack_count: number;
   type: DeliveryType;
   status: DeliveryStatus;
@@ -87,6 +88,7 @@ export function toDelivery(row: DeliveryRow): Delivery {
     deliveryCode:       row.delivery_code,
     consignerName:      row.consigner_name,
     consignerJNumber:   row.consigner_j_number ?? undefined,
+    zoneId:             row.zone_id            ?? undefined,
     expectedRackCount:  row.expected_rack_count,
     type:               row.type,
     status:             row.status,
@@ -324,6 +326,7 @@ export async function createDelivery(input: {
   type: DeliveryType;
   consignerName: string;
   consignerJNumber?: string;
+  zoneId?: string;
   expectedRackCount: number;
   scheduledDate: string;
   notes?: string;
@@ -336,6 +339,7 @@ export async function createDelivery(input: {
     .insert({
       consigner_name:       input.consignerName,
       consigner_j_number:   input.consignerJNumber?.trim() || null,
+      zone_id:              input.zoneId ?? null,
       expected_rack_count:  input.expectedRackCount,
       type:                 input.type,
       status:               isWalkin ? "arrived" : "scheduled",
@@ -343,6 +347,23 @@ export async function createDelivery(input: {
       arrived_at:           isWalkin ? now : null,
       notes:                input.notes ?? null,
     })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return toDelivery(data as DeliveryRow);
+}
+
+/** Update delivery notes and/or zone. */
+export async function updateDelivery(deliveryId: string, patch: UpdateDeliveryInput): Promise<Delivery> {
+  const update: Record<string, unknown> = {};
+  if ("notes" in patch) update.notes   = patch.notes   ?? null;
+  if ("zoneId" in patch) update.zone_id = patch.zoneId ?? null;
+
+  const { data, error } = await supabase
+    .from("deliveries")
+    .update(update)
+    .eq("id", deliveryId)
     .select()
     .single();
 
@@ -405,14 +426,24 @@ export async function archiveCompletedRacks(): Promise<number> {
 
 /** Permanently delete a rack and its events (cascade). */
 export async function deleteRack(rackId: string): Promise<void> {
-  const { error } = await supabase.from("racks").delete().eq("id", rackId);
+  const { data, error } = await supabase
+    .from("racks")
+    .delete()
+    .eq("id", rackId)
+    .select("id");
   if (error) throw error;
+  if (!data?.length) throw new Error("Delete failed — row not found or access denied");
 }
 
 /** Permanently delete a delivery. */
 export async function deleteDelivery(deliveryId: string): Promise<void> {
-  const { error } = await supabase.from("deliveries").delete().eq("id", deliveryId);
+  const { data, error } = await supabase
+    .from("deliveries")
+    .delete()
+    .eq("id", deliveryId)
+    .select("id");
   if (error) throw error;
+  if (!data?.length) throw new Error("Delete failed — row not found or access denied");
 }
 
 /** Create a zone. */

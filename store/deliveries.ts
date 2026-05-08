@@ -1,10 +1,11 @@
 import { create } from "zustand";
-import type { Delivery, DeliveryStatus, CreateDeliveryInput } from "@/types";
+import type { Delivery, DeliveryStatus, CreateDeliveryInput, UpdateDeliveryInput } from "@/types";
 import { ok, err, logMutationError, type MutationResult } from "@/lib/store";
 import { today } from "@/lib/utils";
 import {
   fetchDeliveries,
   createDelivery as dbCreate,
+  updateDelivery as dbUpdate,
   setDeliveryStatus,
   deleteDelivery as dbDelete,
 } from "@/supabase/queries";
@@ -13,10 +14,11 @@ interface DeliveriesStore {
   deliveries: Delivery[];
   loading:    boolean;
   error:      string | null;
-  hydrate:        () => Promise<void>;
-  addDelivery:    (input: CreateDeliveryInput) => Promise<MutationResult<Delivery>>;
-  setStatus:      (id: string, status: DeliveryStatus) => Promise<MutationResult<undefined>>;
-  deleteDelivery: (id: string) => Promise<MutationResult<undefined>>;
+  hydrate:          () => Promise<void>;
+  addDelivery:      (input: CreateDeliveryInput) => Promise<MutationResult<Delivery>>;
+  updateDelivery:   (id: string, patch: UpdateDeliveryInput) => Promise<MutationResult<Delivery>>;
+  setStatus:        (id: string, status: DeliveryStatus) => Promise<MutationResult<undefined>>;
+  deleteDelivery:   (id: string) => Promise<MutationResult<undefined>>;
   // ── Subscription callbacks (realtime — do not call directly) ──────────────
   upsertDelivery: (delivery: Delivery) => void;  // INSERT / UPDATE
   removeDelivery: (id: string) => void;          // DELETE
@@ -78,6 +80,21 @@ export const useDeliveriesStore = create<DeliveriesStore>()((set) => ({
       return ok(undefined);
     } catch (e) {
       const message = logMutationError("setStatus:delivery", e);
+      set({ error: message });
+      return err(message);
+    }
+  },
+
+  updateDelivery: async (id, patch) => {
+    set({ error: null });
+    try {
+      const delivery = await dbUpdate(id, patch);
+      set((state) => ({
+        deliveries: state.deliveries.map((d) => d.id === id ? delivery : d),
+      }));
+      return ok(delivery);
+    } catch (e) {
+      const message = logMutationError("updateDelivery", e);
       set({ error: message });
       return err(message);
     }

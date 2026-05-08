@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useDeliveriesStore } from "@/store/deliveries";
 import { useRacksStore } from "@/store/racks";
+import { useZonesStore } from "@/store/zones";
+import Select from "@/components/Select";
 import DeliveryStatusBadge from "@/components/DeliveryStatusBadge";
 import { LoadingCards } from "@/components/LoadingCards";
 import ErrorBanner from "@/components/ErrorBanner";
@@ -38,11 +40,13 @@ export default function DeliveriesPage() {
   const { deliveries, loading, error: storeError, addDelivery, setStatus } = useDeliveriesStore();
   function clearStoreError() { useDeliveriesStore.setState({ error: null }); }
   const { racks } = useRacksStore();
+  const { zones } = useZonesStore();
 
   const [showForm, setShowForm] = useState(false);
   const [formMode, setFormMode] = useState<FormMode>("walkin");
   const [consignerName, setConsignerName] = useState("");
   const [jNumber, setJNumber] = useState("");
+  const [zoneId, setZoneId] = useState("");
   const [error, setError] = useState("");
   const [walkinCount, setWalkinCount] = useState("");
   const [expectedCount, setExpectedCount] = useState("");
@@ -53,7 +57,7 @@ export default function DeliveriesPage() {
   const summary  = getConsignerSummary(consignerName, deliveries, racks);
 
   function resetForm() {
-    setConsignerName(""); setJNumber(""); setError(""); setWalkinCount("");
+    setConsignerName(""); setJNumber(""); setZoneId(""); setError(""); setWalkinCount("");
     setExpectedCount(""); setScheduledDate(today()); setNotes("");
   }
 
@@ -65,6 +69,7 @@ export default function DeliveriesPage() {
       type: "walkin",
       consignerName: consignerName.trim(),
       consignerJNumber: jNumber.trim() || undefined,
+      zoneId: zoneId || undefined,
       expectedRackCount: Number(walkinCount) || 0,
     });
     if (!result.ok) return;
@@ -83,6 +88,7 @@ export default function DeliveriesPage() {
       type: "scheduled",
       consignerName: consignerName.trim(),
       consignerJNumber: jNumber.trim() || undefined,
+      zoneId: zoneId || undefined,
       expectedRackCount: count,
       scheduledDate,
       notes: notes.trim() || undefined,
@@ -136,9 +142,6 @@ export default function DeliveriesPage() {
 
           {formMode === "walkin" ? (
             <form onSubmit={handleWalkinSubmit} className="space-y-3">
-              <p className="text-xs text-stone-400">
-                Truck just arrived — register now and add racks on the next screen.
-              </p>
               <div className="space-y-1">
                 <input type="text" placeholder="Consigner name" value={consignerName}
                   onChange={(e) => setConsignerName(e.target.value)} className={inputCls} autoFocus />
@@ -152,6 +155,12 @@ export default function DeliveriesPage() {
               </div>
               <input type="text" placeholder="J-Number (optional, e.g. J-10294)" value={jNumber}
                 onChange={(e) => setJNumber(e.target.value)} className={inputCls} />
+              <Select value={zoneId} onChange={(e) => setZoneId(e.target.value)}>
+                <option value="">Zone (optional)</option>
+                {zones.map((z) => (
+                  <option key={z.id} value={z.id}>{z.name}{z.label ? ` — ${z.label}` : ""}</option>
+                ))}
+              </Select>
               <input type="number" placeholder="Estimated rack count (optional)" value={walkinCount}
                 onChange={(e) => setWalkinCount(e.target.value)} min={0} className={inputCls} />
               {error && <p className="text-xs text-red-500">{error}</p>}
@@ -175,6 +184,12 @@ export default function DeliveriesPage() {
               </div>
               <input type="text" placeholder="J-Number (optional, e.g. J-10294)" value={jNumber}
                 onChange={(e) => setJNumber(e.target.value)} className={inputCls} />
+              <Select value={zoneId} onChange={(e) => setZoneId(e.target.value)}>
+                <option value="">Zone (optional)</option>
+                {zones.map((z) => (
+                  <option key={z.id} value={z.id}>{z.name}{z.label ? ` — ${z.label}` : ""}</option>
+                ))}
+              </Select>
               <input type="number" placeholder="Expected rack count" value={expectedCount}
                 onChange={(e) => setExpectedCount(e.target.value)} min={1} className={inputCls} />
               <input type="date" value={scheduledDate}
@@ -229,6 +244,7 @@ export default function DeliveriesPage() {
             const total      = Math.max(delivery.expectedRackCount, linked.length);
             const pct        = total > 0 ? Math.round((done.length / total) * 100) : 0;
             const nextStatus = NEXT_STATUS[delivery.status];
+            const zone       = delivery.zoneId ? zones.find((z) => z.id === delivery.zoneId) : undefined;
 
             return (
               <li
@@ -251,6 +267,7 @@ export default function DeliveriesPage() {
                     <p className="text-sm text-stone-600">{delivery.consignerName}</p>
                     <p className="mt-1 text-xs text-stone-400">
                       {delivery.type === "walkin" ? "Arrived today" : `Scheduled ${formatDate(delivery.scheduledDate)}`}
+                      {zone && <><span className="mx-1">·</span><span className="font-medium text-stone-500">{zone.name}</span></>}
                       {" · "}
                       {delivery.expectedRackCount > 0
                         ? `${linked.length} / ${delivery.expectedRackCount} racks`
