@@ -199,17 +199,13 @@ function RackCard({
               {zone.name}
             </Link>
           )}
-          {zone && delivery && <span className="text-stone-200">·</span>}
-          {delivery && (
-            <Link href={`/deliveries/${delivery.id}`} onClick={(e) => e.stopPropagation()}
-              className="text-stone-400 hover:text-orange-600 transition-colors">
-              {delivery.deliveryCode}
-            </Link>
-          )}
           {delivery?.consignerJNumber && (
             <>
-              <span className="text-stone-200">·</span>
-              <span className="font-mono text-stone-400">{delivery.consignerJNumber}</span>
+              {zone && <span className="text-stone-200">·</span>}
+              <Link href={`/deliveries/${delivery.id}`} onClick={(e) => e.stopPropagation()}
+                className="font-mono text-stone-400 hover:text-orange-600 transition-colors">
+                {delivery.consignerJNumber}
+              </Link>
             </>
           )}
         </div>
