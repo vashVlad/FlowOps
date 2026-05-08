@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useRacksStore } from "@/store/racks";
@@ -10,6 +10,7 @@ import { useZonesStore } from "@/store/zones";
 import StatusBadge from "@/components/StatusBadge";
 import { SectionLabel } from "@/components/ui/Card";
 import CustomSelect from "@/components/ui/CustomSelect";
+import PriorityPicker from "@/components/ui/PriorityPicker";
 import { timeAgo, formatTime, formatDuration } from "@/lib/utils";
 import { getZoneOccupancy } from "@/lib/zones";
 import {
@@ -20,15 +21,24 @@ import {
 } from "@/lib/timeTracking";
 import { PIPELINE_STAGES, NEXT_STAGE_LABEL } from "@/lib/tokens";
 import { useToastStore } from "@/store/toast";
+import type { Priority } from "@/types";
+
+const inputCls = "w-full rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500";
 
 const STAGE_STEPS = PIPELINE_STAGES.map((s) => s.status);
 
 export default function RackDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { racks, history, advanceStatus, moveToZone } = useRacksStore();
+  const { racks, history, advanceStatus, moveToZone, updateRack } = useRacksStore();
   const addToast = useToastStore((s) => s.add);
   const { deliveries } = useDeliveriesStore();
   const { zones } = useZonesStore();
+
+  const [editOpen,     setEditOpen]     = useState(false);
+  const [editRackCode, setEditRackCode] = useState("");
+  const [editPriority, setEditPriority] = useState<Priority>("normal");
+  const [editNotes,    setEditNotes]    = useState("");
+  const [editError,    setEditError]    = useState("");
 
   const rack = racks.find((r) => r.id === id);
 
@@ -68,6 +78,31 @@ export default function RackDetailPage() {
     }),
   ];
 
+  function openEdit() {
+    setEditRackCode(rack!.rackCode);
+    setEditPriority(rack!.priority);
+    setEditNotes(rack!.notes ?? "");
+    setEditError("");
+    setEditOpen(true);
+  }
+
+  async function handleEditSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editRackCode.trim()) return setEditError("Rack ID required.");
+    setEditError("");
+    const result = await updateRack(rack!.id, {
+      rackCode: editRackCode.trim(),
+      priority: editPriority,
+      notes: editNotes.trim() || null,
+    });
+    if (!result.ok) {
+      setEditError(result.error);
+      return;
+    }
+    setEditOpen(false);
+    addToast("Rack updated");
+  }
+
   return (
     <div className="space-y-4">
       <Link href="/racks" className="inline-flex items-center gap-1.5 text-sm text-stone-400 hover:text-stone-700 transition-colors">
@@ -81,6 +116,29 @@ export default function RackDetailPage() {
         <div className="rounded-xl border border-stone-200 bg-white shadow-sm overflow-hidden">
           <div className="h-0.5 bg-orange-500" />
           <div className="p-5 space-y-5">
+
+            {/* Inline edit form */}
+            {editOpen && (
+              <form onSubmit={handleEditSave} className="rounded-lg border border-stone-200 bg-stone-50 p-4 space-y-2.5">
+                <p className="text-xs font-semibold text-stone-700">Edit rack</p>
+                <input type="text" placeholder="Rack ID (e.g. RC-0042)" value={editRackCode}
+                  onChange={(e) => { setEditRackCode(e.target.value); setEditError(""); }} className={inputCls} autoFocus />
+                <PriorityPicker value={editPriority} onChange={setEditPriority} />
+                <input type="text" placeholder="Notes (optional)" value={editNotes}
+                  onChange={(e) => setEditNotes(e.target.value)} className={inputCls} />
+                {editError && <p className="text-xs text-red-500">{editError}</p>}
+                <div className="flex gap-2">
+                  <button type="submit"
+                    className="rounded-lg bg-orange-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-700 transition-colors">
+                    Save
+                  </button>
+                  <button type="button" onClick={() => setEditOpen(false)}
+                    className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm font-medium text-stone-600 hover:bg-stone-50 transition-colors">
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
 
             {/* Header */}
             <div className="flex items-start justify-between gap-4">
@@ -100,20 +158,33 @@ export default function RackDetailPage() {
                   ) : null}
                 </div>
                 <p className="mt-1 text-sm text-stone-400">{rack.consignerName}</p>
+                {delivery?.consignerJNumber && (
+                  <p className="mt-0.5 text-xs text-stone-400 font-mono">{delivery.consignerJNumber}</p>
+                )}
               </div>
-              <button
-                onClick={async () => {
-                  const next = NEXT_STAGE_LABEL[rack.status];
-                  const result = await advanceStatus(rack.id);
-                  if (result.ok && next) addToast(`Moved to ${next}`);
-                }}
-                disabled={rack.status === "completed"}
-                className={`shrink-0 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
-                  isCritical ? "bg-red-500 hover:bg-red-600" : "bg-orange-600 hover:bg-orange-700"
-                }`}
-              >
-                Next →
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                {!editOpen && (
+                  <button
+                    onClick={openEdit}
+                    className="text-xs text-stone-400 hover:text-stone-700 transition-colors"
+                  >
+                    Edit
+                  </button>
+                )}
+                <button
+                  onClick={async () => {
+                    const next = NEXT_STAGE_LABEL[rack.status];
+                    const result = await advanceStatus(rack.id);
+                    if (result.ok && next) addToast(`Moved to ${next}`);
+                  }}
+                  disabled={rack.status === "completed"}
+                  className={`rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+                    isCritical ? "bg-red-500 hover:bg-red-600" : "bg-orange-600 hover:bg-orange-700"
+                  }`}
+                >
+                  Next →
+                </button>
+              </div>
             </div>
 
             {/* Metadata */}

@@ -31,6 +31,13 @@ export interface CreateRackInput {
   zoneId?: string;
   deliveryId: string;
   notes?: string;
+  rackCode?: string; // optional manual override; auto-generated if omitted
+}
+
+export interface UpdateRackInput {
+  rackCode?: string;
+  priority?: Priority;
+  notes?: string | null;
 }
 
 // ── History ──────────────────────────────────────────────────────────────────
@@ -55,6 +62,7 @@ export interface Delivery {
   id: string;
   deliveryCode: string;
   consignerName: string;
+  consignerJNumber?: string; // optional warehouse J-Number
   expectedRackCount: number; // 0 = unknown (common for walk-ins)
   type: DeliveryType;
   status: DeliveryStatus;
@@ -87,6 +95,7 @@ export type OccupancyStatus = "ok" | "near" | "full";
 export interface CreateDeliveryInput {
   type: DeliveryType;
   consignerName: string;
+  consignerJNumber?: string;
   expectedRackCount: number;
   scheduledDate?: string; // optional for walk-ins (defaults to today)
   notes?: string;

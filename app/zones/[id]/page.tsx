@@ -5,7 +5,9 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useZonesStore } from "@/store/zones";
 import { useRacksStore } from "@/store/racks";
+import { useDeliveriesStore } from "@/store/deliveries";
 import StatusBadge from "@/components/StatusBadge";
+import { StageStrip } from "@/app/racks/page";
 import { timeAgo, formatDuration } from "@/lib/utils";
 import { getZoneOccupancy } from "@/lib/zones";
 import { isRackStuck, getTimeInCurrentStatus, WAITING_STAGES } from "@/lib/timeTracking";
@@ -19,6 +21,7 @@ export default function ZoneDetailPage() {
   const router = useRouter();
   const { zones, updateZone } = useZonesStore();
   const { racks, history, advanceStatus } = useRacksStore();
+  const { deliveries } = useDeliveriesStore();
 
   const [editing, setEditing]           = useState(false);
   const [editLabel, setEditLabel]       = useState("");
@@ -89,7 +92,7 @@ export default function ZoneDetailPage() {
   }
 
   return (
-    <div className="space-y-5 lg:max-w-3xl">
+    <div className="space-y-5">
       <Link href="/zones" className="inline-flex items-center gap-1.5 text-sm text-stone-400 hover:text-stone-700 transition-colors">
         ← Zones
       </Link>
@@ -232,36 +235,48 @@ export default function ZoneDetailPage() {
             <p className="text-xs text-stone-400">Assign racks to this zone from the rack detail page.</p>
           </div>
         ) : (
-          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
             {zoneRacks.map((rack) => {
               const isWaiting = WAITING_STAGES.has(rack.status);
               const stuck     = !isWaiting && isRackStuck(rack, history);
+              const delivery  = deliveries.find((d) => d.id === rack.deliveryId);
               return (
                 <li key={rack.id} onClick={() => router.push(`/racks/${rack.id}`)}
-                  className="cursor-pointer flex items-center justify-between rounded-xl border border-stone-200 bg-white px-4 py-3 shadow-sm hover:shadow-md hover:-translate-y-px transition-all duration-150">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <p className="text-sm font-bold text-stone-900">{rack.rackCode}</p>
-                      {stuck && (
-                        <span className="rounded-md bg-red-50 px-1.5 py-0.5 text-[10px] text-red-400">delayed</span>
-                      )}
-                      {rack.priority === "high" && !stuck && (
-                        <span className="rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">high</span>
-                      )}
+                  className="cursor-pointer rounded-xl border border-stone-200 bg-white shadow-sm hover:shadow-md hover:-translate-y-px transition-all duration-150 overflow-hidden">
+                  <div className="px-4 pt-3 pb-2 space-y-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <p className="font-mono text-sm font-bold text-stone-900 truncate">{rack.rackCode}</p>
+                        {stuck && (
+                          <span className="rounded-md bg-red-50 px-1.5 py-0.5 text-[10px] text-red-400 shrink-0">delayed</span>
+                        )}
+                        {rack.priority === "high" && !stuck && (
+                          <span className="rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 shrink-0">high</span>
+                        )}
+                      </div>
+                      <span className="text-[11px] text-stone-400 shrink-0">{timeAgo(rack.updatedAt)}</span>
                     </div>
-                    <p className="text-xs text-stone-400 mt-0.5">
-                      {rack.consignerName} · {timeAgo(rack.updatedAt)}
+                    <p className="text-xs text-stone-400 truncate">
+                      {rack.consignerName}
+                      {delivery?.consignerJNumber && (
+                        <span className="font-mono ml-1.5">{delivery.consignerJNumber}</span>
+                      )}
                     </p>
+                    <StageStrip status={rack.status} />
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="px-4 pb-3 flex items-center justify-between gap-2">
                     <StatusBadge status={rack.status} />
-                    <button
-                      onClick={(e) => { e.stopPropagation(); advanceStatus(rack.id); }}
-                      disabled={rack.status === "completed"}
-                      className="rounded-lg bg-orange-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-40 transition-colors"
-                    >
-                      Next
-                    </button>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Link href={`/racks/${rack.id}`} onClick={(e) => e.stopPropagation()}
+                        className="text-xs text-stone-400 hover:text-orange-600 transition-colors">Edit</Link>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); advanceStatus(rack.id); }}
+                        disabled={rack.status === "completed"}
+                        className="rounded-lg bg-orange-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-40 transition-colors"
+                      >
+                        Next
+                      </button>
+                    </div>
                   </div>
                 </li>
               );

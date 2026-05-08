@@ -355,11 +355,16 @@ function ZoneMap({ zones, racks }: { zones: Zone[]; racks: Rack[] }) {
 
   function cell(name: string) {
     const z = byName.get(name);
-    return z ? <ZoneCell key={z.id} zone={z} count={occupancy.get(z.id) ?? 0} /> : <div key={name} />;
+    if (z) return <ZoneCell key={z.id} zone={z} count={occupancy.get(z.id) ?? 0} />;
+    return (
+      <div key={name} className="rounded-lg border border-dashed border-stone-200 p-2 opacity-40">
+        <span className="text-xs font-bold text-stone-400 leading-none">{name}</span>
+      </div>
+    );
   }
 
-  const hasGallery   = ["G1","G2","G3","G4","G5","G6","PU"].some((n) => byName.has(n));
-  const hasWarehouse = ["W1","W2","W3","W4","W5","W6","W7"].some((n) => byName.has(n));
+  const hasGallery   = ["G4","G5","G6","G7","G2","G1","PU"].some((n) => byName.has(n));
+  const hasWarehouse = ["W4","W5","W6","W3","W8","W7","W2","W9","W1","W10","B","C"].some((n) => byName.has(n));
   if (!hasGallery && !hasWarehouse) return null;
 
   return (
@@ -377,8 +382,8 @@ function ZoneMap({ zones, racks }: { zones: Zone[]; racks: Rack[] }) {
         <div>
           <p className="text-[10px] uppercase tracking-wide text-stone-400 mb-1.5">Gallery</p>
           <div className="grid grid-cols-4 gap-1.5">
-            {cell("G1")} {cell("G2")} {cell("G3")} {cell("G4")}
-            {cell("PU")} {cell("G5")} {cell("G6")}
+            {cell("G4")} {cell("G5")} {cell("G6")} {cell("G7")}
+            {cell("PU")} {cell("G2")} {cell("G1")} <div key="g-empty" />
           </div>
         </div>
       )}
@@ -395,9 +400,10 @@ function ZoneMap({ zones, racks }: { zones: Zone[]; racks: Rack[] }) {
         <div>
           <p className="text-[10px] uppercase tracking-wide text-stone-400 mb-1.5">Warehouse</p>
           <div className="grid grid-cols-3 gap-1.5">
-            {cell("W1")} {cell("W2")} {cell("W3")}
-            {cell("W6")} {cell("W7")} {cell("W4")}
-            <div />       <div />       {cell("W5")}
+            {cell("W4")}  {cell("W5")}  {cell("W6")}
+            {cell("W3")}  {cell("W8")}  {cell("W7")}
+            {cell("W2")}  {cell("W9")}  {cell("B")}
+            {cell("W1")}  {cell("W10")} {cell("C")}
           </div>
         </div>
       )}

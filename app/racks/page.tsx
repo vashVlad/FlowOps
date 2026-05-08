@@ -148,7 +148,7 @@ function RackCard({
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 text-[11px]">
+        <div className="flex items-center gap-1.5 text-[11px] flex-wrap">
           {zone && (
             <Link
               href={`/zones/${zone.id}`}
@@ -168,15 +168,21 @@ function RackCard({
               {delivery.deliveryCode}
             </Link>
           )}
+          {delivery?.consignerJNumber && (
+            <>
+              <span className="text-stone-200">·</span>
+              <span className="font-mono text-stone-400">{delivery.consignerJNumber}</span>
+            </>
+          )}
         </div>
       </div>
 
-      {/* BOTTOM — primary action */}
-      <div className="px-4 pb-2.5">
+      {/* BOTTOM — primary action + edit */}
+      <div className="px-4 pb-2.5 flex items-center gap-2">
         <button
           onClick={(e) => { e.stopPropagation(); onAdvance(); }}
           disabled={isCompleted}
-          className={`w-full rounded-lg py-1 text-xs font-medium transition-colors ${
+          className={`flex-1 rounded-lg py-1 text-xs font-medium transition-colors ${
             isCompleted
               ? "bg-stone-50 text-stone-300 cursor-default border border-stone-100"
               : isCritical
@@ -186,6 +192,13 @@ function RackCard({
         >
           {isCompleted ? "Completed" : `Move to ${nextLabel} →`}
         </button>
+        <Link
+          href={`/racks/${rack.id}`}
+          onClick={(e) => e.stopPropagation()}
+          className="shrink-0 rounded-lg border border-stone-200 px-2 py-1 text-xs text-stone-500 hover:bg-stone-50 hover:text-stone-800 transition-colors"
+        >
+          Edit
+        </Link>
       </div>
     </li>
   );
@@ -208,6 +221,7 @@ function RacksContent() {
   const [filter, setFilter]               = useState<RackFilter>("all");
   const [showForm, setShowForm]           = useState(!!preselectedDelivery);
   const [consignerName, setConsignerName] = useState("");
+  const [rackCodeInput, setRackCodeInput] = useState("");
   const [priority, setPriority]           = useState<Priority>("normal");
   const [zoneId, setZoneId]               = useState("");
   const [deliveryId, setDeliveryId]       = useState(preselectedDelivery);
@@ -221,10 +235,22 @@ function RacksContent() {
     if (!consignerName.trim()) return setFormError("Consigner name required.");
     if (!deliveryId)           return setFormError("Select a delivery.");
     setFormError("");
-    const result = await addRack({ consignerName: consignerName.trim(), priority, zoneId: zoneId || undefined, deliveryId, notes: notes.trim() || undefined });
-    setConsignerName(""); setPriority("normal"); setZoneId(""); setDeliveryId(preselectedDelivery); setNotes("");
+    const result = await addRack({
+      consignerName: consignerName.trim(),
+      priority,
+      zoneId: zoneId || undefined,
+      deliveryId,
+      notes: notes.trim() || undefined,
+      rackCode: rackCodeInput.trim() || undefined,
+    });
+    if (!result.ok) {
+      setFormError(result.error);
+      return;
+    }
+    setConsignerName(""); setRackCodeInput(""); setPriority("normal"); setZoneId("");
+    setDeliveryId(preselectedDelivery); setNotes("");
     setShowForm(false);
-    if (result.ok) addToast(`${result.data.rackCode} added`);
+    addToast(`${result.data.rackCode} added`);
   }
 
   const q = query.toLowerCase();
@@ -268,6 +294,8 @@ function RacksContent() {
           <p className="text-sm font-semibold text-stone-900">New rack</p>
           <input type="text" placeholder="Consigner name" value={consignerName}
             onChange={(e) => setConsignerName(e.target.value)} className={inputCls} autoFocus />
+          <input type="text" placeholder="Rack ID (optional — auto-generated if blank)" value={rackCodeInput}
+            onChange={(e) => { setRackCodeInput(e.target.value); setFormError(""); }} className={inputCls} />
           <PriorityPicker value={priority} onChange={setPriority} />
           <Select value={zoneId} onChange={(e) => setZoneId(e.target.value)}>
             <option value="">No zone assigned</option>

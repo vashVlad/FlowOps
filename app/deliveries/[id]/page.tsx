@@ -34,6 +34,8 @@ export default function DeliveryDetailPage() {
 
   const [addOpen, setAddOpen]         = useState(false);
   const [addPriority, setAddPriority] = useState<Priority>("normal");
+  const [addRackCode, setAddRackCode] = useState("");
+  const [addRackError, setAddRackError] = useState("");
 
   const delivery = deliveries.find((d) => d.id === id);
 
@@ -64,14 +66,23 @@ export default function DeliveryDetailPage() {
     count: linked.filter((r) => r.status === status).length,
   }));
 
+  const inputCls = "w-full rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500";
+
   async function handleAddRack() {
     const result = await addRack({
       consignerName: delivery!.consignerName,
       priority: addPriority,
       deliveryId: delivery!.id,
+      rackCode: addRackCode.trim() || undefined,
     });
+    if (!result.ok) {
+      setAddRackError(result.error);
+      return;
+    }
     setAddPriority("normal");
-    if (result.ok) addToast(`${result.data.rackCode} added`);
+    setAddRackCode("");
+    setAddRackError("");
+    addToast(`${result.data.rackCode} added`);
   }
 
   return (
@@ -99,6 +110,9 @@ export default function DeliveryDetailPage() {
                   )}
                 </div>
                 <p className="mt-1 text-sm text-stone-400">{delivery.consignerName}</p>
+                {delivery.consignerJNumber && (
+                  <p className="mt-0.5 text-xs text-stone-400 font-mono">{delivery.consignerJNumber}</p>
+                )}
               </div>
               {nextStatus && (
                 <button
@@ -182,7 +196,7 @@ export default function DeliveryDetailPage() {
           <div className="mb-3 flex items-center justify-between">
             <SectionLabel>Racks ({linked.length})</SectionLabel>
             <button
-              onClick={() => setAddOpen((v) => !v)}
+              onClick={() => { setAddOpen((v) => !v); setAddRackCode(""); setAddRackError(""); }}
               className="rounded-lg bg-orange-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-700 transition-colors"
             >
               {addOpen ? "Cancel" : "+ Add rack"}
@@ -191,7 +205,10 @@ export default function DeliveryDetailPage() {
 
           {addOpen && (
             <div className="mb-3 rounded-xl border border-stone-200 bg-white p-3 shadow-sm space-y-2.5">
+              <input type="text" placeholder="Rack ID (optional — auto-generated if blank)" value={addRackCode}
+                onChange={(e) => { setAddRackCode(e.target.value); setAddRackError(""); }} className={inputCls} />
               <PriorityPicker value={addPriority} onChange={setAddPriority} />
+              {addRackError && <p className="text-xs text-red-500">{addRackError}</p>}
               <button
                 onClick={handleAddRack}
                 className="w-full rounded-lg bg-orange-600 py-2 text-sm font-medium text-white hover:bg-orange-700 transition-colors"

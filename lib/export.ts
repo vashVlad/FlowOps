@@ -76,7 +76,7 @@ export function exportDeliveries(
   racks:      Rack[]
 ): void {
   const headers = [
-    "Delivery Code", "Consigner", "Type", "Status",
+    "Delivery Code", "Consigner", "J-Number", "Type", "Status",
     "Scheduled Date", "Arrived At", "Completed At",
     "Expected Racks", "Linked Racks", "Done Racks", "Progress %",
   ];
@@ -89,6 +89,7 @@ export function exportDeliveries(
     return [
       d.deliveryCode,
       d.consignerName,
+      d.consignerJNumber ?? "",
       d.type,
       d.status,
       d.scheduledDate,

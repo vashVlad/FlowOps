@@ -42,6 +42,7 @@ export default function DeliveriesPage() {
   const [showForm, setShowForm] = useState(false);
   const [formMode, setFormMode] = useState<FormMode>("walkin");
   const [consignerName, setConsignerName] = useState("");
+  const [jNumber, setJNumber] = useState("");
   const [error, setError] = useState("");
   const [walkinCount, setWalkinCount] = useState("");
   const [expectedCount, setExpectedCount] = useState("");
@@ -52,7 +53,7 @@ export default function DeliveriesPage() {
   const summary  = getConsignerSummary(consignerName, deliveries, racks);
 
   function resetForm() {
-    setConsignerName(""); setError(""); setWalkinCount("");
+    setConsignerName(""); setJNumber(""); setError(""); setWalkinCount("");
     setExpectedCount(""); setScheduledDate(today()); setNotes("");
   }
 
@@ -63,6 +64,7 @@ export default function DeliveriesPage() {
     const result = await addDelivery({
       type: "walkin",
       consignerName: consignerName.trim(),
+      consignerJNumber: jNumber.trim() || undefined,
       expectedRackCount: Number(walkinCount) || 0,
     });
     if (!result.ok) return;
@@ -80,6 +82,7 @@ export default function DeliveriesPage() {
     addDelivery({
       type: "scheduled",
       consignerName: consignerName.trim(),
+      consignerJNumber: jNumber.trim() || undefined,
       expectedRackCount: count,
       scheduledDate,
       notes: notes.trim() || undefined,
@@ -147,6 +150,8 @@ export default function DeliveriesPage() {
                     }} />
                 )}
               </div>
+              <input type="text" placeholder="J-Number (optional, e.g. J-10294)" value={jNumber}
+                onChange={(e) => setJNumber(e.target.value)} className={inputCls} />
               <input type="number" placeholder="Estimated rack count (optional)" value={walkinCount}
                 onChange={(e) => setWalkinCount(e.target.value)} min={0} className={inputCls} />
               {error && <p className="text-xs text-red-500">{error}</p>}
@@ -168,6 +173,8 @@ export default function DeliveriesPage() {
                     }} />
                 )}
               </div>
+              <input type="text" placeholder="J-Number (optional, e.g. J-10294)" value={jNumber}
+                onChange={(e) => setJNumber(e.target.value)} className={inputCls} />
               <input type="number" placeholder="Expected rack count" value={expectedCount}
                 onChange={(e) => setExpectedCount(e.target.value)} min={1} className={inputCls} />
               <input type="date" value={scheduledDate}
@@ -240,6 +247,9 @@ export default function DeliveriesPage() {
                       )}
                     </div>
                     <p className="text-sm text-stone-600">{delivery.consignerName}</p>
+                    {delivery.consignerJNumber && (
+                      <p className="text-xs text-stone-400 font-mono">{delivery.consignerJNumber}</p>
+                    )}
                     <p className="mt-1 text-xs text-stone-400">
                       {delivery.type === "walkin" ? "Arrived today" : `Scheduled ${formatDate(delivery.scheduledDate)}`}
                       {" · "}

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Rack, RackStatus, HistoryEvent, CreateRackInput } from "@/types";
+import type { Rack, RackStatus, HistoryEvent, CreateRackInput, UpdateRackInput } from "@/types";
 import { ok, err, logMutationError, type MutationResult } from "@/lib/store";
 import { STATUS_ORDER, getNextStatus } from "@/lib/racks";
 import { useDeliveriesStore } from "@/store/deliveries";
@@ -7,6 +7,7 @@ import {
   fetchRacks,
   fetchAllRackEvents,
   createRack as dbCreate,
+  updateRack as dbUpdate,
   advanceRackStatus as dbAdvance,
   moveRackToZone as dbMoveToZone,
   archiveCompletedRacks as dbArchiveCompleted,
@@ -19,6 +20,7 @@ interface RacksStore {
   error:   string | null;
   hydrate:            () => Promise<void>;
   addRack:            (input: CreateRackInput) => Promise<MutationResult<Rack>>;
+  updateRack:         (id: string, patch: UpdateRackInput) => Promise<MutationResult<Rack>>;
   advanceStatus:      (id: string) => Promise<MutationResult<undefined>>;
   moveToZone:         (rackId: string, zoneId: string | undefined) => Promise<MutationResult<undefined>>;
   closeAuctionCycle:  () => Promise<MutationResult<number>>;
@@ -60,7 +62,22 @@ export const useRacksStore = create<RacksStore>()((set, get) => ({
       set((state) => ({ racks: [...state.racks, rack] }));
       return ok(rack);
     } catch (e) {
-      const message = logMutationError("addRack", e);
+      const isUnique = typeof e === "object" && e !== null && "code" in e && (e as { code: string }).code === "23505";
+      const message  = isUnique ? "Rack ID already exists" : logMutationError("addRack", e);
+      set({ error: message });
+      return err(message);
+    }
+  },
+
+  updateRack: async (id, patch) => {
+    set({ error: null });
+    try {
+      const rack = await dbUpdate(id, patch);
+      set((state) => ({ racks: state.racks.map((r) => r.id === id ? rack : r) }));
+      return ok(rack);
+    } catch (e) {
+      const isUnique = typeof e === "object" && e !== null && "code" in e && (e as { code: string }).code === "23505";
+      const message  = isUnique ? "Rack ID already exists" : logMutationError("updateRack", e);
       set({ error: message });
       return err(message);
     }
