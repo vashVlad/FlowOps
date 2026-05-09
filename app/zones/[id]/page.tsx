@@ -8,7 +8,8 @@ import { useRacksStore } from "@/store/racks";
 import { useDeliveriesStore } from "@/store/deliveries";
 import StatusBadge from "@/components/StatusBadge";
 import { StageStrip } from "@/app/racks/page";
-import { timeAgo, formatDuration } from "@/lib/utils";
+import { timeAgo } from "@/lib/utils";
+import { formatBusinessDuration } from "@/lib/timeTracking";
 import { getZoneOccupancy } from "@/lib/zones";
 import { isRackStuck, getTimeInCurrentStatus, WAITING_STAGES } from "@/lib/timeTracking";
 import { OCCUPANCY_STYLE } from "@/lib/tokens";
@@ -213,7 +214,7 @@ export default function ZoneDetailPage() {
                 </div>
                 <div className="flex-1 text-center pl-4">
                   <p className="text-base font-bold text-stone-800 tabular-nums">
-                    {avgDwellMs != null ? formatDuration(avgDwellMs) : "—"}
+                    {avgDwellMs != null ? formatBusinessDuration(avgDwellMs) : "—"}
                   </p>
                   <p className="text-[10px] text-stone-400 mt-0.5">avg dwell</p>
                 </div>
@@ -225,9 +226,25 @@ export default function ZoneDetailPage() {
 
       {/* Rack list */}
       <div>
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-stone-400">
-          Racks in {zone.name} ({count})
-        </h2>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-stone-400">
+            Racks in {zone.name} ({count})
+          </h2>
+          <div className="flex items-center gap-2 shrink-0">
+            <Link
+              href="/deliveries"
+              className="rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-xs font-medium text-stone-600 hover:bg-stone-50 shadow-sm transition-colors"
+            >
+              + Delivery
+            </Link>
+            <Link
+              href={`/racks?zone=${id}`}
+              className="rounded-lg bg-orange-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-orange-700 transition-colors"
+            >
+              + Rack
+            </Link>
+          </div>
+        </div>
 
         {count === 0 ? (
           <div className="rounded-xl border border-stone-200 bg-white px-5 py-6 shadow-sm text-center space-y-1">

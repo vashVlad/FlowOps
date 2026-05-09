@@ -11,7 +11,8 @@ import StatusBadge from "@/components/StatusBadge";
 import { SectionLabel } from "@/components/ui/Card";
 import CustomSelect from "@/components/ui/CustomSelect";
 import PriorityPicker from "@/components/ui/PriorityPicker";
-import { timeAgo, formatTime, formatDuration } from "@/lib/utils";
+import { timeAgo, formatTime } from "@/lib/utils";
+import { formatBusinessDuration } from "@/lib/timeTracking";
 import { getZoneOccupancy } from "@/lib/zones";
 import {
   isRackStuck,
@@ -175,11 +176,11 @@ export default function RackDetailPage() {
                   {isCritical ? (
                     <span className="inline-flex items-center gap-1 rounded-md bg-red-100 px-2 py-0.5 text-xs font-medium text-red-600">
                       <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
-                      Critical · {formatDuration(timeInStage)}
+                      Critical · {formatBusinessDuration(timeInStage)}
                     </span>
                   ) : stuck ? (
                     <span className="rounded-md bg-orange-50 px-2 py-0.5 text-xs text-orange-500">
-                      Stuck · {formatDuration(timeInStage)}
+                      Stuck · {formatBusinessDuration(timeInStage)}
                     </span>
                   ) : null}
                 </div>
@@ -328,10 +329,10 @@ export default function RackDetailPage() {
                         isOpen                        ? "font-medium text-stone-600"    :
                         "text-stone-400"
                       }`}>
-                        {formatDuration(stage.durationMs)}
+                        {formatBusinessDuration(stage.durationMs)}
                       </span>
                       {stage.overThreshold && (
-                        <span className="text-[11px] text-stone-400">over {formatDuration(threshold)}</span>
+                        <span className="text-[11px] text-stone-400">over {formatBusinessDuration(threshold)}</span>
                       )}
                       {isOpen && !stage.overThreshold && (
                         <span className="rounded-full bg-orange-50 px-1.5 py-0.5 text-[10px] text-orange-500">current</span>

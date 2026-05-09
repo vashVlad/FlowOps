@@ -7,7 +7,7 @@ import { useDeliveriesStore } from "@/store/deliveries";
 import StatusBadge from "@/components/StatusBadge";
 import { LoadingCards } from "@/components/LoadingCards";
 import PageHeader from "@/components/ui/PageHeader";
-import { formatDuration } from "@/lib/utils";
+import { formatBusinessDuration } from "@/lib/timeTracking";
 import { getTimeInCurrentStatus, isRackStuck } from "@/lib/timeTracking";
 import { PRIORITY_BORDER } from "@/lib/tokens";
 import { useToastStore } from "@/store/toast";
@@ -72,11 +72,11 @@ export default function LottingPage() {
                       {isCritical ? (
                         <span className="inline-flex items-center gap-1 rounded-md bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-600">
                           <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
-                          critical · {formatDuration(waitMs)}
+                          critical · {formatBusinessDuration(waitMs)}
                         </span>
                       ) : stuck ? (
                         <span className="rounded-md bg-red-50 px-1.5 py-0.5 text-xs text-red-400">
-                          stuck · {formatDuration(waitMs)}
+                          stuck · {formatBusinessDuration(waitMs)}
                         </span>
                       ) : rack.priority === "high" ? (
                         <span className="rounded-md bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-700">
@@ -87,7 +87,7 @@ export default function LottingPage() {
                     <p className="text-xs text-stone-400 mt-0.5">{rack.consignerName}</p>
                     <div className="mt-1 flex items-center gap-3">
                       <span className={`text-xs ${stuck ? "text-stone-600" : "text-stone-400"}`}>
-                        In lotting {formatDuration(waitMs)}
+                        In lotting {formatBusinessDuration(waitMs)}
                       </span>
                       {delivery && (
                         <Link

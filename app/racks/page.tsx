@@ -13,7 +13,8 @@ import ErrorBanner from "@/components/ErrorBanner";
 import PageHeader from "@/components/ui/PageHeader";
 import PriorityPicker from "@/components/ui/PriorityPicker";
 import { useToastStore } from "@/store/toast";
-import { timeAgo, formatDuration } from "@/lib/utils";
+import { timeAgo } from "@/lib/utils";
+import { formatBusinessDuration } from "@/lib/timeTracking";
 import { getZoneOccupancy } from "@/lib/zones";
 import { isRackStuck, getTimeInCurrentStatus } from "@/lib/timeTracking";
 import {
@@ -113,11 +114,11 @@ function RackCard({
           {isCritical ? (
             <span className="inline-flex items-center gap-1 rounded-md bg-red-100 px-1.5 py-0.5 text-[11px] font-medium text-red-600">
               <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse shrink-0" />
-              critical · {formatDuration(timeInStage)}
+              critical · {formatBusinessDuration(timeInStage)}
             </span>
           ) : stuck ? (
             <span className="rounded-md bg-red-50 px-1.5 py-0.5 text-[11px] text-red-400">
-              stuck · {formatDuration(timeInStage)}
+              stuck · {formatBusinessDuration(timeInStage)}
             </span>
           ) : rack.priority === "high" ? (
             <span className="rounded-md bg-amber-100 px-1.5 py-0.5 text-[11px] font-medium text-amber-700">
@@ -151,7 +152,7 @@ function RackCard({
               {STAGE_LABEL[rack.status]}
             </span>
             {timeInStage > 0 && !stuck && (
-              <span className="text-[11px] text-stone-400">{formatDuration(timeInStage)}</span>
+              <span className="text-[11px] text-stone-400">{formatBusinessDuration(timeInStage)}</span>
             )}
           </div>
         </div>
@@ -192,6 +193,7 @@ function RacksContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const preselectedDelivery = searchParams.get("delivery") ?? "";
+  const preselectedZone     = searchParams.get("zone")     ?? "";
 
   const { racks, history, loading, error: storeError, addRack, advanceStatus } = useRacksStore();
   function clearStoreError() { useRacksStore.setState({ error: null }); }
@@ -201,10 +203,10 @@ function RacksContent() {
 
   const [query, setQuery]                 = useState("");
   const [filter, setFilter]               = useState<RackFilter>("all");
-  const [showForm, setShowForm]           = useState(!!preselectedDelivery);
+  const [showForm, setShowForm]           = useState(!!(preselectedDelivery || preselectedZone));
   const [rackCodeInput, setRackCodeInput] = useState("");
   const [priority, setPriority]           = useState<Priority>("normal");
-  const [zoneId, setZoneId]               = useState("");
+  const [zoneId, setZoneId]               = useState(preselectedZone);
   const [deliveryId, setDeliveryId]       = useState(preselectedDelivery);
   const [notes, setNotes]                 = useState("");
   const [formError, setFormError]         = useState("");
@@ -229,7 +231,7 @@ function RacksContent() {
       setFormError(result.error);
       return;
     }
-    setRackCodeInput(""); setPriority("normal"); setZoneId("");
+    setRackCodeInput(""); setPriority("normal"); setZoneId(preselectedZone);
     setDeliveryId(preselectedDelivery); setNotes("");
     setShowForm(false);
     addToast(`${result.data.rackCode} added`);

@@ -9,7 +9,7 @@ import { useZonesStore } from "@/store/zones";
 import StatusBadge from "@/components/StatusBadge";
 import DeliveryStatusBadge from "@/components/DeliveryStatusBadge";
 import { search } from "@/lib/search";
-import { formatDuration } from "@/lib/utils";
+import { formatBusinessDuration } from "@/lib/timeTracking";
 import { PRIORITY_BORDER } from "@/lib/tokens";
 import { WAITING_STAGES } from "@/lib/timeTracking";
 import type { RackResult, DeliveryResult } from "@/lib/search";
@@ -241,7 +241,7 @@ function RackRow({ result, onNavigate }: { result: RackResult; onNavigate: () =>
             {showCritical && (
               <span className="inline-flex items-center gap-1 rounded-md bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-600">
                 <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
-                critical · {formatDuration(result.timeInStageMs)}
+                critical · {formatBusinessDuration(result.timeInStageMs)}
               </span>
             )}
             {showBlocked && (
@@ -251,7 +251,7 @@ function RackRow({ result, onNavigate }: { result: RackResult; onNavigate: () =>
             )}
             {showWarning && (
               <span className="rounded-md bg-amber-50 px-1.5 py-0.5 text-xs text-amber-600">
-                delayed · {formatDuration(result.timeInStageMs)}
+                delayed · {formatBusinessDuration(result.timeInStageMs)}
               </span>
             )}
             {!showCritical && !showBlocked && !showWarning && result.priority === "high" && (
@@ -260,7 +260,7 @@ function RackRow({ result, onNavigate }: { result: RackResult; onNavigate: () =>
           </div>
           <p className="text-xs text-stone-400 mt-0.5 capitalize">
             {result.status}
-            <span className="text-stone-300"> · </span>{formatDuration(result.timeInStageMs)}
+            <span className="text-stone-300"> · </span>{formatBusinessDuration(result.timeInStageMs)}
             {(result.deliveryJNumber ?? result.deliveryCode) && (
               <><span className="text-stone-300"> · </span>{result.deliveryJNumber ?? result.deliveryCode}</>
             )}

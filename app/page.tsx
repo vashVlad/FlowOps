@@ -21,6 +21,8 @@ import {
 } from "@/lib/timeTracking";
 import type { StagePressure, StageVelocity } from "@/lib/timeTracking";
 import { formatDuration } from "@/lib/utils";
+import { formatBusinessDuration } from "@/lib/timeTracking";
+import { calculateBusinessDuration } from "@/lib/businessTime";
 import {
   PIPELINE_STAGES,
   STAGE_BAR,
@@ -77,7 +79,7 @@ export default function Dashboard() {
   const completedRacks = racks.filter((r) => r.status === "completed");
   const avgDwellMs = completedRacks.length > 0
     ? completedRacks.reduce(
-        (s, r) => s + (new Date(r.updatedAt).getTime() - new Date(r.createdAt).getTime()),
+        (s, r) => s + calculateBusinessDuration(r.createdAt, r.updatedAt),
         0
       ) / completedRacks.length
     : null;
@@ -253,11 +255,11 @@ function AnalyticsStrip({
       />
       <MetricTile
         label="avg dwell time"
-        value={avgDwellMs != null ? formatDuration(avgDwellMs) : "—"}
+        value={avgDwellMs != null ? formatBusinessDuration(avgDwellMs) : "—"}
       />
       <MetricTile
         label="flow blocked"
-        value={blockedMs > 0 ? formatDuration(blockedMs) : "—"}
+        value={blockedMs > 0 ? formatBusinessDuration(blockedMs) : "—"}
         valueColor={blockedMs > 0 ? "text-red-600" : "text-stone-900"}
         sub={blockedMs > 0 ? "delay active" : "clear"}
         subColor={blockedMs > 0 ? "text-red-400" : "text-stone-400"}
@@ -314,7 +316,7 @@ function StageVelocityPanel({ velocity }: { velocity: StageVelocity[] }) {
                 />
               </div>
               <span className={`w-12 text-right text-[11px] tabular-nums font-medium shrink-0 ${timeColor}`}>
-                {formatDuration(s.avgTimeMs)}
+                {formatBusinessDuration(s.avgTimeMs)}
               </span>
               <span className="w-10 shrink-0 text-right">
                 {s.overThreshold ? (

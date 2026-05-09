@@ -1,35 +1,42 @@
 import type { Rack, RackStatus, HistoryEvent } from "@/types";
 import { STATUS_ORDER } from "@/lib/racks";
+import {
+  BH_DAILY_MS,
+  calculateBusinessDuration,
+  businessDurationNow,
+} from "@/lib/businessTime";
 
-const H = 60 * 60 * 1000;
-const D = 24 * H;
+export { formatBusinessDuration } from "@/lib/businessTime";
 
-// ── Per-stage thresholds (real-world warehouse timing) ───────────────────────
+const H = 3_600_000; // one hour in ms
+
+// ── Per-stage thresholds — expressed in BUSINESS milliseconds ────────────────
+// One business day = 9 h = BH_DAILY_MS
 
 export const STAGE_THRESHOLDS_MS: Record<RackStatus, number> = {
-  intake:    4  * H,   // 4h  — quick visibility stage
-  unpacking: 6  * H,   // 6h  — a few hours per rack
-  sorting:   5  * D,   // 5d  — warning threshold (2–5d = acceptable, >5d = warning)
-  lotting:   4  * H,   // 4h  — ~3-4h per rack, high-throughput
-  ready:     14 * D,   // 14d — scheduled wait, not a bottleneck
-  pickup:    7  * D,   // 7d  — capacity-constrained
+  intake:    4  * H,           // 4 business hours
+  unpacking: 6  * H,           // 6 business hours
+  sorting:   5  * BH_DAILY_MS, // 5 business days (45 h operational)
+  lotting:   4  * H,           // 4 business hours
+  ready:     14 * BH_DAILY_MS, // 14 business days — scheduled wait
+  pickup:    7  * BH_DAILY_MS, // 7 business days — capacity-constrained
   completed: Infinity,
 };
 
 // ── Alert thresholds ─────────────────────────────────────────────────────────
 
-export const SORTING_CRITICAL_MS  = 7 * D;   // > 7d → critical
-export const SORTING_BLOCKED_MS   = 1 * D;   // > 24h in sorting AND delivery has intake/unpacking racks
+export const SORTING_CRITICAL_MS  = 7 * BH_DAILY_MS; // > 7 business days → critical
+export const SORTING_BLOCKED_MS   = 1 * BH_DAILY_MS; // > 1 business day in sorting AND delivery still unpacking
 
-// Waiting stages — not flagged as slow; excluded from velocity panel & pressure
+// Waiting stages — excluded from stuck detection, velocity, pressure
 export const WAITING_STAGES = new Set<RackStatus>(["ready", "pickup"]);
 
 // Lotting queue: ~4 racks/day capacity; >10 in queue is a problem
 export const LOTTING_QUEUE_WARN = 10;
 
 // Pickup capacity per auction cycle: 16 racks
-export const PICKUP_WARN       = 13;  // >= 13 → near capacity warning
-export const PICKUP_OVERLOADED = 16;  // >= 16 → overloaded
+export const PICKUP_WARN       = 13;
+export const PICKUP_OVERLOADED = 16;
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -37,7 +44,7 @@ export interface StageDuration {
   status: RackStatus;
   enteredAt: string;
   exitedAt?: string;
-  durationMs: number;
+  durationMs: number;     // business milliseconds
   overThreshold: boolean;
 }
 
@@ -58,12 +65,12 @@ export function getStatusEntryTime(rack: Rack, history: HistoryEvent[]): string 
   return entry?.timestamp ?? rack.createdAt;
 }
 
-/** Milliseconds the rack has spent in its current status. */
+/** Business milliseconds the rack has spent in its current status. */
 export function getTimeInCurrentStatus(rack: Rack, history: HistoryEvent[]): number {
-  return Date.now() - new Date(getStatusEntryTime(rack, history)).getTime();
+  return businessDurationNow(getStatusEntryTime(rack, history));
 }
 
-/** True if the rack exceeds the per-stage warning threshold for its current status. */
+/** True if the rack exceeds the per-stage warning threshold (business time). */
 export function isRackStuck(rack: Rack, history: HistoryEvent[]): boolean {
   if (rack.status === "completed") return false;
   return getTimeInCurrentStatus(rack, history) > STAGE_THRESHOLDS_MS[rack.status];
@@ -71,10 +78,8 @@ export function isRackStuck(rack: Rack, history: HistoryEvent[]): boolean {
 
 /**
  * A sorting rack is BLOCKED when:
- * - it has been in sorting for > 24h, AND
+ * - it has spent > 1 business day in sorting, AND
  * - its delivery still has racks in intake or unpacking
- *
- * deliveryRacks must be ALL racks sharing the same deliveryId (including the rack itself).
  */
 export function isRackBlocked(
   rack: Rack,
@@ -90,6 +95,7 @@ export function isRackBlocked(
 
 // ── Detailed breakdown ───────────────────────────────────────────────────────
 
+/** Returns per-stage durations in business milliseconds. */
 export function getStageDurations(rack: Rack, history: HistoryEvent[]): StageDuration[] {
   const sorted = history
     .filter((e) => e.rackId === rack.id)
@@ -99,8 +105,7 @@ export function getStageDurations(rack: Rack, history: HistoryEvent[]): StageDur
   let entryTime = rack.createdAt;
 
   for (const event of sorted) {
-    const durationMs =
-      new Date(event.timestamp).getTime() - new Date(entryTime).getTime();
+    const durationMs = calculateBusinessDuration(entryTime, event.timestamp);
     stages.push({
       status: event.from,
       enteredAt: entryTime,
@@ -111,7 +116,7 @@ export function getStageDurations(rack: Rack, history: HistoryEvent[]): StageDur
     entryTime = event.timestamp;
   }
 
-  const currentMs = Date.now() - new Date(entryTime).getTime();
+  const currentMs = businessDurationNow(entryTime);
   stages.push({
     status: rack.status,
     enteredAt: entryTime,
@@ -134,10 +139,6 @@ export interface StagePressure {
   pressure:  PressureLevel;
 }
 
-/**
- * Identifies processing stages with disproportionate rack load.
- * Waiting stages (ready, pickup) are excluded — high counts there are expected.
- */
 export function getStagePressure(racks: Rack[]): StagePressure[] {
   const active = racks.filter(
     (r) => r.status !== "completed" && !WAITING_STAGES.has(r.status)
@@ -172,16 +173,12 @@ export function getStagePressure(racks: Rack[]): StagePressure[] {
 export interface StageVelocity {
   status: RackStatus;
   rackCount: number;
-  avgTimeMs: number;
+  avgTimeMs: number;    // business milliseconds
   threshold: number;
   fillRatio: number;
   overThreshold: boolean;
 }
 
-/**
- * Processing-stage velocity only (ready and pickup excluded — they are
- * scheduled waiting stages, not performance indicators).
- */
 export function getStageVelocity(racks: Rack[], history: HistoryEvent[]): StageVelocity[] {
   return STATUS_ORDER.flatMap((status) => {
     if (status === "completed" || WAITING_STAGES.has(status)) return [];
