@@ -50,6 +50,7 @@ export const useDeliveriesStore = create<DeliveriesStore>()((set) => ({
       const delivery = await dbCreate({
         ...input,
         scheduledDate: input.scheduledDate ?? today(),
+        auctionDate:   input.auctionDate,
       });
       set((state) => ({ deliveries: [...state.deliveries, delivery] }));
       return ok(delivery);

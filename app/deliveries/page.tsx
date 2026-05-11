@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useDeliveriesStore } from "@/store/deliveries";
 import { useRacksStore } from "@/store/racks";
 import { useZonesStore } from "@/store/zones";
+import { useNotesStore } from "@/store/notes";
 import Select from "@/components/Select";
 import DeliveryStatusBadge from "@/components/DeliveryStatusBadge";
 import { LoadingCards } from "@/components/LoadingCards";
@@ -35,30 +36,51 @@ const NEXT_STATUS: Record<DeliveryStatus, DeliveryStatus | null> = {
 
 type FormMode = "walkin" | "scheduled";
 
+function formatAuctionDate(dateStr: string): string {
+  const d = new Date(dateStr + "T00:00:00");
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function businessDaysUntil(dateStr: string): number {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const target = new Date(dateStr + "T00:00:00");
+  if (target < now) return -1;
+  let days = 0;
+  const cur = new Date(now);
+  while (cur <= target) {
+    const day = cur.getDay();
+    if (day !== 0 && day !== 6) days++;
+    cur.setDate(cur.getDate() + 1);
+  }
+  return days;
+}
+
 export default function DeliveriesPage() {
   const router = useRouter();
   const { deliveries, loading, error: storeError, addDelivery, setStatus } = useDeliveriesStore();
   function clearStoreError() { useDeliveriesStore.setState({ error: null }); }
-  const { racks } = useRacksStore();
-  const { zones } = useZonesStore();
+  const { racks }  = useRacksStore();
+  const { zones }  = useZonesStore();
+  const { notes }  = useNotesStore();
 
-  const [showForm, setShowForm] = useState(false);
-  const [formMode, setFormMode] = useState<FormMode>("walkin");
+  const [showForm, setShowForm]         = useState(false);
+  const [formMode, setFormMode]         = useState<FormMode>("walkin");
   const [consignerName, setConsignerName] = useState("");
-  const [jNumber, setJNumber] = useState("");
-  const [zoneId, setZoneId] = useState("");
-  const [error, setError] = useState("");
-  const [walkinCount, setWalkinCount] = useState("");
+  const [jNumber, setJNumber]           = useState("");
+  const [zoneId, setZoneId]             = useState("");
+  const [error, setError]               = useState("");
+  const [walkinCount, setWalkinCount]   = useState("");
   const [expectedCount, setExpectedCount] = useState("");
   const [scheduledDate, setScheduledDate] = useState(today());
-  const [notes, setNotes] = useState("");
+  const [auctionDate, setAuctionDate]   = useState("");
 
   const estimate = estimateRackCount(consignerName, deliveries, racks);
   const summary  = getConsignerSummary(consignerName, deliveries, racks);
 
   function resetForm() {
     setConsignerName(""); setJNumber(""); setZoneId(""); setError(""); setWalkinCount("");
-    setExpectedCount(""); setScheduledDate(today()); setNotes("");
+    setExpectedCount(""); setScheduledDate(today()); setAuctionDate("");
   }
 
   async function handleWalkinSubmit(e: React.FormEvent) {
@@ -71,6 +93,7 @@ export default function DeliveriesPage() {
       consignerJNumber: jNumber.trim() || undefined,
       zoneId: zoneId || undefined,
       expectedRackCount: Number(walkinCount) || 0,
+      auctionDate: auctionDate || undefined,
     });
     if (!result.ok) return;
     resetForm(); setShowForm(false);
@@ -91,7 +114,7 @@ export default function DeliveriesPage() {
       zoneId: zoneId || undefined,
       expectedRackCount: count,
       scheduledDate,
-      notes: notes.trim() || undefined,
+      auctionDate: auctionDate || undefined,
     });
     resetForm(); setShowForm(false);
   }
@@ -163,6 +186,11 @@ export default function DeliveriesPage() {
               </Select>
               <input type="number" placeholder="Estimated rack count (optional)" value={walkinCount}
                 onChange={(e) => setWalkinCount(e.target.value)} min={0} className={inputCls} />
+              <div className="space-y-1">
+                <label className="text-xs text-stone-400">Auction date (optional)</label>
+                <input type="date" value={auctionDate}
+                  onChange={(e) => setAuctionDate(e.target.value)} className={inputCls} />
+              </div>
               {error && <p className="text-xs text-red-500">{error}</p>}
               <button type="submit"
                 className="w-full rounded-lg bg-orange-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-orange-700 transition-colors sm:w-auto">
@@ -194,8 +222,11 @@ export default function DeliveriesPage() {
                 onChange={(e) => setExpectedCount(e.target.value)} min={1} className={inputCls} />
               <input type="date" value={scheduledDate}
                 onChange={(e) => setScheduledDate(e.target.value)} className={inputCls} />
-              <input type="text" placeholder="Notes (optional)" value={notes}
-                onChange={(e) => setNotes(e.target.value)} className={inputCls} />
+              <div className="space-y-1">
+                <label className="text-xs text-stone-400">Auction date (optional)</label>
+                <input type="date" value={auctionDate}
+                  onChange={(e) => setAuctionDate(e.target.value)} className={inputCls} />
+              </div>
               {error && <p className="text-xs text-red-500">{error}</p>}
               <button type="submit"
                 className="rounded-lg bg-orange-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-orange-700 transition-colors">
@@ -233,7 +264,7 @@ export default function DeliveriesPage() {
         <div className="rounded-xl border border-stone-200 bg-white px-5 py-6 shadow-sm text-center space-y-1">
           <p className="text-sm font-medium text-stone-700">No deliveries yet</p>
           <p className="text-xs text-stone-400">
-            Register a walk-in when a truck arrives, or schedule an upcoming delivery above.
+            Register a walk-in when a truck arrives, or schedule a delivery before it shows up.
           </p>
         </div>
       ) : (
@@ -245,6 +276,9 @@ export default function DeliveriesPage() {
             const pct        = total > 0 ? Math.round((done.length / total) * 100) : 0;
             const nextStatus = NEXT_STATUS[delivery.status];
             const zone       = delivery.zoneId ? zones.find((z) => z.id === delivery.zoneId) : undefined;
+            const noteCount  = notes.filter((n) => n.deliveryId === delivery.id).length;
+            const auctionDays = delivery.auctionDate ? businessDaysUntil(delivery.auctionDate) : null;
+            const auctionUrgent = auctionDays !== null && auctionDays >= 0 && auctionDays <= 3;
 
             return (
               <li
@@ -254,7 +288,7 @@ export default function DeliveriesPage() {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="font-mono text-sm font-bold text-stone-900">
+                      <span className="font-mono text-base font-bold text-stone-900">
                         {delivery.consignerJNumber ?? delivery.deliveryCode}
                       </span>
                       <DeliveryStatusBadge status={delivery.status} />
@@ -263,8 +297,13 @@ export default function DeliveriesPage() {
                           walk-in
                         </span>
                       )}
+                      {noteCount > 0 && (
+                        <span className="rounded-md bg-amber-50 px-1.5 py-0.5 text-[11px] text-amber-600">
+                          {noteCount} note{noteCount !== 1 ? "s" : ""}
+                        </span>
+                      )}
                     </div>
-                    <p className="text-sm text-stone-600">{delivery.consignerName}</p>
+                    <p className="text-sm font-medium text-stone-700">{delivery.consignerName}</p>
                     <p className="mt-1 text-xs text-stone-400">
                       {delivery.type === "walkin" ? "Arrived today" : `Scheduled ${formatDate(delivery.scheduledDate)}`}
                       {zone && <><span className="mx-1">·</span><span className="font-medium text-stone-500">{zone.name}</span></>}
@@ -273,8 +312,16 @@ export default function DeliveriesPage() {
                         ? `${linked.length} / ${delivery.expectedRackCount} racks`
                         : `${linked.length} rack${linked.length !== 1 ? "s" : ""}`}
                     </p>
-                    {delivery.notes && (
-                      <p className="mt-0.5 text-xs text-stone-400 italic">{delivery.notes}</p>
+                    {delivery.auctionDate && (
+                      <p className={`mt-0.5 text-xs font-medium ${
+                        auctionDays !== null && auctionDays < 0 ? "text-red-500" :
+                        auctionUrgent ? "text-amber-600" : "text-stone-400"
+                      }`}>
+                        Auction: {formatAuctionDate(delivery.auctionDate)}
+                        {auctionUrgent && auctionDays !== null && (
+                          <span className="ml-1">· {auctionDays === 0 ? "today" : auctionDays === 1 ? "tomorrow" : `${auctionDays}d`}</span>
+                        )}
+                      </p>
                     )}
                   </div>
 

@@ -31,11 +31,32 @@ import {
 } from "@/lib/tokens";
 import PageHeader from "@/components/ui/PageHeader";
 import Card, { SectionLabel } from "@/components/ui/Card";
-import type { Rack, Zone } from "@/types";
+import { buildIntakeForecast, type ForecastItem } from "@/lib/consigners";
+import type { Rack, Zone, Delivery } from "@/types";
 
 const STAGE_HREF: Partial<Record<string, string>> = { lotting: "/lotting" };
 function stageHref(status: string): string {
   return STAGE_HREF[status] ?? "/racks";
+}
+
+function businessDaysUntil(dateStr: string): number {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const target = new Date(dateStr + "T00:00:00");
+  if (target < now) return -1;
+  let days = 0;
+  const cur = new Date(now);
+  while (cur <= target) {
+    const day = cur.getDay();
+    if (day !== 0 && day !== 6) days++;
+    cur.setDate(cur.getDate() + 1);
+  }
+  return days;
+}
+
+function formatAuctionDate(dateStr: string): string {
+  const d = new Date(dateStr + "T00:00:00");
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
@@ -53,9 +74,23 @@ export default function Dashboard() {
   const inLotting        = racks.filter((r) => r.status === "lotting").length;
   const readyForPickup   = racks.filter((r) => r.status === "pickup").length;
 
-  // Stuck count: processing stages only (ready/pickup are scheduled waits)
+  // Held racks
+  const heldRacks = activeRacks.filter((r) => !!r.holdReason);
+  const heldCount = heldRacks.length;
+
+  // Item count snapshot (only racks that have item_count set)
+  const racksWithItems    = activeRacks.filter((r) => r.itemCount != null);
+  const totalItemsActive  = racksWithItems.reduce((s, r) => s + r.itemCount!, 0);
+  const itemsInLotting    = racks.filter((r) => r.status === "lotting" && r.itemCount != null)
+                              .reduce((s, r) => s + r.itemCount!, 0);
+  const avgItemsPerRack   = racksWithItems.length > 0
+    ? Math.round(totalItemsActive / racksWithItems.length)
+    : null;
+  const hasItemData = racksWithItems.length > 0;
+
+  // Stuck count: exclude held racks + waiting stages
   const stuckCount = activeRacks.filter(
-    (r) => !WAITING_STAGES.has(r.status) && isRackStuck(r, history)
+    (r) => !r.holdReason && !WAITING_STAGES.has(r.status) && isRackStuck(r, history)
   ).length;
 
   const H24 = 24 * 60 * 60 * 1000;
@@ -85,33 +120,53 @@ export default function Dashboard() {
     : null;
 
   const processingStuckRacks = activeRacks.filter(
-    (r) => !WAITING_STAGES.has(r.status) && isRackStuck(r, history)
+    (r) => !r.holdReason && !WAITING_STAGES.has(r.status) && isRackStuck(r, history)
   );
   const blockedMs = processingStuckRacks.reduce((sum, r) => {
     const t = getTimeInCurrentStatus(r, history);
     return sum + Math.max(0, t - STAGE_THRESHOLDS_MS[r.status]);
   }, 0);
 
-  // ── Typed operational alerts ─────────────────────────────────────────────
+  // ── Typed operational alerts ──────────────────────────────────────────────
   const sortingRacks = activeRacks.filter((r) => r.status === "sorting");
   const pickupCount  = racks.filter((r) => r.status === "pickup").length;
 
   const sortingBlockedRacks = sortingRacks.filter((r) => {
+    if (r.holdReason) return false;
     const deliveryRacks = racks.filter((d) => d.deliveryId === r.deliveryId);
     return isRackBlocked(r, deliveryRacks, history);
   });
   const blockedIds = new Set(sortingBlockedRacks.map((r) => r.id));
 
   const sortingCriticalCount = sortingRacks.filter((r) => {
-    if (blockedIds.has(r.id)) return false;
+    if (blockedIds.has(r.id) || r.holdReason) return false;
     return getTimeInCurrentStatus(r, history) > SORTING_CRITICAL_MS;
   }).length;
 
   const sortingWarnCount = sortingRacks.filter((r) => {
-    if (blockedIds.has(r.id)) return false;
+    if (blockedIds.has(r.id) || r.holdReason) return false;
     const t = getTimeInCurrentStatus(r, history);
     return t > STAGE_THRESHOLDS_MS["sorting"] && t <= SORTING_CRITICAL_MS;
   }).length;
+
+  // ── Auction urgency ───────────────────────────────────────────────────────
+  const urgentAuctionDeliveries = deliveries
+    .filter((d) => {
+      if (!d.auctionDate || d.status === "complete") return false;
+      const days = businessDaysUntil(d.auctionDate);
+      if (days < 0 || days > 3) return false;
+      const linked = racks.filter((r) => r.deliveryId === d.id);
+      return linked.some((r) => !["ready", "pickup", "completed"].includes(r.status));
+    })
+    .map((d) => ({
+      delivery:      d,
+      daysLeft:      businessDaysUntil(d.auctionDate!),
+      notReadyCount: racks.filter(
+        (r) => r.deliveryId === d.id && !["ready", "pickup", "completed"].includes(r.status)
+      ).length,
+    }));
+
+  const forecastItems = buildIntakeForecast(deliveries, racks);
 
   const [velocity, setVelocity] = useState<StageVelocity[]>([]);
 
@@ -125,9 +180,17 @@ export default function Dashboard() {
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <PageHeader
         title="Operations"
-        subtitle="Live warehouse overview"
+        subtitle={throughput24h > 0
+          ? `${throughput24h} rack${throughput24h !== 1 ? "s" : ""} completed today · live`
+          : "Live warehouse overview · live"}
         action={
           <div className="flex items-center gap-2">
+            {heldCount > 0 && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 border border-blue-200 px-3 py-1 text-xs font-medium text-blue-700">
+                <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                {heldCount} on hold
+              </span>
+            )}
             {stuckCount > 0 && (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 border border-red-200 px-3 py-1 text-xs font-medium text-red-600">
                 <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
@@ -146,13 +209,10 @@ export default function Dashboard() {
       {isLoading ? (
         <LoadingStatCards />
       ) : (
-        // ── Three-column layout on desktop ──────────────────────────────────
         <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[1fr_1.5fr_1fr] lg:gap-5 lg:items-start">
 
-          {/* ── LEFT: operational metrics ───────────────────────────────────── */}
+          {/* ── LEFT: operational metrics ─────────────────────────────────── */}
           <div className="flex flex-col gap-4">
-
-            {/* KPI grid — always 2×2 */}
             <div className="grid grid-cols-2 gap-2.5">
               <KpiCard label="Active deliveries" value={activeDeliveries} href="/deliveries" accent="orange" />
               <KpiCard label="In pipeline"       value={inPipeline}       href="/racks"      accent="stone"  />
@@ -160,7 +220,6 @@ export default function Dashboard() {
               <KpiCard label="Ready for pickup"  value={readyForPickup}   href="/racks"      accent="violet" />
             </div>
 
-            {/* Analytics strip — 2×2 grid */}
             <AnalyticsStrip
               throughput={throughput24h}
               throughputDelta={throughputDelta}
@@ -169,15 +228,22 @@ export default function Dashboard() {
               blockedMs={blockedMs}
             />
 
+            {hasItemData && (
+              <ItemInventoryStrip
+                totalItems={totalItemsActive}
+                itemsInLotting={itemsInLotting}
+                avgPerRack={avgItemsPerRack}
+              />
+            )}
           </div>
 
-          {/* ── CENTER: warehouse state ─────────────────────────────────────── */}
+          {/* ── CENTER: warehouse state ──────────────────────────────────── */}
           <div className="flex flex-col gap-4">
             {zones.length > 0 && <ZoneMap zones={zones} racks={racks} />}
             <PipelineBar racks={racks} />
           </div>
 
-          {/* ── RIGHT: operational intelligence ────────────────────────────── */}
+          {/* ── RIGHT: operational intelligence ─────────────────────────── */}
           <div className="flex flex-col gap-4">
             {velocity.length > 0 && <StageVelocityPanel velocity={velocity} />}
             <AlertsPanel
@@ -186,6 +252,9 @@ export default function Dashboard() {
               sortingWarnCount={sortingWarnCount}
               lottingCount={inLotting}
               pickupCount={pickupCount}
+              heldCount={heldCount}
+              urgentAuctionDeliveries={urgentAuctionDeliveries}
+              forecastItems={forecastItems}
             />
           </div>
 
@@ -207,8 +276,8 @@ function KpiCard({
       href={href}
       className={`rounded-xl border border-stone-200 border-l-4 ${KPI_ACCENT[accent] ?? KPI_ACCENT.stone} bg-white px-4 py-4 shadow-sm hover:shadow-md hover:-translate-y-px transition-all duration-150`}
     >
-      <p className="text-2xl font-bold tracking-tight text-stone-900">{value}</p>
-      <p className="mt-0.5 text-xs text-stone-400">{label}</p>
+      <p className="text-3xl font-bold tabular-nums tracking-tight text-stone-900">{value}</p>
+      <p className="mt-1 text-xs text-stone-400 leading-tight">{label}</p>
     </Link>
   );
 }
@@ -275,8 +344,8 @@ function MetricTile({
 }) {
   return (
     <Card padding="px-3 py-3">
-      <p className={`text-lg font-bold text-center tabular-nums ${valueColor}`}>{value}</p>
-      <p className="text-[11px] text-stone-400 mt-0.5 text-center">{label}</p>
+      <p className={`text-xl font-bold text-center tabular-nums ${valueColor}`}>{value}</p>
+      <p className="text-[11px] text-stone-400 mt-1 text-center leading-tight">{label}</p>
       {sub && (
         <p className={`text-[10px] text-center mt-1 leading-tight ${subColor}`}>{sub}</p>
       )}
@@ -498,19 +567,28 @@ function AlertsPanel({
   sortingWarnCount,
   lottingCount,
   pickupCount,
+  heldCount,
+  urgentAuctionDeliveries,
+  forecastItems,
 }: {
   sortingBlockedCount: number;
   sortingCriticalCount: number;
   sortingWarnCount: number;
   lottingCount: number;
   pickupCount: number;
+  heldCount: number;
+  urgentAuctionDeliveries: { delivery: Delivery; daysLeft: number; notReadyCount: number }[];
+  forecastItems: ForecastItem[];
 }) {
   const hasAlerts =
     sortingBlockedCount > 0 ||
     sortingCriticalCount > 0 ||
     sortingWarnCount > 0 ||
     lottingCount > LOTTING_QUEUE_WARN ||
-    pickupCount >= PICKUP_WARN;
+    pickupCount >= PICKUP_WARN ||
+    heldCount > 0 ||
+    urgentAuctionDeliveries.length > 0 ||
+    forecastItems.length > 0;
 
   if (!hasAlerts) {
     return (
@@ -524,6 +602,28 @@ function AlertsPanel({
   return (
     <div className="space-y-2">
       <SectionLabel>Operational Alerts</SectionLabel>
+
+      {heldCount > 0 && (
+        <AlertCard severity="info" href="/racks">
+          <p className="text-xs font-medium text-stone-800">
+            {heldCount} rack{heldCount !== 1 ? "s" : ""} on hold
+          </p>
+          <p className="text-[10px] text-stone-400 mt-0.5">
+            Intentionally paused — not counted as stuck
+          </p>
+        </AlertCard>
+      )}
+
+      {urgentAuctionDeliveries.map(({ delivery, daysLeft, notReadyCount }) => (
+        <AlertCard key={delivery.id} severity="warning" href={`/deliveries/${delivery.id}`}>
+          <p className="text-xs font-medium text-stone-800">
+            {delivery.consignerJNumber ?? delivery.deliveryCode}: {notReadyCount} rack{notReadyCount !== 1 ? "s" : ""} need Ready before auction
+          </p>
+          <p className="text-[10px] text-stone-400 mt-0.5">
+            Auction {formatAuctionDate(delivery.auctionDate!)} · {daysLeft === 0 ? "today" : daysLeft === 1 ? "tomorrow" : `${daysLeft}d`}
+          </p>
+        </AlertCard>
+      ))}
 
       {sortingBlockedCount > 0 && (
         <AlertCard severity="critical" href="/racks">
@@ -590,19 +690,63 @@ function AlertsPanel({
           </p>
         </AlertCard>
       )}
+
+      {forecastItems.length > 0 && (
+        <>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-stone-400 pt-1">This week</p>
+          {forecastItems.map((item, i) => (
+            <AlertCard key={i} severity={item.severity} href="/deliveries">
+              <p className="text-xs font-medium text-stone-800">{item.message}</p>
+              {item.detail && <p className="text-[10px] text-stone-400 mt-0.5">{item.detail}</p>}
+            </AlertCard>
+          ))}
+        </>
+      )}
     </div>
+  );
+}
+
+// ── Item Inventory Strip ──────────────────────────────────────────────────────
+
+function ItemInventoryStrip({
+  totalItems, itemsInLotting, avgPerRack,
+}: {
+  totalItems: number;
+  itemsInLotting: number;
+  avgPerRack: number | null;
+}) {
+  return (
+    <Card className="space-y-2" padding="px-3.5 py-3">
+      <p className="text-[10px] font-medium uppercase tracking-wide text-stone-400">Inventory snapshot</p>
+      <div className="grid grid-cols-3 gap-3">
+        <div className="text-center">
+          <p className="text-base font-bold text-stone-900 tabular-nums">{totalItems.toLocaleString()}</p>
+          <p className="text-[10px] text-stone-400 mt-0.5">active items</p>
+        </div>
+        <div className="text-center">
+          <p className="text-base font-bold text-amber-700 tabular-nums">{itemsInLotting.toLocaleString()}</p>
+          <p className="text-[10px] text-stone-400 mt-0.5">in lotting</p>
+        </div>
+        <div className="text-center">
+          <p className="text-base font-bold text-stone-900 tabular-nums">
+            {avgPerRack != null ? avgPerRack : "—"}
+          </p>
+          <p className="text-[10px] text-stone-400 mt-0.5">avg / rack</p>
+        </div>
+      </div>
+    </Card>
   );
 }
 
 function AlertCard({
   severity, href, children,
 }: {
-  severity: "critical" | "warning";
+  severity: "critical" | "warning" | "info";
   href: string;
   children: React.ReactNode;
 }) {
-  const dot   = severity === "critical" ? "bg-red-500 animate-pulse" : "bg-amber-400";
-  const border = severity === "critical" ? "border-red-200" : "border-amber-200";
+  const dot    = severity === "critical" ? "bg-red-500 animate-pulse" : severity === "info" ? "bg-blue-500" : "bg-amber-400";
+  const border = severity === "critical" ? "border-red-200" : severity === "info" ? "border-blue-200" : "border-amber-200";
   return (
     <Card className={border} padding="px-3.5 py-2.5">
       <div className="flex items-center justify-between gap-3">

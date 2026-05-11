@@ -13,6 +13,7 @@ import { formatBusinessDuration } from "@/lib/timeTracking";
 import { getZoneOccupancy } from "@/lib/zones";
 import { isRackStuck, getTimeInCurrentStatus, WAITING_STAGES } from "@/lib/timeTracking";
 import { OCCUPANCY_STYLE } from "@/lib/tokens";
+import { OperationalAlerts, type AlertItem } from "@/components/OperationalAlerts";
 
 const inputCls =
   "w-full rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500";
@@ -59,6 +60,28 @@ export default function ZoneDetailPage() {
     : null;
 
   const { count, pct, status } = getZoneOccupancy(zone.id, racks, zones);
+
+  const zoneAlerts: AlertItem[] = [];
+  if (status === "full") {
+    zoneAlerts.push({
+      severity: "critical",
+      message:  `${zone.name} is at capacity (${count}/${zone.capacity} racks)`,
+      detail:   "Move racks to overflow before adding more.",
+    });
+  } else if (status === "near" && zone.capacity) {
+    zoneAlerts.push({
+      severity: "warning",
+      message:  `${zone.name} near capacity — ${zone.capacity - count} spot${zone.capacity - count !== 1 ? "s" : ""} remaining`,
+    });
+  }
+  if (!isWaitingZone && stuckInZone > 0) {
+    zoneAlerts.push({
+      severity: stuckInZone >= 3 ? "critical" : "warning",
+      message:  `${stuckInZone} rack${stuckInZone !== 1 ? "s" : ""} delayed in ${zone.name}`,
+      detail:   "Review stage timing on rack detail pages.",
+      href:     "/racks",
+    });
+  }
 
   const healthLevel =
     isWaitingZone
@@ -198,31 +221,33 @@ export default function ZoneDetailPage() {
                     }`}>
                       {zone.capacity ? `${count}/${zone.capacity}` : count}
                     </p>
-                    <p className="text-[10px] text-stone-400 mt-0.5">capacity</p>
+                    <p className="text-[11px] text-stone-400 mt-0.5">capacity</p>
                   </div>
                 ) : (
                   <div className="flex-1 text-center pr-4">
                     <p className={`text-base font-bold tabular-nums ${stuckInZone > 0 ? "text-orange-600" : "text-stone-800"}`}>
                       {stuckInZone}
                     </p>
-                    <p className="text-[10px] text-stone-400 mt-0.5">stuck</p>
+                    <p className="text-[11px] text-stone-400 mt-0.5">stuck</p>
                   </div>
                 )}
                 <div className="flex-1 text-center px-4">
                   <p className="text-base font-bold text-stone-800 tabular-nums">{activeRacks.length}</p>
-                  <p className="text-[10px] text-stone-400 mt-0.5">active</p>
+                  <p className="text-[11px] text-stone-400 mt-0.5">active</p>
                 </div>
                 <div className="flex-1 text-center pl-4">
                   <p className="text-base font-bold text-stone-800 tabular-nums">
                     {avgDwellMs != null ? formatBusinessDuration(avgDwellMs) : "—"}
                   </p>
-                  <p className="text-[10px] text-stone-400 mt-0.5">avg dwell</p>
+                  <p className="text-[11px] text-stone-400 mt-0.5">avg dwell</p>
                 </div>
               </div>
             </div>
           )}
         </div>
       </div>
+
+      <OperationalAlerts alerts={zoneAlerts} />
 
       {/* Rack list */}
       <div>
@@ -273,10 +298,10 @@ export default function ZoneDetailPage() {
                       </div>
                       <span className="text-[11px] text-stone-400 shrink-0">{timeAgo(rack.updatedAt)}</span>
                     </div>
-                    <p className="text-xs text-stone-400 truncate">
+                    <p className="text-xs text-stone-500 truncate">
                       {rack.consignerName}
                       {delivery?.consignerJNumber && (
-                        <span className="font-mono ml-1.5">{delivery.consignerJNumber}</span>
+                        <span className="font-mono font-medium text-stone-700 ml-1.5">{delivery.consignerJNumber}</span>
                       )}
                     </p>
                     <StageStrip status={rack.status} />

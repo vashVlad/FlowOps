@@ -8,13 +8,14 @@ import { useAuthStore } from "@/store/auth";
 import NotificationBell from "@/components/NotificationBell";
 
 const links = [
-  { href: "/",           label: "Dashboard"  },
-  { href: "/deliveries", label: "Deliveries" },
-  { href: "/racks",      label: "Racks"      },
-  { href: "/zones",      label: "Zones"      },
-  { href: "/lotting",    label: "Lotting"    },
-  { href: "/search",     label: "Search"     },
-  { href: "/reports",    label: "Reports"    },
+  { href: "/",             label: "Dashboard"   },
+  { href: "/deliveries",   label: "Deliveries"  },
+  { href: "/consigners",   label: "Consigners"  },
+  { href: "/racks",        label: "Racks"       },
+  { href: "/zones",        label: "Zones"       },
+  { href: "/lotting",      label: "Lotting"     },
+  { href: "/search",       label: "Search"      },
+  { href: "/reports",      label: "Reports"     },
 ];
 
 export default function Header() {

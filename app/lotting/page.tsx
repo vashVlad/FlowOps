@@ -11,6 +11,8 @@ import { formatBusinessDuration } from "@/lib/timeTracking";
 import { getTimeInCurrentStatus, isRackStuck } from "@/lib/timeTracking";
 import { PRIORITY_BORDER } from "@/lib/tokens";
 import { useToastStore } from "@/store/toast";
+import { OperationalAlerts, type AlertItem } from "@/components/OperationalAlerts";
+import { LOTTING_QUEUE_WARN } from "@/lib/timeTracking";
 
 export default function LottingPage() {
   const router = useRouter();
@@ -27,6 +29,21 @@ export default function LottingPage() {
     }))
     .sort((a, b) => b.waitMs - a.waitMs);
 
+  const lottingAlerts: AlertItem[] = [];
+  if (lottingRacks.length > 15) {
+    lottingAlerts.push({
+      severity: "critical",
+      message:  `Lotting queue overloaded — ${lottingRacks.length} racks`,
+      detail:   "Exceeds max daily capacity. Add staff or extend hours.",
+    });
+  } else if (lottingRacks.length > LOTTING_QUEUE_WARN) {
+    lottingAlerts.push({
+      severity: "warning",
+      message:  `Lotting queue high — ${lottingRacks.length} racks`,
+      detail:   `Above recommended daily capacity of ${LOTTING_QUEUE_WARN}.`,
+    });
+  }
+
   return (
     <div className="space-y-5">
       <PageHeader
@@ -37,6 +54,8 @@ export default function LottingPage() {
           </span>
         }
       />
+
+      <OperationalAlerts alerts={lottingAlerts} />
 
       {loading && racks.length === 0 ? (
         <LoadingCards count={2} />
@@ -49,12 +68,12 @@ export default function LottingPage() {
           </span>
           <div>
             <p className="text-sm font-medium text-stone-700">Lotting queue is clear</p>
-            <p className="text-xs text-stone-400">No racks waiting — everything is moving.</p>
+            <p className="text-xs text-stone-400">No racks in the lotting queue.</p>
           </div>
         </div>
       ) : (
         <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-          {lottingRacks.map(({ rack, waitMs, stuck }) => {
+          {lottingRacks.map(({ rack, waitMs, stuck }, i) => {
             const delivery = deliveries.find((d) => d.id === rack.deliveryId);
             const isCritical = stuck && rack.priority === "high";
             const borderKey  = isCritical ? "stuck" : rack.priority === "high" ? "high" : rack.priority === "low" ? "low" : "normal";
@@ -68,6 +87,7 @@ export default function LottingPage() {
                 <div className="flex items-center justify-between gap-4">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[11px] font-mono text-stone-400 shrink-0">#{i + 1}</span>
                       <span className="text-sm font-bold text-stone-900">{rack.rackCode}</span>
                       {isCritical ? (
                         <span className="inline-flex items-center gap-1 rounded-md bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-600">
@@ -86,7 +106,11 @@ export default function LottingPage() {
                     </div>
                     <p className="text-xs text-stone-400 mt-0.5">{rack.consignerName}</p>
                     <div className="mt-1 flex items-center gap-3">
-                      <span className={`text-xs ${stuck ? "text-stone-600" : "text-stone-400"}`}>
+                      <span className={`text-xs font-medium ${
+                        stuck ? "text-orange-600" :
+                        waitMs > 4 * 24 * 60 * 60 * 1000 ? "text-amber-600" :
+                        "text-stone-400"
+                      }`}>
                         In lotting {formatBusinessDuration(waitMs)}
                       </span>
                       {delivery && (

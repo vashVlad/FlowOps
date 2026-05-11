@@ -7,3 +7,4 @@ ALTER TABLE deliveries
 
 -- rack_code is already UNIQUE from the base schema.
 -- No extra DDL needed for rack editing — UPDATE on racks is already supported.
+\

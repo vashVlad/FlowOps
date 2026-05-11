@@ -6,6 +6,7 @@ import { getSupabase } from "@/lib/supabase";
 import { useZonesStore } from "@/store/zones";
 import { useDeliveriesStore } from "@/store/deliveries";
 import { useRacksStore } from "@/store/racks";
+import { useNotesStore } from "@/store/notes";
 import {
   toRack,
   toDelivery,
@@ -27,12 +28,13 @@ export default function StoreHydrator() {
   const hydrateZones      = useZonesStore((s) => s.hydrate);
   const hydrateDeliveries = useDeliveriesStore((s) => s.hydrate);
   const hydrateRacks      = useRacksStore((s) => s.hydrate);
+  const hydrateNotes      = useNotesStore((s) => s.hydrate);
 
   useEffect(() => {
     let channel: RealtimeChannel | null = null;
     let cancelled = false; // guard: component may unmount before hydration finishes
 
-    Promise.all([hydrateZones(), hydrateDeliveries(), hydrateRacks()])
+    Promise.all([hydrateZones(), hydrateDeliveries(), hydrateRacks(), hydrateNotes()])
       .then(() => {
         if (cancelled) return;
 
@@ -125,7 +127,7 @@ export default function StoreHydrator() {
         try { getSupabase().removeChannel(channel); } catch { /* already torn down */ }
       }
     };
-  }, [hydrateZones, hydrateDeliveries, hydrateRacks]);
+  }, [hydrateZones, hydrateDeliveries, hydrateRacks, hydrateNotes]);
 
   return null;
 }

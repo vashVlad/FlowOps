@@ -26,6 +26,8 @@ interface RacksStore {
   advanceStatus:      (id: string) => Promise<MutationResult<undefined>>;
   moveToZone:         (rackId: string, zoneId: string | undefined) => Promise<MutationResult<undefined>>;
   closeAuctionCycle:  () => Promise<MutationResult<number>>;
+  setHold:            (id: string, reason: string) => Promise<MutationResult<Rack>>;
+  clearHold:          (id: string) => Promise<MutationResult<Rack>>;
   // ── Subscription callbacks (realtime — do not call directly) ──────────────
   upsertRack:  (rack: Rack) => void;          // INSERT / UPDATE
   removeRack:  (id: string) => void;          // DELETE
@@ -186,6 +188,20 @@ export const useRacksStore = create<RacksStore>()((set, get) => ({
       set({ error: message });
       return err(message);
     }
+  },
+
+  setHold: async (id, reason) => {
+    return get().updateRack(id, {
+      holdReason:    reason,
+      holdStartedAt: new Date().toISOString(),
+    });
+  },
+
+  clearHold: async (id) => {
+    return get().updateRack(id, {
+      holdReason:    null,
+      holdStartedAt: null,
+    });
   },
 
   upsertRack: (rack) => {

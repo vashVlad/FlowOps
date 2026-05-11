@@ -7,6 +7,7 @@ import { useSearchParams } from "next/navigation";
 import { useRacksStore } from "@/store/racks";
 import { useDeliveriesStore } from "@/store/deliveries";
 import { useZonesStore } from "@/store/zones";
+import { useNotesStore } from "@/store/notes";
 import Select from "@/components/Select";
 import { LoadingCards } from "@/components/LoadingCards";
 import ErrorBanner from "@/components/ErrorBanner";
@@ -29,11 +30,12 @@ import type { Priority, RackStatus, Rack, Delivery, Zone } from "@/types";
 const inputCls =
   "w-full rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500";
 
-type RackFilter = "all" | "stuck" | "high" | RackStatus;
+type RackFilter = "all" | "stuck" | "held" | "high" | RackStatus;
 
 const FILTER_OPTIONS: { key: RackFilter; label: string }[] = [
   { key: "all",       label: "All"       },
   { key: "stuck",     label: "Stuck"     },
+  { key: "held",      label: "Held"      },
   { key: "high",      label: "High"      },
   { key: "intake",    label: "Intake"    },
   { key: "unpacking", label: "Unpacking" },
@@ -45,7 +47,8 @@ const FILTER_OPTIONS: { key: RackFilter; label: string }[] = [
 
 const STAGE_STEPS = PIPELINE_STAGES.map((s) => s.status);
 
-function rackBorderCls(priority: Priority, stuck: boolean) {
+function rackBorderCls(priority: Priority, stuck: boolean, held: boolean) {
+  if (held)                      return "border-l-4 border-l-blue-400";
   const critical = stuck && priority === "high";
   if (critical)              return PRIORITY_BORDER.stuck;
   if (priority === "high")   return PRIORITY_BORDER.high;
@@ -86,32 +89,40 @@ export function StageStrip({ status }: { status: RackStatus }) {
 // ── Rack card ─────────────────────────────────────────────────────────────────
 
 function RackCard({
-  rack, delivery, zone, stuck, timeInStage, onAdvance, onClick,
+  rack, delivery, zone, stuck, timeInStage, noteCount, onAdvance, onClick,
 }: {
   rack: Rack;
   delivery?: Delivery;
   zone?: Zone;
   stuck: boolean;
   timeInStage: number;
+  noteCount: number;
   onAdvance: () => void;
   onClick: () => void;
-}) {
+})
+ {
   const isCompleted = rack.status === "completed";
   const nextLabel   = NEXT_STAGE_LABEL[rack.status];
-  const isCritical  = stuck && rack.priority === "high";
+  const isHeld      = !!rack.holdReason;
+  const isCritical  = stuck && !isHeld && rack.priority === "high";
 
   return (
     <li
       onClick={onClick}
-      className={`cursor-pointer rounded-xl border border-stone-200 bg-white shadow-sm hover:shadow-md hover:-translate-y-px transition-all duration-150 overflow-hidden ${rackBorderCls(rack.priority, stuck)}`}
+      className={`cursor-pointer rounded-xl border border-stone-200 bg-white shadow-sm hover:shadow-md hover:-translate-y-px transition-all duration-150 overflow-hidden ${rackBorderCls(rack.priority, stuck, isHeld)}`}
     >
       {/* TOP — ID · urgency · age */}
       <div className="px-4 pt-2.5 pb-1 flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-          <span className="font-mono text-sm font-bold text-stone-900 tracking-tight">
+          <span className="font-mono text-base font-bold text-stone-900 tracking-tight">
             {rack.rackCode}
           </span>
-          {isCritical ? (
+          {isHeld ? (
+            <span className="inline-flex items-center gap-1 rounded-md bg-blue-100 px-1.5 py-0.5 text-[11px] font-medium text-blue-700">
+              <span className="h-1.5 w-1.5 rounded-full bg-blue-500 shrink-0" />
+              HOLD
+            </span>
+          ) : isCritical ? (
             <span className="inline-flex items-center gap-1 rounded-md bg-red-100 px-1.5 py-0.5 text-[11px] font-medium text-red-600">
               <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse shrink-0" />
               critical · {formatBusinessDuration(timeInStage)}
@@ -133,7 +144,7 @@ function RackCard({
         <span className="text-[11px] text-stone-400 shrink-0">{timeAgo(rack.updatedAt)}</span>
       </div>
 
-      {/* CONSIGNER — name · J-Number on one line */}
+      {/* CONSIGNER — name · J-Number */}
       <div className="px-4 pb-1.5">
         <p className="text-xs text-stone-400 truncate">
           {rack.consignerName}
@@ -143,7 +154,14 @@ function RackCard({
         </p>
       </div>
 
-      {/* MIDDLE — stage flow · stage label · zone */}
+      {/* Hold reason (if held) */}
+      {isHeld && rack.holdReason && (
+        <div className="px-4 pb-1.5">
+          <p className="text-[11px] text-blue-600 truncate">{rack.holdReason}</p>
+        </div>
+      )}
+
+      {/* MIDDLE — stage flow · stage label · zone · notes */}
       <div className="px-4 pb-1.5 space-y-1.5">
         <div className="space-y-1">
           <StageStrip status={rack.status} />
@@ -151,9 +169,21 @@ function RackCard({
             <span className={`rounded-md px-1.5 py-0.5 text-[11px] font-medium ${STAGE_BADGE[rack.status]}`}>
               {STAGE_LABEL[rack.status]}
             </span>
-            {timeInStage > 0 && !stuck && (
-              <span className="text-[11px] text-stone-400">{formatBusinessDuration(timeInStage)}</span>
-            )}
+            <div className="flex items-center gap-2">
+              {rack.itemCount != null && (
+                <span className="text-[11px] text-stone-400 tabular-nums">
+                  {rack.itemCount} item{rack.itemCount !== 1 ? "s" : ""}
+                </span>
+              )}
+              {noteCount > 0 && (
+                <span className="text-[11px] text-amber-600">
+                  {noteCount} note{noteCount !== 1 ? "s" : ""}
+                </span>
+              )}
+              {timeInStage > 0 && !stuck && !isHeld && (
+                <span className="text-[11px] text-stone-400">{formatBusinessDuration(timeInStage)}</span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -199,6 +229,7 @@ function RacksContent() {
   function clearStoreError() { useRacksStore.setState({ error: null }); }
   const { deliveries } = useDeliveriesStore();
   const { zones }      = useZonesStore();
+  const { notes }      = useNotesStore();
   const addToast       = useToastStore((s) => s.add);
 
   const [query, setQuery]                 = useState("");
@@ -208,7 +239,7 @@ function RacksContent() {
   const [priority, setPriority]           = useState<Priority>("normal");
   const [zoneId, setZoneId]               = useState(preselectedZone);
   const [deliveryId, setDeliveryId]       = useState(preselectedDelivery);
-  const [notes, setNotes]                 = useState("");
+  const [formItemCount, setFormItemCount] = useState("");
   const [formError, setFormError]         = useState("");
 
   const activeDeliveries = deliveries.filter((d) => d.status !== "complete");
@@ -219,20 +250,21 @@ function RacksContent() {
     const selectedDelivery = activeDeliveries.find((d) => d.id === deliveryId);
     if (!selectedDelivery) return setFormError("Select a delivery.");
     setFormError("");
+    const itemCount = formItemCount.trim() ? Number(formItemCount.trim()) : undefined;
     const result = await addRack({
       consignerName: selectedDelivery.consignerName,
       priority,
       zoneId: zoneId || undefined,
       deliveryId,
-      notes: notes.trim() || undefined,
-      rackCode: rackCodeInput.trim() || undefined,
+      itemCount: !isNaN(itemCount!) && itemCount! >= 0 ? itemCount : undefined,
+      rackCode:  rackCodeInput.trim() || undefined,
     });
     if (!result.ok) {
       setFormError(result.error);
       return;
     }
     setRackCodeInput(""); setPriority("normal"); setZoneId(preselectedZone);
-    setDeliveryId(preselectedDelivery); setNotes("");
+    setDeliveryId(preselectedDelivery); setFormItemCount("");
     setShowForm(false);
     addToast(`${result.data.rackCode} added`);
   }
@@ -240,6 +272,7 @@ function RacksContent() {
   const q = query.toLowerCase();
   const filtered = racks.filter((r) => {
     const stuck    = isRackStuck(r, history);
+    const isHeld   = !!r.holdReason;
     const zone     = r.zoneId     ? zones.find((z) => z.id === r.zoneId)          : undefined;
     const delivery = r.deliveryId ? deliveries.find((d) => d.id === r.deliveryId) : undefined;
 
@@ -248,10 +281,12 @@ function RacksContent() {
       r.consignerName.toLowerCase().includes(q) ||
       zone?.name.toLowerCase().includes(q) ||
       delivery?.deliveryCode.toLowerCase().includes(q) ||
-      delivery?.consignerName.toLowerCase().includes(q)
+      delivery?.consignerName.toLowerCase().includes(q) ||
+      (r.holdReason ?? "").toLowerCase().includes(q)
     )) return false;
 
-    if (filter === "stuck") return stuck;
+    if (filter === "stuck") return stuck && !isHeld;
+    if (filter === "held")  return isHeld;
     if (filter === "high")  return r.priority === "high";
     if (filter !== "all")   return r.status === filter;
     return true;
@@ -296,8 +331,8 @@ function RacksContent() {
             })}
           </Select>
           <PriorityPicker value={priority} onChange={setPriority} />
-          <input type="text" placeholder="Notes (optional)" value={notes}
-            onChange={(e) => setNotes(e.target.value)} className={inputCls} />
+          <input type="number" placeholder="Item count (optional, e.g. 24)" value={formItemCount}
+            onChange={(e) => setFormItemCount(e.target.value)} min={0} className={inputCls} />
           {formError && <p className="text-xs text-red-500">{formError}</p>}
           <button type="submit"
             className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700 transition-colors">
@@ -312,7 +347,9 @@ function RacksContent() {
           <button key={key} onClick={() => setFilter(key)}
             className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
               filter === key
-                ? "bg-orange-600 text-white"
+                ? key === "held"
+                  ? "bg-blue-600 text-white"
+                  : "bg-orange-600 text-white"
                 : "bg-stone-100 text-stone-500 hover:bg-stone-200"
             }`}>
             {label}
@@ -332,8 +369,8 @@ function RacksContent() {
           </p>
           <p className="text-xs text-stone-400">
             {racks.length === 0
-              ? "Open a delivery and add racks to start tracking."
-              : "Try a different filter or clear your search."}
+              ? "Create a delivery first, then add racks to begin tracking flow."
+              : "Try a different filter or clear the search."}
           </p>
         </div>
       ) : (
@@ -343,6 +380,7 @@ function RacksContent() {
             const timeInStage = getTimeInCurrentStatus(rack, history);
             const delivery    = deliveries.find((d) => d.id === rack.deliveryId);
             const zone        = zones.find((z) => z.id === rack.zoneId);
+            const noteCount   = notes.filter((n) => n.rackId === rack.id).length;
             return (
               <RackCard
                 key={rack.id}
@@ -351,6 +389,7 @@ function RacksContent() {
                 zone={zone}
                 stuck={stuck}
                 timeInStage={timeInStage}
+                noteCount={noteCount}
                 onAdvance={() => advanceStatus(rack.id)}
                 onClick={() => router.push(`/racks/${rack.id}`)}
               />

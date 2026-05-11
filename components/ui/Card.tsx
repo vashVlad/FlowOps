@@ -20,7 +20,7 @@ export default function Card({
 
 export function SectionLabel({ children }: { children: ReactNode }) {
   return (
-    <p className="text-[10px] font-semibold uppercase tracking-wider text-stone-400">
+    <p className="text-[11px] font-semibold uppercase tracking-wider text-stone-400">
       {children}
     </p>
   );

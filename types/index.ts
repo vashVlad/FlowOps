@@ -17,12 +17,15 @@ export interface Rack {
   consignerName: string;
   status: RackStatus;
   priority: Priority;
-  zoneId?: string;   // physical location on the warehouse floor
+  zoneId?: string;         // physical location on the warehouse floor
   deliveryId: string;
   notes?: string;
+  holdReason?: string;     // set when rack is on hold
+  holdStartedAt?: string;  // ISO 8601 — when hold was placed
+  itemCount?: number;
   isArchived: boolean;
-  createdAt: string; // ISO 8601
-  updatedAt: string; // ISO 8601
+  createdAt: string;       // ISO 8601
+  updatedAt: string;       // ISO 8601
 }
 
 export interface CreateRackInput {
@@ -30,14 +33,16 @@ export interface CreateRackInput {
   priority?: Priority;
   zoneId?: string;
   deliveryId: string;
-  notes?: string;
+  itemCount?: number;
   rackCode?: string; // optional manual override; auto-generated if omitted
 }
 
 export interface UpdateRackInput {
   rackCode?: string;
   priority?: Priority;
-  notes?: string | null;
+  holdReason?: string | null;
+  holdStartedAt?: string | null;
+  itemCount?: number | null;
 }
 
 // ── History ──────────────────────────────────────────────────────────────────
@@ -54,7 +59,7 @@ export interface HistoryEvent {
 
 export type DeliveryStatus = "scheduled" | "arrived" | "processing" | "complete";
 
-// "walkin"   — unscheduled, truck just showed up; starts as arrived
+// "walkin"    — unscheduled, truck just showed up; starts as arrived
 // "scheduled" — pre-registered with expected count and date
 export type DeliveryType = "scheduled" | "walkin";
 
@@ -70,14 +75,14 @@ export interface Delivery {
   scheduledDate: string; // YYYY-MM-DD (today for walk-ins)
   arrivedAt?: string;    // ISO 8601
   completedAt?: string;  // ISO 8601
-  notes?: string;
+  auctionDate?: string;  // YYYY-MM-DD — auction cycle deadline
   createdAt: string;     // ISO 8601
   updatedAt: string;     // ISO 8601
 }
 
 export interface UpdateDeliveryInput {
-  notes?: string | null;
   zoneId?: string | null;
+  auctionDate?: string | null;
 }
 
 // ── Zone ─────────────────────────────────────────────────────────────────────
@@ -105,5 +110,28 @@ export interface CreateDeliveryInput {
   zoneId?: string;
   expectedRackCount: number;
   scheduledDate?: string; // optional for walk-ins (defaults to today)
-  notes?: string;
+  auctionDate?: string;   // YYYY-MM-DD — auction cycle deadline
+}
+
+// ── Rack Notes ───────────────────────────────────────────────────────────────
+
+export interface RackNote {
+  id: string;
+  rackId?: string;
+  deliveryId?: string;
+  note: string;
+  pinned: boolean;
+  createdBy?: string;
+  createdAt: string; // ISO 8601
+}
+
+// ── Delivery Photos ───────────────────────────────────────────────────────────
+
+export interface DeliveryPhoto {
+  id: string;
+  deliveryId: string;
+  storagePath: string;
+  url?: string;     // signed URL (1h expiry) or public URL
+  caption?: string;
+  createdAt: string; // ISO 8601
 }
