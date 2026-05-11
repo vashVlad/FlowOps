@@ -32,6 +32,7 @@ import {
 import PageHeader from "@/components/ui/PageHeader";
 import Card, { SectionLabel } from "@/components/ui/Card";
 import { buildIntakeForecast, type ForecastItem } from "@/lib/consigners";
+import { useConnectionStore } from "@/store/connection";
 import type { Rack, Zone, Delivery } from "@/types";
 
 const STAGE_HREF: Partial<Record<string, string>> = { lotting: "/lotting" };
@@ -64,7 +65,8 @@ function formatAuctionDate(dateStr: string): string {
 export default function Dashboard() {
   const { racks, history, loading: racksLoading } = useRacksStore();
   const { deliveries, loading: deliveriesLoading } = useDeliveriesStore();
-  const { zones } = useZonesStore();
+  const { zones }     = useZonesStore();
+  const connStatus    = useConnectionStore((s) => s.status);
 
   const isLoading = racksLoading || deliveriesLoading;
 
@@ -197,10 +199,24 @@ export default function Dashboard() {
                 {stuckCount} stuck
               </span>
             )}
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-xs font-medium text-emerald-700">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Live
-            </span>
+            {connStatus === "connected" && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-xs font-medium text-emerald-700">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Live
+              </span>
+            )}
+            {connStatus === "connecting" && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-1 text-xs font-medium text-amber-700">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
+                Connecting
+              </span>
+            )}
+            {connStatus === "disconnected" && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 border border-red-200 px-2.5 py-1 text-xs font-medium text-red-600">
+                <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                Offline
+              </span>
+            )}
           </div>
         }
       />
@@ -226,6 +242,14 @@ export default function Dashboard() {
               efficiency={stageEfficiency}
               avgDwellMs={avgDwellMs}
               blockedMs={blockedMs}
+            />
+
+            <DailyBriefing
+              throughput={throughput24h}
+              heldCount={heldCount}
+              stuckCount={stuckCount}
+              readyForPickup={readyForPickup}
+              inLotting={inLotting}
             />
 
             {hasItemData && (
@@ -703,6 +727,70 @@ function AlertsPanel({
         </>
       )}
     </div>
+  );
+}
+
+// ── Daily Briefing ────────────────────────────────────────────────────────────
+
+function DailyBriefing({
+  throughput, heldCount, stuckCount, readyForPickup, inLotting,
+}: {
+  throughput: number;
+  heldCount: number;
+  stuckCount: number;
+  readyForPickup: number;
+  inLotting: number;
+}) {
+  const today = new Date().toLocaleDateString("en-US", {
+    weekday: "short", month: "short", day: "numeric",
+  });
+
+  return (
+    <Card padding="px-4 py-3.5" className="space-y-2.5">
+      <div className="flex items-center justify-between">
+        <SectionLabel>Daily briefing</SectionLabel>
+        <span className="text-[11px] text-stone-400">{today}</span>
+      </div>
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-2">
+          <span className="text-emerald-500 text-[11px] font-mono leading-none">↑</span>
+          <span className="text-xs text-stone-700">
+            <span className="font-semibold">{throughput}</span>
+            {" "}rack{throughput !== 1 ? "s" : ""} completed today
+          </span>
+        </div>
+        {stuckCount > 0 && (
+          <div className="flex items-center gap-2">
+            <span className="text-amber-500 text-[11px] font-mono leading-none">⚠</span>
+            <span className="text-xs text-stone-700">
+              <span className="font-semibold">{stuckCount}</span> delayed in processing
+            </span>
+          </div>
+        )}
+        {heldCount > 0 && (
+          <div className="flex items-center gap-2">
+            <span className="text-blue-500 text-[11px] font-mono leading-none">⏸</span>
+            <span className="text-xs text-stone-700">
+              <span className="font-semibold">{heldCount}</span> on hold · pending review
+            </span>
+          </div>
+        )}
+        <div className="flex items-center gap-2">
+          <span className="text-stone-400 text-[11px] font-mono leading-none">→</span>
+          <span className="text-xs text-stone-600">
+            <span className="font-semibold">{readyForPickup}</span> ready for pickup
+            {" · "}
+            <span className="font-semibold">{inLotting}</span> in lotting
+          </span>
+        </div>
+        {stuckCount === 0 && heldCount === 0 && (
+          <div className="flex items-center gap-2">
+            <span className="text-emerald-500 text-[11px] font-mono leading-none">✓</span>
+            <span className="text-xs text-stone-500">Pipeline flowing normally</span>
+          </div>
+        )}
+      </div>
+    </Card>
   );
 }
 

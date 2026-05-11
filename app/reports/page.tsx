@@ -12,6 +12,7 @@ import {
 } from "@/lib/export";
 import { isRackStuck } from "@/lib/timeTracking";
 import PageHeader from "@/components/ui/PageHeader";
+import { useIsSupervisor } from "@/store/auth";
 
 interface ReportCard {
   title:       string;
@@ -66,6 +67,7 @@ export default function ReportsPage() {
   const activeDeliveries = deliveries.filter((d) => d.status !== "complete").length;
   const completedRacks   = racks.filter((r) => r.status === "completed").length;
 
+  const isSupervisor = useIsSupervisor();
   const [cycleConfirm, setCycleConfirm] = useState(false);
   const [cycleLoading, setCycleLoading] = useState(false);
   const [cycleResult,  setCycleResult]  = useState<string | null>(null);
@@ -165,7 +167,7 @@ export default function ReportsPage() {
                   Run this at the end of each weekly auction cycle.
                 </p>
               </div>
-              {!cycleConfirm && (
+              {!cycleConfirm && isSupervisor && (
                 <button
                   onClick={() => { setCycleConfirm(true); setCycleResult(null); }}
                   disabled={completedRacks === 0}
@@ -173,6 +175,9 @@ export default function ReportsPage() {
                 >
                   Close cycle
                 </button>
+              )}
+              {!isSupervisor && !cycleConfirm && (
+                <span className="text-xs text-stone-400">Supervisor access required</span>
               )}
             </div>
 

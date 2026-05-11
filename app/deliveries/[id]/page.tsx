@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useDeliveriesStore } from "@/store/deliveries";
 import { useRacksStore } from "@/store/racks";
+import { useIsSupervisor } from "@/store/auth";
 import { useZonesStore } from "@/store/zones";
 import { useNotesStore } from "@/store/notes";
 import { usePhotosStore } from "@/store/photos";
@@ -56,7 +57,8 @@ export default function DeliveryDetailPage() {
   const { zones } = useZonesStore();
   const { notes, addNote, deleteNote } = useNotesStore();
   const { photos, uploading, fetchForDelivery, upload, deletePhoto } = usePhotosStore();
-  const addToast = useToastStore((s) => s.add);
+  const addToast     = useToastStore((s) => s.add);
+  const isSupervisor = useIsSupervisor();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [addOpen, setAddOpen]           = useState(false);
@@ -194,7 +196,7 @@ export default function DeliveryDetailPage() {
                 )}
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                {!deleteConfirm ? (
+                {!deleteConfirm && isSupervisor ? (
                   <button onClick={() => setDeleteConfirm(true)}
                     className="text-xs text-stone-400 hover:text-red-500 transition-colors">
                     Delete

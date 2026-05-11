@@ -23,6 +23,7 @@ import {
 } from "@/lib/timeTracking";
 import { PIPELINE_STAGES, NEXT_STAGE_LABEL } from "@/lib/tokens";
 import { useToastStore } from "@/store/toast";
+import { useIsSupervisor } from "@/store/auth";
 import type { Priority } from "@/types";
 
 const inputCls = "w-full rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500";
@@ -49,9 +50,12 @@ export default function RackDetailPage() {
   const [holdOpen,   setHoldOpen]   = useState(false);
   const [holdReason, setHoldReason] = useState(HOLD_REASONS[0]);
 
-  // Notes
-  const [noteInput, setNoteInput] = useState("");
-  const [noteError, setNoteError] = useState("");
+  // Notes — shared by quick action bar and full section
+  const [noteInput,      setNoteInput]      = useState("");
+  const [noteError,      setNoteError]      = useState("");
+  const [quickNoteOpen,  setQuickNoteOpen]  = useState(false);
+
+  const isSupervisor = useIsSupervisor();
 
   const rack = racks.find((r) => r.id === id);
 
@@ -182,12 +186,7 @@ export default function RackDetailPage() {
                       Cancel
                     </button>
                   </div>
-                  {!deleteConfirm ? (
-                    <button type="button" onClick={() => setDeleteConfirm(true)}
-                      className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50 transition-colors">
-                      Delete
-                    </button>
-                  ) : (
+                  {deleteConfirm ? (
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-stone-400">Delete this rack?</span>
                       <button type="button" onClick={handleDelete}
@@ -199,7 +198,12 @@ export default function RackDetailPage() {
                         Cancel
                       </button>
                     </div>
-                  )}
+                  ) : isSupervisor ? (
+                    <button type="button" onClick={() => setDeleteConfirm(true)}
+                      className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50 transition-colors">
+                      Delete
+                    </button>
+                  ) : null}
                 </div>
               </form>
             )}
@@ -246,6 +250,13 @@ export default function RackDetailPage() {
                     Edit
                   </button>
                 )}
+              </div>
+            </div>
+
+            {/* ── QUICK ACTION BAR ────────────────────────────────────────── */}
+            <div className="border-t border-stone-100 pt-4 space-y-2">
+              <div className="flex gap-2">
+                {/* Primary: move forward */}
                 <button
                   onClick={async () => {
                     const next = NEXT_STAGE_LABEL[rack.status];
@@ -253,13 +264,67 @@ export default function RackDetailPage() {
                     if (result.ok && next) addToast(`Moved to ${next}`);
                   }}
                   disabled={rack.status === "completed"}
-                  className={`rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+                  className={`flex-1 rounded-lg py-3 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
                     isCritical ? "bg-red-500 hover:bg-red-600" : "bg-orange-600 hover:bg-orange-700"
                   }`}
                 >
-                  Next →
+                  {rack.status === "completed"
+                    ? "Completed"
+                    : `Move to ${NEXT_STAGE_LABEL[rack.status] ?? "Next"} →`}
+                </button>
+
+                {/* Hold toggle */}
+                <button
+                  onClick={() => isHeld ? handleClearHold() : setHoldOpen((v) => !v)}
+                  className={`rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
+                    isHeld
+                      ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
+                      : "border border-stone-200 text-stone-700 hover:bg-stone-50"
+                  }`}
+                >
+                  {isHeld ? "Clear Hold" : "Hold"}
+                </button>
+
+                {/* Quick note toggle */}
+                <button
+                  onClick={() => setQuickNoteOpen((v) => !v)}
+                  className={`rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
+                    quickNoteOpen
+                      ? "bg-amber-100 text-amber-700"
+                      : "border border-stone-200 text-stone-700 hover:bg-stone-50"
+                  }`}
+                >
+                  Note
                 </button>
               </div>
+
+              {/* Inline note input — quick entry */}
+              {quickNoteOpen && (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Pin a note…"
+                    value={noteInput}
+                    onChange={(e) => { setNoteInput(e.target.value); setNoteError(""); }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        handleAddNote().then(() => setQuickNoteOpen(false));
+                      }
+                      if (e.key === "Escape") setQuickNoteOpen(false);
+                    }}
+                    className={inputCls}
+                    autoFocus
+                  />
+                  <button
+                    onClick={() => handleAddNote().then(() => setQuickNoteOpen(false))}
+                    disabled={!noteInput.trim()}
+                    className="shrink-0 rounded-lg bg-orange-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-orange-700 disabled:opacity-40 transition-colors"
+                  >
+                    Pin
+                  </button>
+                </div>
+              )}
+              {noteError && <p className="text-xs text-red-500">{noteError}</p>}
             </div>
 
             {/* Metadata */}

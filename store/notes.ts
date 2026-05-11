@@ -16,7 +16,10 @@ interface NotesStore {
     rackId?: string,
     deliveryId?: string
   ) => Promise<MutationResult<RackNote>>;
-  deleteNote: (noteId: string) => Promise<MutationResult<undefined>>;
+  deleteNote:  (noteId: string) => Promise<MutationResult<undefined>>;
+  // ── Realtime callbacks ─────────────────────────────────────────────────────
+  upsertNote: (note: RackNote) => void;
+  removeNote: (noteId: string) => void;
 }
 
 export const useNotesStore = create<NotesStore>()((set) => ({
@@ -52,5 +55,20 @@ export const useNotesStore = create<NotesStore>()((set) => ({
     } catch (e) {
       return err(logMutationError("deleteNote", e));
     }
+  },
+
+  upsertNote: (note) => {
+    set((state) => {
+      const exists = state.notes.some((n) => n.id === note.id);
+      return {
+        notes: exists
+          ? state.notes.map((n) => (n.id === note.id ? note : n))
+          : [note, ...state.notes],
+      };
+    });
+  },
+
+  removeNote: (noteId) => {
+    set((state) => ({ notes: state.notes.filter((n) => n.id !== noteId) }));
   },
 }));
