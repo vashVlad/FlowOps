@@ -212,12 +212,7 @@ export default function DeliveryDetailPage() {
                 )}
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                {!deleteConfirm && isSupervisor ? (
-                  <button onClick={() => setDeleteConfirm(true)}
-                    className="text-xs text-stone-400 hover:text-red-500 transition-colors">
-                    Delete
-                  </button>
-                ) : (
+                {deleteConfirm ? (
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-stone-400">Delete?</span>
                     <button onClick={async () => {
@@ -233,7 +228,12 @@ export default function DeliveryDetailPage() {
                       No
                     </button>
                   </div>
-                )}
+                ) : isSupervisor ? (
+                  <button onClick={() => setDeleteConfirm(true)}
+                    className="text-xs text-stone-400 hover:text-red-500 transition-colors">
+                    Delete
+                  </button>
+                ) : null}
                 {nextStatus && (
                   <button
                     onClick={async () => {
