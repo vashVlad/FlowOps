@@ -3,6 +3,7 @@ import type { Rack, RackStatus, HistoryEvent, CreateRackInput, UpdateRackInput }
 import { ok, err, logMutationError, type MutationResult } from "@/lib/store";
 import { STATUS_ORDER, getNextStatus } from "@/lib/racks";
 import { useDeliveriesStore } from "@/store/deliveries";
+import { useZonesStore } from "@/store/zones";
 import {
   fetchRacks,
   fetchAllRackEvents,
@@ -141,6 +142,15 @@ export const useRacksStore = create<RacksStore>()((set, get) => ({
     );
 
     set({ history: [...history, event], racks: updatedRacks });
+
+    // Auto-assign PU zone when rack moves to pickup
+    if (next === "pickup") {
+      const puZone = useZonesStore.getState().zones.find((z) => z.name === "PU");
+      if (puZone) {
+        // Best-effort — failure does not roll back the rack advance
+        await get().moveToZone(id, puZone.id);
+      }
+    }
 
     // Auto-complete delivery when every linked rack reaches ready (or further)
     if (next === "ready" && rack.deliveryId) {
