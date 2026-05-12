@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useAuthStore } from "@/store/auth";
+import { useAuthStore, useIsSupervisor } from "@/store/auth";
 import NotificationBell from "@/components/NotificationBell";
 
 const links = [
@@ -21,6 +21,7 @@ const links = [
 export default function Header() {
   const pathname          = usePathname();
   const { user, signOut } = useAuthStore();
+  const isSupervisor      = useIsSupervisor();
   const [profileOpen, setProfileOpen] = useState(false);
 
   const email    = user?.email ?? "";
@@ -46,7 +47,7 @@ export default function Header() {
           <span className="hidden sm:block h-4 w-px bg-stone-200 ml-3 shrink-0" />
 
           <nav className="hidden sm:flex items-center gap-1 ml-2">
-            {links.map(({ href, label }) => {
+            {links.filter(({ href }) => href !== "/reports" || isSupervisor).map(({ href, label }) => {
               const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
               return (
                 <Link

@@ -220,12 +220,12 @@ export default function DeliveryDetailPage() {
                       if (!result.ok) return;
                       addToast(`${delivery.consignerJNumber ?? delivery.deliveryCode} deleted`);
                       router.push("/deliveries");
-                    }} className="text-xs font-medium text-red-500 hover:text-red-700 transition-colors">
-                      Yes
+                    }} className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-600 transition-colors">
+                      Yes, delete
                     </button>
                     <button onClick={() => setDeleteConfirm(false)}
-                      className="text-xs text-stone-400 hover:text-stone-600 transition-colors">
-                      No
+                      className="rounded-lg border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-600 hover:bg-stone-50 transition-colors">
+                      Cancel
                     </button>
                   </div>
                 ) : isSupervisor ? (

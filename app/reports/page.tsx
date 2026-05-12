@@ -86,6 +86,18 @@ export default function ReportsPage() {
     }
   }
 
+  if (!isSupervisor) {
+    return (
+      <div className="space-y-4">
+        <PageHeader title="Reports" subtitle="Supervisor access required" />
+        <div className="rounded-xl border border-stone-200 bg-white px-5 py-12 shadow-sm text-center space-y-1">
+          <p className="text-sm font-medium text-stone-700">Access restricted</p>
+          <p className="text-xs text-stone-400">Reports are only available to supervisors.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
 
