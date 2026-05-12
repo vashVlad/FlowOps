@@ -230,7 +230,7 @@ export default function DeliveryDetailPage() {
                   </div>
                 ) : isSupervisor ? (
                   <button onClick={() => setDeleteConfirm(true)}
-                    className="text-xs text-stone-400 hover:text-red-500 transition-colors">
+                    className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50 transition-colors">
                     Delete
                   </button>
                 ) : null}

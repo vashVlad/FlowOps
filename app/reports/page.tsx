@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useRacksStore } from "@/store/racks";
 import { useDeliveriesStore } from "@/store/deliveries";
 import { useZonesStore } from "@/store/zones";
@@ -12,7 +13,7 @@ import {
 } from "@/lib/export";
 import { isRackStuck } from "@/lib/timeTracking";
 import PageHeader from "@/components/ui/PageHeader";
-import { useIsSupervisor } from "@/store/auth";
+import { useAuthStore, useIsSupervisor } from "@/store/auth";
 
 interface ReportCard {
   title:       string;
@@ -67,7 +68,10 @@ export default function ReportsPage() {
   const activeDeliveries = deliveries.filter((d) => d.status !== "complete").length;
   const completedRacks   = racks.filter((r) => r.status === "completed").length;
 
-  const isSupervisor = useIsSupervisor();
+  const isSupervisor  = useIsSupervisor();
+  const roleLoading   = useAuthStore((s) => s.roleLoading);
+  const role          = useAuthStore((s) => s.role);
+  const router        = useRouter();
   const [cycleConfirm, setCycleConfirm] = useState(false);
   const [cycleLoading, setCycleLoading] = useState(false);
   const [cycleResult,  setCycleResult]  = useState<string | null>(null);
@@ -86,17 +90,11 @@ export default function ReportsPage() {
     }
   }
 
-  if (!isSupervisor) {
-    return (
-      <div className="space-y-4">
-        <PageHeader title="Reports" subtitle="Supervisor access required" />
-        <div className="rounded-xl border border-stone-200 bg-white px-5 py-12 shadow-sm text-center space-y-1">
-          <p className="text-sm font-medium text-stone-700">Access restricted</p>
-          <p className="text-xs text-stone-400">Reports are only available to supervisors.</p>
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (!roleLoading && role === "worker") router.replace("/");
+  }, [role, roleLoading]);
+
+  if (roleLoading || role === "worker") return null;
 
   return (
     <div className="space-y-8">
