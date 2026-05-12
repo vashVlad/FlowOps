@@ -73,6 +73,9 @@ export default function DeliveryDetailPage() {
   const [photoCaption, setPhotoCaption] = useState("");
   const [photoError, setPhotoError] = useState("");
   const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
+  const [outcomeEditing, setOutcomeEditing] = useState(false);
+  const [donationValue, setDonationValue] = useState("");
+  const [trashValue, setTrashValue] = useState("");
 
   const delivery = deliveries.find((d) => d.id === id);
 
@@ -122,6 +125,13 @@ export default function DeliveryDetailPage() {
   const auctionUrgent = auctionDays !== null && auctionDays <= 3;
   const auctionPast   = auctionDays !== null && auctionDays < 0;
 
+  // Outcome breakdown
+  const donationPct  = delivery.donationPercent ?? 0;
+  const trashPct     = delivery.trashPercent    ?? 0;
+  const sellablePct  = Math.max(0, 100 - donationPct - trashPct);
+  const hasOutcome   = delivery.donationPercent != null || delivery.trashPercent != null;
+  const outcomeOverLimit = Number(donationValue || 0) + Number(trashValue || 0) > 100;
+
   async function handleAddRack() {
     const result = await addRack({
       consignerName: delivery!.consignerName,
@@ -147,6 +157,15 @@ export default function DeliveryDetailPage() {
     if (!result.ok) { setNoteError(result.error); return; }
     setNoteInput("");
     addToast("Note pinned");
+  }
+
+  async function handleSaveOutcome() {
+    const clamp = (v: string) => v === "" ? null : Math.min(100, Math.max(0, Math.round(Number(v) || 0)));
+    const d = clamp(donationValue);
+    const t = clamp(trashValue);
+    if ((d ?? 0) + (t ?? 0) > 100) return;
+    const result = await updateDelivery(delivery!.id, { donationPercent: d, trashPercent: t });
+    if (result.ok) { setOutcomeEditing(false); addToast("Outcome saved"); }
   }
 
   async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -329,8 +348,110 @@ export default function DeliveryDetailPage() {
                   )}
                 </dd>
               </div>
+
             </dl>
 
+            {/* ── OUTCOME ───────────────────────────────────────────────────── */}
+            <div className="border-t border-stone-100 pt-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <SectionLabel>Outcome</SectionLabel>
+                {!outcomeEditing && (
+                  <button
+                    onClick={() => {
+                      setDonationValue(delivery.donationPercent != null ? String(delivery.donationPercent) : "");
+                      setTrashValue(delivery.trashPercent != null ? String(delivery.trashPercent) : "");
+                      setOutcomeEditing(true);
+                    }}
+                    className="text-xs text-stone-400 hover:text-orange-600 transition-colors"
+                  >
+                    {hasOutcome ? "Edit" : "Set outcome"}
+                  </button>
+                )}
+              </div>
+
+              {outcomeEditing ? (
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-emerald-400 shrink-0" />
+                    <span className="text-xs text-stone-500">Donation</span>
+                    <input
+                      type="number" min="0" max="100"
+                      value={donationValue}
+                      onChange={(e) => setDonationValue(e.target.value)}
+                      placeholder="0"
+                      className="w-14 rounded border border-stone-200 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500"
+                      autoFocus
+                    />
+                    <span className="text-xs text-stone-400">%</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-red-400 shrink-0" />
+                    <span className="text-xs text-stone-500">Trash</span>
+                    <input
+                      type="number" min="0" max="100"
+                      value={trashValue}
+                      onChange={(e) => setTrashValue(e.target.value)}
+                      placeholder="0"
+                      className="w-14 rounded border border-stone-200 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500"
+                    />
+                    <span className="text-xs text-stone-400">%</span>
+                  </div>
+                  {outcomeOverLimit && (
+                    <span className="text-xs text-red-500">Total exceeds 100%</span>
+                  )}
+                  <button
+                    onClick={handleSaveOutcome}
+                    disabled={outcomeOverLimit}
+                    className="rounded-lg bg-orange-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={() => setOutcomeEditing(false)}
+                    className="text-xs text-stone-400 hover:text-stone-600 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : hasOutcome ? (
+                <>
+                  {/* Stacked bar */}
+                  <div className="flex h-3 w-full overflow-hidden rounded-full bg-stone-100">
+                    {donationPct > 0 && (
+                      <div
+                        className="h-full bg-emerald-400 transition-all duration-300"
+                        style={{ width: `${donationPct}%` }}
+                        title={`Donation: ${donationPct}%`}
+                      />
+                    )}
+                    {trashPct > 0 && (
+                      <div
+                        className="h-full bg-red-400 transition-all duration-300"
+                        style={{ width: `${trashPct}%` }}
+                        title={`Trash: ${trashPct}%`}
+                      />
+                    )}
+                  </div>
+                  {/* Stat tiles */}
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-2.5 text-center">
+                      <p className="text-lg font-bold tabular-nums text-emerald-700">{donationPct}%</p>
+                      <p className="text-[11px] text-emerald-600 mt-0.5">Donation</p>
+                    </div>
+                    <div className="rounded-lg bg-red-50 border border-red-100 px-3 py-2.5 text-center">
+                      <p className="text-lg font-bold tabular-nums text-red-600">{trashPct}%</p>
+                      <p className="text-[11px] text-red-500 mt-0.5">Trash / Dump</p>
+                    </div>
+                    <div className="rounded-lg bg-stone-50 border border-stone-200 px-3 py-2.5 text-center">
+                      <p className="text-lg font-bold tabular-nums text-stone-700">{sellablePct}%</p>
+                      <p className="text-[11px] text-stone-400 mt-0.5">Sellable</p>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <p className="text-xs text-stone-400">No outcome recorded yet.</p>
+              )}
+            </div>
 
             {/* ── OPERATIONAL NOTES ─────────────────────────────────────────── */}
             <div className="border-t border-stone-100 pt-4 space-y-3">
@@ -406,7 +527,7 @@ export default function DeliveryDetailPage() {
                 <p className="text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2">{photoError}</p>
               )}
               {deliveryPhotos.length > 0 ? (
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-2 md:grid-cols-4">
                   {deliveryPhotos.map((photo) => (
                     <div key={photo.id} className="relative group rounded-lg overflow-hidden border border-stone-200">
                       {photo.url ? (
@@ -417,11 +538,11 @@ export default function DeliveryDetailPage() {
                           <img
                             src={photo.url}
                             alt={photo.caption ?? "Delivery photo"}
-                            className="w-full h-24 object-cover hover:opacity-90 transition-opacity"
+                            className="w-full h-28 md:h-44 object-cover hover:opacity-90 transition-opacity"
                           />
                         </button>
                       ) : (
-                        <div className="w-full h-24 bg-stone-100 flex items-center justify-center">
+                        <div className="w-full h-28 md:h-44 bg-stone-100 flex items-center justify-center">
                           <span className="text-xs text-stone-400">Loading…</span>
                         </div>
                       )}

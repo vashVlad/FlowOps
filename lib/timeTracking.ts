@@ -17,7 +17,7 @@ export const STAGE_THRESHOLDS_MS: Record<RackStatus, number> = {
   intake:    4  * H,           // 4 business hours
   unpacking: 6  * H,           // 6 business hours
   sorting:   5  * BH_DAILY_MS, // 5 business days (45 h operational)
-  lotting:   4  * H,           // 4 business hours
+  lotting:   16 * H,           // 16 business hours (~2 business days)
   ready:     14 * BH_DAILY_MS, // 14 business days — scheduled wait
   pickup:    7  * BH_DAILY_MS, // 7 business days — capacity-constrained
   completed: Infinity,

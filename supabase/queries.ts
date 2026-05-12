@@ -45,6 +45,8 @@ export interface DeliveryRow {
   arrived_at: string | null;
   completed_at: string | null;
   auction_date: string | null;
+  donation_percent: number | null;
+  trash_percent: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -114,9 +116,11 @@ export function toDelivery(row: DeliveryRow): Delivery {
     type:              row.type,
     status:            row.status,
     scheduledDate:     row.scheduled_date,
-    arrivedAt:         row.arrived_at    ?? undefined,
-    completedAt:       row.completed_at  ?? undefined,
-    auctionDate:       row.auction_date  ?? undefined,
+    arrivedAt:         row.arrived_at      ?? undefined,
+    completedAt:       row.completed_at    ?? undefined,
+    auctionDate:       row.auction_date    ?? undefined,
+    donationPercent:   row.donation_percent ?? undefined,
+    trashPercent:      row.trash_percent    ?? undefined,
     createdAt:         row.created_at,
     updatedAt:         row.updated_at,
   };
@@ -482,8 +486,10 @@ export async function createDelivery(input: {
 
 export async function updateDelivery(deliveryId: string, patch: UpdateDeliveryInput): Promise<Delivery> {
   const update: Record<string, unknown> = {};
-  if ("zoneId"      in patch) update.zone_id      = patch.zoneId       ?? null;
-  if ("auctionDate" in patch) update.auction_date = patch.auctionDate  ?? null;
+  if ("zoneId"          in patch) update.zone_id          = patch.zoneId           ?? null;
+  if ("auctionDate"     in patch) update.auction_date     = patch.auctionDate      ?? null;
+  if ("donationPercent" in patch) update.donation_percent = patch.donationPercent  ?? null;
+  if ("trashPercent"    in patch) update.trash_percent    = patch.trashPercent     ?? null;
 
   const { data, error } = await supabase
     .from("deliveries")

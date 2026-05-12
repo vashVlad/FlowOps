@@ -76,6 +76,8 @@ export interface Delivery {
   arrivedAt?: string;    // ISO 8601
   completedAt?: string;  // ISO 8601
   auctionDate?: string;  // YYYY-MM-DD — auction cycle deadline
+  donationPercent?: number; // 0–100 — % of delivery routed to donation
+  trashPercent?: number;    // 0–100 — % disposed (dumpster charge)
   createdAt: string;     // ISO 8601
   updatedAt: string;     // ISO 8601
 }
@@ -83,6 +85,8 @@ export interface Delivery {
 export interface UpdateDeliveryInput {
   zoneId?: string | null;
   auctionDate?: string | null;
+  donationPercent?: number | null;
+  trashPercent?: number | null;
 }
 
 // ── Zone ─────────────────────────────────────────────────────────────────────
