@@ -486,10 +486,13 @@ export async function createDelivery(input: {
 
 export async function updateDelivery(deliveryId: string, patch: UpdateDeliveryInput): Promise<Delivery> {
   const update: Record<string, unknown> = {};
-  if ("zoneId"          in patch) update.zone_id          = patch.zoneId           ?? null;
-  if ("auctionDate"     in patch) update.auction_date     = patch.auctionDate      ?? null;
-  if ("donationPercent" in patch) update.donation_percent = patch.donationPercent  ?? null;
-  if ("trashPercent"    in patch) update.trash_percent    = patch.trashPercent     ?? null;
+  if ("consignerName"    in patch) update.consigner_name      = patch.consignerName;
+  if ("consignerJNumber" in patch) update.consigner_j_number  = patch.consignerJNumber  ?? null;
+  if ("expectedRackCount" in patch) update.expected_rack_count = patch.expectedRackCount;
+  if ("zoneId"           in patch) update.zone_id             = patch.zoneId            ?? null;
+  if ("auctionDate"      in patch) update.auction_date        = patch.auctionDate       ?? null;
+  if ("donationPercent"  in patch) update.donation_percent    = patch.donationPercent   ?? null;
+  if ("trashPercent"     in patch) update.trash_percent       = patch.trashPercent      ?? null;
 
   const { data, error } = await supabase
     .from("deliveries")

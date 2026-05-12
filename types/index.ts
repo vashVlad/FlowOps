@@ -57,7 +57,7 @@ export interface HistoryEvent {
 
 // ── Delivery ─────────────────────────────────────────────────────────────────
 
-export type DeliveryStatus = "scheduled" | "arrived" | "processing" | "complete";
+export type DeliveryStatus = "scheduled" | "arrived" | "processing" | "unpacking_complete" | "complete";
 
 // "walkin"    — unscheduled, truck just showed up; starts as arrived
 // "scheduled" — pre-registered with expected count and date
@@ -83,7 +83,10 @@ export interface Delivery {
 }
 
 export interface UpdateDeliveryInput {
+  consignerName?: string;
+  consignerJNumber?: string | null;
   zoneId?: string | null;
+  expectedRackCount?: number;
   auctionDate?: string | null;
   donationPercent?: number | null;
   trashPercent?: number | null;

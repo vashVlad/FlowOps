@@ -87,38 +87,43 @@ export const KPI_ACCENT: Record<string, string> = {
 import type { DeliveryStatus } from "@/types";
 
 export const DELIVERY_STATUS_BADGE: Record<DeliveryStatus, string> = {
-  scheduled:  "bg-stone-100 text-stone-600",
-  arrived:    "bg-sky-100 text-sky-700",
-  processing: "bg-orange-100 text-orange-700",
-  complete:   "bg-emerald-100 text-emerald-700",
+  scheduled:          "bg-stone-100 text-stone-600",
+  arrived:            "bg-sky-100 text-sky-700",
+  processing:         "bg-orange-100 text-orange-700",
+  unpacking_complete: "bg-teal-100 text-teal-700",
+  complete:           "bg-emerald-100 text-emerald-700",
 };
 
 export const DELIVERY_STATUS_LABEL: Record<DeliveryStatus, string> = {
-  scheduled:  "Scheduled",
-  arrived:    "Arrived",
-  processing: "Processing",
-  complete:   "Complete",
+  scheduled:          "Scheduled",
+  arrived:            "Arrived",
+  processing:         "Processing",
+  unpacking_complete: "Unpacking Complete",
+  complete:           "Complete",
 };
 
 export const DELIVERY_STATUS_BORDER: Record<DeliveryStatus, string> = {
-  scheduled:  "border-l-4 border-l-amber-400",
-  arrived:    "border-l-4 border-l-sky-400",
-  processing: "border-l-4 border-l-orange-500",
-  complete:   "border-l-4 border-l-stone-200",
+  scheduled:          "border-l-4 border-l-amber-400",
+  arrived:            "border-l-4 border-l-sky-400",
+  processing:         "border-l-4 border-l-orange-500",
+  unpacking_complete: "border-l-4 border-l-teal-500",
+  complete:           "border-l-4 border-l-stone-200",
 };
 
 export const DELIVERY_NEXT_LABEL: Record<DeliveryStatus, string> = {
-  scheduled:  "Mark arrived",
-  arrived:    "Start processing",
-  processing: "Mark complete",
-  complete:   "",
+  scheduled:          "Mark arrived",
+  arrived:            "Start processing",
+  processing:         "Unpacking complete",
+  unpacking_complete: "Mark complete",
+  complete:           "",
 };
 
 export const DELIVERY_NEXT_BTN: Record<DeliveryStatus, string> = {
-  scheduled:  "bg-amber-500 hover:bg-amber-600 text-white transition-colors",
-  arrived:    "bg-sky-600 hover:bg-sky-700 text-white transition-colors",
-  processing: "bg-emerald-600 hover:bg-emerald-700 text-white transition-colors",
-  complete:   "",
+  scheduled:          "bg-amber-500 hover:bg-amber-600 text-white transition-colors",
+  arrived:            "bg-sky-600 hover:bg-sky-700 text-white transition-colors",
+  processing:         "bg-teal-600 hover:bg-teal-700 text-white transition-colors",
+  unpacking_complete: "bg-emerald-600 hover:bg-emerald-700 text-white transition-colors",
+  complete:           "",
 };
 
 // ── Notification types ────────────────────────────────────────────────────────

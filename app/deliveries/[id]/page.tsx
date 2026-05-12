@@ -6,11 +6,13 @@ import Link from "next/link";
 import { useDeliveriesStore } from "@/store/deliveries";
 import { useRacksStore } from "@/store/racks";
 import { useIsSupervisor } from "@/store/auth";
+import { useAuthStore } from "@/store/auth";
 import { useZonesStore } from "@/store/zones";
 import { useNotesStore } from "@/store/notes";
 import { usePhotosStore } from "@/store/photos";
 import DeliveryStatusBadge from "@/components/DeliveryStatusBadge";
 import PriorityPicker from "@/components/ui/PriorityPicker";
+import Select from "@/components/Select";
 import { StageStrip } from "@/app/racks/page";
 import { SectionLabel } from "@/components/ui/Card";
 import { formatDate, timeAgo } from "@/lib/utils";
@@ -26,7 +28,11 @@ import { useToastStore } from "@/store/toast";
 import type { DeliveryStatus, Priority } from "@/types";
 
 const NEXT_STATUS: Record<DeliveryStatus, DeliveryStatus | null> = {
-  scheduled: "arrived", arrived: "processing", processing: "complete", complete: null,
+  scheduled:          "arrived",
+  arrived:            "processing",
+  processing:         "unpacking_complete",
+  unpacking_complete: "complete",
+  complete:           null,
 };
 
 function formatAuctionDate(dateStr: string): string {
@@ -38,7 +44,7 @@ function businessDaysUntil(dateStr: string): number {
   const now    = new Date();
   now.setHours(0, 0, 0, 0);
   const target = new Date(dateStr + "T00:00:00");
-  if (target < now) return -1; // past
+  if (target < now) return -1;
   let days = 0;
   const cur = new Date(now);
   while (cur <= target) {
@@ -59,23 +65,43 @@ export default function DeliveryDetailPage() {
   const { photos, uploading, fetchForDelivery, upload, deletePhoto } = usePhotosStore();
   const addToast     = useToastStore((s) => s.add);
   const isSupervisor = useIsSupervisor();
+  const user         = useAuthStore((s) => s.user);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // ── Add rack ──────────────────────────────────────────────────────────────
   const [addOpen, setAddOpen]             = useState(false);
   const [addPriority, setAddPriority]     = useState<Priority>("normal");
   const [addRackCode, setAddRackCode]     = useState("");
+  const [addRackZoneId, setAddRackZoneId] = useState("");
   const [addRackError, setAddRackError]   = useState("");
+
+  // ── Delete confirmation ───────────────────────────────────────────────────
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+
+  // ── Edit delivery ─────────────────────────────────────────────────────────
+  const [editing, setEditing]                   = useState(false);
+  const [editName, setEditName]                 = useState("");
+  const [editJNumber, setEditJNumber]           = useState("");
+  const [editZoneId, setEditZoneId]             = useState("");
+  const [editExpectedCount, setEditExpectedCount] = useState("");
+
+  // ── Auction date ──────────────────────────────────────────────────────────
   const [auctionEditing, setAuctionEditing] = useState(false);
-  const [auctionValue, setAuctionValue]   = useState("");
-  const [noteInput, setNoteInput]         = useState("");
-  const [noteError, setNoteError]         = useState("");
-  const [photoCaption, setPhotoCaption]   = useState("");
-  const [photoError, setPhotoError]       = useState("");
-  const [previewPhoto, setPreviewPhoto]   = useState<string | null>(null);
+  const [auctionValue, setAuctionValue]     = useState("");
+
+  // ── Notes ─────────────────────────────────────────────────────────────────
+  const [noteInput, setNoteInput] = useState("");
+  const [noteError, setNoteError] = useState("");
+
+  // ── Photos ────────────────────────────────────────────────────────────────
+  const [photoCaption, setPhotoCaption] = useState("");
+  const [photoError, setPhotoError]     = useState("");
+  const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
+
+  // ── Outcome ───────────────────────────────────────────────────────────────
   const [outcomeEditing, setOutcomeEditing] = useState(false);
-  const [donationValue, setDonationValue] = useState("");
-  const [trashValue, setTrashValue]       = useState("");
+  const [donationValue, setDonationValue]   = useState("");
+  const [trashValue, setTrashValue]         = useState("");
 
   const delivery = deliveries.find((d) => d.id === id);
 
@@ -107,7 +133,11 @@ export default function DeliveryDetailPage() {
   const totalItems     = racksWithItems.reduce((s, r) => s + r.itemCount!, 0);
   const hasItemData    = racksWithItems.length > 0;
 
-  const deliveryNotes = notes.filter((n) => n.deliveryId === id);
+  // All notes for this delivery: delivery-level + rack-level for linked racks
+  const linkedRackIds  = new Set(linked.map((r) => r.id));
+  const deliveryNotes  = notes.filter((n) =>
+    n.deliveryId === id || (n.rackId != null && linkedRackIds.has(n.rackId))
+  );
   const deliveryPhotos = photos[id] ?? [];
 
   const counts = [...PIPELINE_STAGES, { status: "completed" as const }].map(({ status }) => ({
@@ -119,7 +149,7 @@ export default function DeliveryDetailPage() {
 
   const inputCls = "w-full rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500";
 
-  const auctionDays = delivery.auctionDate ? businessDaysUntil(delivery.auctionDate) : null;
+  const auctionDays   = delivery.auctionDate ? businessDaysUntil(delivery.auctionDate) : null;
   const auctionUrgent = auctionDays !== null && auctionDays <= 3;
   const auctionPast   = auctionDays !== null && auctionDays < 0;
 
@@ -132,9 +162,10 @@ export default function DeliveryDetailPage() {
   async function handleAddRack() {
     const result = await addRack({
       consignerName: delivery!.consignerName,
-      priority: addPriority,
-      deliveryId: delivery!.id,
-      rackCode: addRackCode.trim() || undefined,
+      priority:      addPriority,
+      deliveryId:    delivery!.id,
+      rackCode:      addRackCode.trim() || undefined,
+      zoneId:        addRackZoneId || undefined,
     });
     if (!result.ok) {
       setAddRackError(result.error);
@@ -142,6 +173,7 @@ export default function DeliveryDetailPage() {
     }
     setAddPriority("normal");
     setAddRackCode("");
+    setAddRackZoneId("");
     setAddRackError("");
     addToast(`${result.data.rackCode} added`);
   }
@@ -150,7 +182,8 @@ export default function DeliveryDetailPage() {
     const text = noteInput.trim();
     if (!text) return;
     setNoteError("");
-    const result = await addNote(text, undefined, delivery!.id);
+    const createdBy = user?.email ?? undefined;
+    const result = await addNote(text, undefined, delivery!.id, createdBy);
     if (!result.ok) { setNoteError(result.error); return; }
     setNoteInput("");
     addToast("Note pinned");
@@ -163,6 +196,18 @@ export default function DeliveryDetailPage() {
     if ((d ?? 0) + (t ?? 0) > 100) return;
     const result = await updateDelivery(delivery!.id, { donationPercent: d, trashPercent: t });
     if (result.ok) { setOutcomeEditing(false); addToast("Outcome saved"); }
+  }
+
+  async function handleSaveEdit() {
+    const name = editName.trim();
+    if (!name) return;
+    const result = await updateDelivery(delivery!.id, {
+      consignerName:    name,
+      consignerJNumber: editJNumber.trim() || null,
+      zoneId:           editZoneId || null,
+      expectedRackCount: Number(editExpectedCount) || delivery!.expectedRackCount,
+    });
+    if (result.ok) { setEditing(false); addToast("Delivery updated"); }
   }
 
   async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -211,7 +256,22 @@ export default function DeliveryDetailPage() {
                   <p className="mt-0.5 text-xs text-stone-400 font-mono">{delivery.consignerJNumber}</p>
                 )}
               </div>
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                {/* Edit button */}
+                {!editing && !deleteConfirm && (
+                  <button
+                    onClick={() => {
+                      setEditName(delivery.consignerName);
+                      setEditJNumber(delivery.consignerJNumber ?? "");
+                      setEditZoneId(delivery.zoneId ?? "");
+                      setEditExpectedCount(delivery.expectedRackCount > 0 ? String(delivery.expectedRackCount) : "");
+                      setEditing(true);
+                    }}
+                    className="rounded-lg border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-600 hover:bg-stone-50 transition-colors"
+                  >
+                    Edit
+                  </button>
+                )}
                 {deleteConfirm ? (
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-stone-400">Delete?</span>
@@ -247,6 +307,57 @@ export default function DeliveryDetailPage() {
                 )}
               </div>
             </div>
+
+            {/* Inline edit form */}
+            {editing && (
+              <div className="rounded-xl border border-orange-200 bg-orange-50 p-4 space-y-3">
+                <p className="text-xs font-medium text-orange-700">Edit delivery</p>
+                <input
+                  type="text"
+                  placeholder="Consigner name"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className={inputCls}
+                  autoFocus
+                />
+                <input
+                  type="text"
+                  placeholder="J-Number (optional)"
+                  value={editJNumber}
+                  onChange={(e) => setEditJNumber(e.target.value)}
+                  className={inputCls}
+                />
+                <Select value={editZoneId} onChange={(e) => setEditZoneId(e.target.value)}>
+                  <option value="">Zone (optional)</option>
+                  {zones.map((z) => (
+                    <option key={z.id} value={z.id}>{z.name}{z.label ? ` — ${z.label}` : ""}</option>
+                  ))}
+                </Select>
+                <input
+                  type="number"
+                  placeholder="Expected rack count"
+                  value={editExpectedCount}
+                  onChange={(e) => setEditExpectedCount(e.target.value)}
+                  min={0}
+                  className={inputCls}
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSaveEdit}
+                    disabled={!editName.trim()}
+                    className="rounded-lg bg-orange-600 px-4 py-2 text-xs font-medium text-white hover:bg-orange-700 disabled:opacity-40 transition-colors"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={() => setEditing(false)}
+                    className="rounded-lg border border-stone-200 px-4 py-2 text-xs font-medium text-stone-600 hover:bg-stone-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Metadata */}
             <dl className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4 border-t border-stone-100 pt-4">
@@ -345,8 +456,8 @@ export default function DeliveryDetailPage() {
                   )}
                 </dd>
               </div>
-
             </dl>
+
             {/* ── OUTCOME ───────────────────────────────────────────────────── */}
             <div className="border-t border-stone-100 pt-4 space-y-3">
               <div className="flex items-center justify-between">
@@ -411,24 +522,14 @@ export default function DeliveryDetailPage() {
                 </div>
               ) : hasOutcome ? (
                 <>
-                  {/* Stacked bar */}
                   <div className="flex h-3 w-full overflow-hidden rounded-full bg-stone-100">
                     {donationPct > 0 && (
-                      <div
-                        className="h-full bg-emerald-400 transition-all duration-300"
-                        style={{ width: `${donationPct}%` }}
-                        title={`Donation: ${donationPct}%`}
-                      />
+                      <div className="h-full bg-emerald-400 transition-all duration-300" style={{ width: `${donationPct}%` }} title={`Donation: ${donationPct}%`} />
                     )}
                     {trashPct > 0 && (
-                      <div
-                        className="h-full bg-red-400 transition-all duration-300"
-                        style={{ width: `${trashPct}%` }}
-                        title={`Trash: ${trashPct}%`}
-                      />
+                      <div className="h-full bg-red-400 transition-all duration-300" style={{ width: `${trashPct}%` }} title={`Trash: ${trashPct}%`} />
                     )}
                   </div>
-                  {/* Stat tiles */}
                   <div className="grid grid-cols-3 gap-2">
                     <div className="rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-2.5 text-center">
                       <p className="text-lg font-bold tabular-nums text-emerald-700">{donationPct}%</p>
@@ -472,21 +573,39 @@ export default function DeliveryDetailPage() {
               {noteError && <p className="text-xs text-red-500">{noteError}</p>}
               {deliveryNotes.length > 0 && (
                 <div className="space-y-1.5">
-                  {deliveryNotes.map((note) => (
-                    <div key={note.id} className="flex items-start gap-3 rounded-lg bg-amber-50 border border-amber-100 px-3 py-2">
-                      <span className="h-1.5 w-1.5 rounded-full bg-amber-400 shrink-0 mt-1.5" />
-                      <p className="flex-1 text-xs text-stone-700">{note.note}</p>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-[10px] text-stone-400">{timeAgo(note.createdAt)}</span>
-                        <button
-                          onClick={() => deleteNote(note.id)}
-                          className="text-[10px] text-stone-300 hover:text-red-400 transition-colors"
-                        >
-                          ×
-                        </button>
+                  {deliveryNotes.map((note) => {
+                    const attachedRack = note.rackId ? linked.find((r) => r.id === note.rackId) : undefined;
+                    return (
+                      <div key={note.id} className="flex items-start gap-3 rounded-lg bg-amber-50 border border-amber-100 px-3 py-2">
+                        <span className="h-1.5 w-1.5 rounded-full bg-amber-400 shrink-0 mt-1.5" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-stone-700">{note.note}</p>
+                          <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                            {attachedRack && (
+                              <button
+                                onClick={() => router.push(`/racks/${attachedRack.id}`)}
+                                className="text-[10px] font-mono font-medium text-sky-600 hover:underline"
+                              >
+                                {attachedRack.rackCode}
+                              </button>
+                            )}
+                            {note.createdBy && (
+                              <span className="text-[10px] text-stone-400">by {note.createdBy}</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-[10px] text-stone-400">{timeAgo(note.createdAt)}</span>
+                          <button
+                            onClick={() => deleteNote(note.id)}
+                            className="text-[10px] text-stone-300 hover:text-red-400 transition-colors"
+                          >
+                            ×
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -503,13 +622,7 @@ export default function DeliveryDetailPage() {
                     onChange={(e) => setPhotoCaption(e.target.value)}
                     className="rounded-lg border border-stone-200 px-2 py-1.5 text-xs text-stone-700 placeholder:text-stone-400 focus:outline-none focus:ring-1 focus:ring-orange-500 w-36"
                   />
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handlePhotoUpload}
-                  />
+                  <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploading}
@@ -527,15 +640,9 @@ export default function DeliveryDetailPage() {
                   {deliveryPhotos.map((photo) => (
                     <div key={photo.id} className="relative group rounded-lg overflow-hidden border border-stone-200">
                       {photo.url ? (
-                        <button
-                          onClick={() => setPreviewPhoto(photo.url!)}
-                          className="block w-full"
-                        >
-                          <img
-                            src={photo.url}
-                            alt={photo.caption ?? "Delivery photo"}
-                            className="w-full h-28 md:h-44 object-cover hover:opacity-90 transition-opacity"
-                          />
+                        <button onClick={() => setPreviewPhoto(photo.url!)} className="block w-full">
+                          <img src={photo.url} alt={photo.caption ?? "Delivery photo"}
+                            className="w-full h-28 md:h-44 object-cover hover:opacity-90 transition-opacity" />
                         </button>
                       ) : (
                         <div className="w-full h-28 md:h-44 bg-stone-100 flex items-center justify-center">
@@ -561,16 +668,8 @@ export default function DeliveryDetailPage() {
 
             {/* Photo preview modal */}
             {previewPhoto && (
-              <div
-                className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
-                onClick={() => setPreviewPhoto(null)}
-              >
-                <img
-                  src={previewPhoto}
-                  alt="Preview"
-                  className="max-w-full max-h-full rounded-lg shadow-xl"
-                  onClick={(e) => e.stopPropagation()}
-                />
+              <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => setPreviewPhoto(null)}>
+                <img src={previewPhoto} alt="Preview" className="max-w-full max-h-full rounded-lg shadow-xl" onClick={(e) => e.stopPropagation()} />
               </div>
             )}
 
@@ -612,7 +711,7 @@ export default function DeliveryDetailPage() {
           <div className="mb-3 flex items-center justify-between">
             <SectionLabel>Racks ({linked.length})</SectionLabel>
             <button
-              onClick={() => { setAddOpen((v) => !v); setAddRackCode(""); setAddRackError(""); }}
+              onClick={() => { setAddOpen((v) => !v); setAddRackCode(""); setAddRackZoneId(""); setAddRackError(""); }}
               className="rounded-lg bg-orange-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-700 transition-colors"
             >
               {addOpen ? "Cancel" : "+ Add rack"}
@@ -625,6 +724,12 @@ export default function DeliveryDetailPage() {
                 onChange={(e) => { setAddRackCode(e.target.value); setAddRackError(""); }}
                 className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500" />
               <PriorityPicker value={addPriority} onChange={setAddPriority} />
+              <Select value={addRackZoneId} onChange={(e) => setAddRackZoneId(e.target.value)}>
+                <option value="">Zone (optional)</option>
+                {zones.map((z) => (
+                  <option key={z.id} value={z.id}>{z.name}{z.label ? ` — ${z.label}` : ""}</option>
+                ))}
+              </Select>
               {addRackError && <p className="text-xs text-red-500">{addRackError}</p>}
               <button
                 onClick={handleAddRack}

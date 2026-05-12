@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useDeliveriesStore } from "@/store/deliveries";
 import { useRacksStore } from "@/store/racks";
@@ -28,10 +27,20 @@ const inputCls =
   "w-full rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500";
 
 const NEXT_STATUS: Record<DeliveryStatus, DeliveryStatus | null> = {
-  scheduled:  "arrived",
-  arrived:    "processing",
-  processing: "complete",
-  complete:   null,
+  scheduled:          "arrived",
+  arrived:            "processing",
+  processing:         "unpacking_complete",
+  unpacking_complete: "complete",
+  complete:           null,
+};
+
+// Lower = earlier in list
+const STATUS_SORT: Record<DeliveryStatus, number> = {
+  processing:         0,
+  unpacking_complete: 1,
+  arrived:            2,
+  scheduled:          3,
+  complete:           4,
 };
 
 type FormMode = "walkin" | "scheduled";
@@ -56,6 +65,8 @@ function businessDaysUntil(dateStr: string): number {
   return days;
 }
 
+const LAST_VISITED_KEY = "flowops:lastVisitedDelivery";
+
 export default function DeliveriesPage() {
   const router = useRouter();
   const { deliveries, loading, error: storeError, addDelivery, setStatus } = useDeliveriesStore();
@@ -63,6 +74,12 @@ export default function DeliveriesPage() {
   const { racks }  = useRacksStore();
   const { zones }  = useZonesStore();
   const { notes }  = useNotesStore();
+
+  const [lastVisited, setLastVisited] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLastVisited(localStorage.getItem(LAST_VISITED_KEY));
+  }, []);
 
   const [showForm, setShowForm]         = useState(false);
   const [formMode, setFormMode]         = useState<FormMode>("walkin");
@@ -96,8 +113,10 @@ export default function DeliveriesPage() {
       auctionDate: auctionDate || undefined,
     });
     if (!result.ok) return;
+    const id = result.data.id;
+    localStorage.setItem(LAST_VISITED_KEY, id);
     resetForm(); setShowForm(false);
-    router.push(`/deliveries/${result.data.id}`);
+    router.push(`/deliveries/${id}`);
   }
 
   function handleScheduledSubmit(e: React.FormEvent) {
@@ -128,7 +147,24 @@ export default function DeliveriesPage() {
       if (deliveryFilter === "done")   return d.status === "complete";
       return true;
     })
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    .sort((a, b) => {
+      // Pinned: last visited always first
+      if (a.id === lastVisited) return -1;
+      if (b.id === lastVisited) return 1;
+      // Sort by status group
+      const statusDiff = STATUS_SORT[a.status] - STATUS_SORT[b.status];
+      if (statusDiff !== 0) return statusDiff;
+      // Within same status: most racks first
+      const aCount = racks.filter((r) => r.deliveryId === a.id).length;
+      const bCount = racks.filter((r) => r.deliveryId === b.id).length;
+      return bCount - aCount;
+    });
+
+  function navigateToDelivery(id: string) {
+    localStorage.setItem(LAST_VISITED_KEY, id);
+    setLastVisited(id);
+    router.push(`/deliveries/${id}`);
+  }
 
   return (
     <div className="space-y-5">
@@ -279,11 +315,13 @@ export default function DeliveriesPage() {
             const noteCount  = notes.filter((n) => n.deliveryId === delivery.id).length;
             const auctionDays = delivery.auctionDate ? businessDaysUntil(delivery.auctionDate) : null;
             const auctionUrgent = auctionDays !== null && auctionDays >= 0 && auctionDays <= 3;
+            const isPinned   = delivery.id === lastVisited;
 
             return (
               <li
                 key={delivery.id}
-                className={`rounded-xl border border-stone-200 bg-white px-5 py-4 shadow-sm hover:shadow-md hover:-translate-y-px transition-all duration-150 ${DELIVERY_STATUS_BORDER[delivery.status]}`}
+                onClick={() => navigateToDelivery(delivery.id)}
+                className={`cursor-pointer rounded-xl border border-stone-200 bg-white px-5 py-4 shadow-sm hover:shadow-md hover:-translate-y-px transition-all duration-150 ${DELIVERY_STATUS_BORDER[delivery.status]}`}
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
@@ -295,6 +333,11 @@ export default function DeliveriesPage() {
                       {delivery.type === "walkin" && (
                         <span className="rounded-md bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-500">
                           walk-in
+                        </span>
+                      )}
+                      {isPinned && (
+                        <span className="rounded-md bg-orange-50 px-1.5 py-0.5 text-[11px] font-medium text-orange-500">
+                          recent
                         </span>
                       )}
                       {noteCount > 0 && (
@@ -325,22 +368,16 @@ export default function DeliveriesPage() {
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
-                    {nextStatus && (
+                  {nextStatus && (
+                    <div className="shrink-0">
                       <button
-                        onClick={() => setStatus(delivery.id, nextStatus)}
+                        onClick={(e) => { e.stopPropagation(); setStatus(delivery.id, nextStatus); }}
                         className={`rounded-lg px-3 py-1.5 text-xs font-medium ${DELIVERY_NEXT_BTN[delivery.status]}`}
                       >
                         {DELIVERY_NEXT_LABEL[delivery.status]}
                       </button>
-                    )}
-                    <Link
-                      href={`/deliveries/${delivery.id}`}
-                      className="rounded-lg border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-600 hover:bg-stone-50 transition-colors"
-                    >
-                      View
-                    </Link>
-                  </div>
+                    </div>
+                  )}
                 </div>
 
                 {linked.length > 0 && (

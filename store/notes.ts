@@ -14,7 +14,8 @@ interface NotesStore {
   addNote: (
     note: string,
     rackId?: string,
-    deliveryId?: string
+    deliveryId?: string,
+    createdBy?: string
   ) => Promise<MutationResult<RackNote>>;
   deleteNote:  (noteId: string) => Promise<MutationResult<undefined>>;
   // ── Realtime callbacks ─────────────────────────────────────────────────────
@@ -37,9 +38,9 @@ export const useNotesStore = create<NotesStore>()((set) => ({
     }
   },
 
-  addNote: async (note, rackId, deliveryId) => {
+  addNote: async (note, rackId, deliveryId, createdBy) => {
     try {
-      const created = await dbCreate({ note, rackId, deliveryId });
+      const created = await dbCreate({ note, rackId, deliveryId, createdBy });
       set((state) => ({ notes: [created, ...state.notes] }));
       return ok(created);
     } catch (e) {

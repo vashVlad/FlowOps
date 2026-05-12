@@ -142,14 +142,14 @@ export const useRacksStore = create<RacksStore>()((set, get) => ({
 
     set({ history: [...history, event], racks: updatedRacks });
 
-    // D2: auto-complete delivery when every linked rack reaches pickup
-    if (next === "pickup" && rack.deliveryId) {
+    // Auto-complete delivery when every linked rack reaches ready (or further)
+    if (next === "ready" && rack.deliveryId) {
       const sibs = updatedRacks.filter((r) => r.deliveryId === rack.deliveryId);
       const allDone =
         sibs.length > 0 &&
-        sibs.every((r) => r.status === "pickup" || r.status === "completed");
+        sibs.every((r) => r.status === "ready" || r.status === "pickup" || r.status === "completed");
       if (allDone) {
-        // Best-effort — D2 failure does not roll back the rack advance
+        // Best-effort — failure does not roll back the rack advance
         await useDeliveriesStore.getState().setStatus(rack.deliveryId, "complete");
       }
     }
