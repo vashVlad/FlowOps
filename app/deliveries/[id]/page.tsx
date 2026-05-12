@@ -240,7 +240,7 @@ export default function DeliveryDetailPage() {
           <div className="p-5 space-y-5">
 
             {/* Header */}
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <h1 className="font-mono text-xl font-bold text-stone-900 tracking-tight">
@@ -256,7 +256,7 @@ export default function DeliveryDetailPage() {
                   <p className="mt-0.5 text-xs text-stone-400 font-mono">{delivery.consignerJNumber}</p>
                 )}
               </div>
-              <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 {/* Edit button */}
                 {!editing && !deleteConfirm && (
                   <button
@@ -273,7 +273,7 @@ export default function DeliveryDetailPage() {
                   </button>
                 )}
                 {deleteConfirm ? (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     <span className="text-xs text-stone-400">Delete?</span>
                     <button onClick={async () => {
                       const result = await deleteDelivery(delivery.id);
@@ -300,7 +300,7 @@ export default function DeliveryDetailPage() {
                       const result = await setStatus(delivery.id, nextStatus);
                       if (result.ok) addToast(`Delivery ${DELIVERY_STATUS_LABEL[nextStatus].toLowerCase()}`);
                     }}
-                    className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${DELIVERY_NEXT_BTN[delivery.status]}`}
+                    className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${DELIVERY_NEXT_BTN[delivery.status]}`}
                   >
                     {DELIVERY_NEXT_LABEL[delivery.status]}
                   </button>
