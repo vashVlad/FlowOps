@@ -70,22 +70,28 @@ export function exportRacks(
   downloadCSV(`flowops-racks-${today()}.csv`, headers, rows);
 }
 
-/** All deliveries with progress summary. */
+/** All deliveries with progress and outcome summary. */
 export function exportDeliveries(
   deliveries: Delivery[],
   racks:      Rack[]
 ): void {
   const headers = [
     "Delivery Code", "Consigner", "J-Number", "Type", "Status",
-    "Scheduled Date", "Arrived At", "Completed At",
+    "Scheduled Date", "Arrived At", "Completed At", "Auction Date",
     "Expected Racks", "Linked Racks", "Done Racks", "Progress %",
+    "Donation %", "Trash %", "Sellable %",
   ];
 
   const rows = deliveries.map((d) => {
-    const linked = racks.filter((r) => r.deliveryId === d.id);
-    const done   = linked.filter((r) => r.status === "pickup" || r.status === "completed");
-    const total  = Math.max(d.expectedRackCount, linked.length);
-    const pct    = total > 0 ? Math.round((done.length / total) * 100) : 0;
+    const linked    = racks.filter((r) => r.deliveryId === d.id);
+    const done      = linked.filter((r) => r.status === "pickup" || r.status === "completed");
+    const total     = Math.max(d.expectedRackCount, linked.length);
+    const pct       = total > 0 ? Math.round((done.length / total) * 100) : 0;
+    const donation  = d.donationPercent ?? null;
+    const trash     = d.trashPercent    ?? null;
+    const sellable  = donation != null || trash != null
+      ? Math.max(0, 100 - (donation ?? 0) - (trash ?? 0))
+      : null;
     return [
       d.consignerJNumber ?? d.deliveryCode,
       d.consignerName,
@@ -95,10 +101,14 @@ export function exportDeliveries(
       d.scheduledDate,
       isoToLocal(d.arrivedAt),
       isoToLocal(d.completedAt),
+      d.auctionDate ?? "",
       d.expectedRackCount || "",
       linked.length,
       done.length,
       total > 0 ? `${pct}%` : "",
+      donation  != null ? `${donation}%`  : "",
+      trash     != null ? `${trash}%`     : "",
+      sellable  != null ? `${sellable}%`  : "",
     ];
   });
 

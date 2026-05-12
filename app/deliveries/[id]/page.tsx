@@ -61,25 +61,24 @@ export default function DeliveryDetailPage() {
   const isSupervisor = useIsSupervisor();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [addOpen, setAddOpen]           = useState(false);
-  const [addPriority, setAddPriority]   = useState<Priority>("normal");
-  const [addRackCode, setAddRackCode]   = useState("");
-  const [addRackError, setAddRackError] = useState("");
+  const [addOpen, setAddOpen]             = useState(false);
+  const [addPriority, setAddPriority]     = useState<Priority>("normal");
+  const [addRackCode, setAddRackCode]     = useState("");
+  const [addRackError, setAddRackError]   = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [auctionEditing, setAuctionEditing] = useState(false);
-  const [auctionValue,   setAuctionValue]   = useState("");
-  const [noteInput, setNoteInput] = useState("");
-  const [noteError, setNoteError] = useState("");
-  const [photoCaption, setPhotoCaption] = useState("");
-  const [photoError, setPhotoError] = useState("");
-  const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
+  const [auctionValue, setAuctionValue]   = useState("");
+  const [noteInput, setNoteInput]         = useState("");
+  const [noteError, setNoteError]         = useState("");
+  const [photoCaption, setPhotoCaption]   = useState("");
+  const [photoError, setPhotoError]       = useState("");
+  const [previewPhoto, setPreviewPhoto]   = useState<string | null>(null);
   const [outcomeEditing, setOutcomeEditing] = useState(false);
   const [donationValue, setDonationValue] = useState("");
-  const [trashValue, setTrashValue] = useState("");
+  const [trashValue, setTrashValue]       = useState("");
 
   const delivery = deliveries.find((d) => d.id === id);
 
-  // Load photos on mount
   useEffect(() => {
     if (id) fetchForDelivery(id);
   }, [id]);
@@ -104,9 +103,9 @@ export default function DeliveryDetailPage() {
   const pct        = total > 0 ? Math.round((done.length / total) * 100) : 0;
   const nextStatus = NEXT_STATUS[delivery.status];
 
-  const racksWithItems    = linked.filter((r) => r.itemCount != null);
-  const totalItems        = racksWithItems.reduce((s, r) => s + r.itemCount!, 0);
-  const hasItemData       = racksWithItems.length > 0;
+  const racksWithItems = linked.filter((r) => r.itemCount != null);
+  const totalItems     = racksWithItems.reduce((s, r) => s + r.itemCount!, 0);
+  const hasItemData    = racksWithItems.length > 0;
 
   const deliveryNotes = notes.filter((n) => n.deliveryId === id);
   const deliveryPhotos = photos[id] ?? [];
@@ -120,12 +119,10 @@ export default function DeliveryDetailPage() {
 
   const inputCls = "w-full rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500";
 
-  // Auction date urgency
   const auctionDays = delivery.auctionDate ? businessDaysUntil(delivery.auctionDate) : null;
   const auctionUrgent = auctionDays !== null && auctionDays <= 3;
   const auctionPast   = auctionDays !== null && auctionDays < 0;
 
-  // Outcome breakdown
   const donationPct  = delivery.donationPercent ?? 0;
   const trashPct     = delivery.trashPercent    ?? 0;
   const sellablePct  = Math.max(0, 100 - donationPct - trashPct);
@@ -350,7 +347,6 @@ export default function DeliveryDetailPage() {
               </div>
 
             </dl>
-
             {/* ── OUTCOME ───────────────────────────────────────────────────── */}
             <div className="border-t border-stone-100 pt-4 space-y-3">
               <div className="flex items-center justify-between">
