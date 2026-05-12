@@ -341,8 +341,9 @@ function RacksContent() {
         </form>
       )}
 
-      {/* Filter pills */}
-      <div className="flex flex-wrap gap-1.5">
+      {/* Filter pills — horizontal scroll on mobile */}
+      <div className="-mx-4 sm:mx-0 overflow-x-auto">
+        <div className="flex gap-1.5 px-4 sm:px-0 pb-0.5">
         {FILTER_OPTIONS.map(({ key, label }) => (
           <button key={key} onClick={() => setFilter(key)}
             className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
@@ -355,6 +356,7 @@ function RacksContent() {
             {label}
           </button>
         ))}
+        </div>
       </div>
 
       <input type="text" placeholder="Search racks, consigners, zones…"

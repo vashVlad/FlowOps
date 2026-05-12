@@ -1,19 +1,22 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useDeliveriesStore } from "@/store/deliveries";
 import { useRacksStore } from "@/store/racks";
 import { useNotesStore } from "@/store/notes";
 import { useZonesStore } from "@/store/zones";
+import { useAuthStore } from "@/store/auth";
 import { buildConsignerProfiles, type QualityTag } from "@/lib/consigners";
 import { SectionLabel } from "@/components/ui/Card";
 import DeliveryStatusBadge from "@/components/DeliveryStatusBadge";
-import StatusBadge from "@/components/StatusBadge";
 import { formatDate, timeAgo } from "@/lib/utils";
 import { formatBusinessDuration, getTimeInCurrentStatus } from "@/lib/timeTracking";
 import { STAGE_BADGE, STAGE_LABEL } from "@/lib/tokens";
+
+const inputCls =
+  "w-full rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500";
 
 const TAG_COLOR: Record<string, string> = {
   blue:   "bg-blue-50 text-blue-700",
@@ -35,8 +38,13 @@ export default function ConsignerDetailPage() {
   const router    = useRouter();
   const { deliveries } = useDeliveriesStore();
   const { racks, history, advanceStatus } = useRacksStore();
-  const { notes } = useNotesStore();
+  const { notes, addNote, deleteNote } = useNotesStore();
   const { zones } = useZonesStore();
+  const user = useAuthStore((s) => s.user);
+
+  const [noteInput,  setNoteInput]  = useState("");
+  const [noteRackId, setNoteRackId] = useState("");
+  const [noteError,  setNoteError]  = useState("");
 
   const decodedName = decodeURIComponent(slug);
 
@@ -76,10 +84,33 @@ export default function ConsignerDetailPage() {
   const activeRacks = myRacks.filter((r) => r.status !== "completed")
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
-  // Notes attached to any of this consigner's racks or deliveries
   const consignerNotes = notes
     .filter((n) => (n.deliveryId && deliverySet.has(n.deliveryId)) || (n.rackId && rackIdSet.has(n.rackId)))
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  async function handleAddNote() {
+    const text = noteInput.trim();
+    if (!text) return;
+    setNoteError("");
+
+    const targetDelivery = myDeliveries[0];
+    if (!noteRackId && !targetDelivery) {
+      setNoteError("No delivery to attach note to.");
+      return;
+    }
+
+    const createdBy = user?.email ?? undefined;
+    const result = await addNote(
+      text,
+      noteRackId || undefined,
+      noteRackId ? undefined : targetDelivery?.id,
+      createdBy
+    );
+
+    if (!result.ok) { setNoteError(result.error); return; }
+    setNoteInput("");
+    setNoteRackId("");
+  }
 
   return (
     <div className="space-y-4">
@@ -180,7 +211,7 @@ export default function ConsignerDetailPage() {
                             )}
                           </div>
                           <p className="mt-1 text-xs text-stone-400">
-                            {d.type === "walkin" ? `Arrived ${d.arrivedAt ? timeAgo(d.arrivedAt) : "today"}` : `Scheduled ${formatDate(d.scheduledDate)}`}
+                            {d.arrivedAt ? `Arrived ${timeAgo(d.arrivedAt)}` : `Scheduled ${formatDate(d.scheduledDate)}`}
                             {zone && <span className="ml-2 font-medium text-stone-500">{zone.name}</span>}
                             <span className="ml-2">{active} active rack{active !== 1 ? "s" : ""}</span>
                           </p>
@@ -198,20 +229,85 @@ export default function ConsignerDetailPage() {
           )}
 
           {/* Operational notes */}
-          {consignerNotes.length > 0 && (
+          <div className="space-y-2">
+            <SectionLabel>
+              Operational notes{consignerNotes.length > 0 ? ` (${consignerNotes.length})` : ""}
+            </SectionLabel>
+
+            {/* Add note form */}
             <div className="space-y-2">
-              <SectionLabel>Operational notes ({consignerNotes.length})</SectionLabel>
-              <div className="space-y-1.5">
-                {consignerNotes.map((note) => (
-                  <div key={note.id} className="flex items-start gap-3 rounded-lg bg-amber-50 border border-amber-100 px-3 py-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-amber-400 shrink-0 mt-1.5" />
-                    <p className="flex-1 text-xs text-stone-700">{note.note}</p>
-                    <span className="text-[10px] text-stone-400 shrink-0">{timeAgo(note.createdAt)}</span>
-                  </div>
-                ))}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Pin a note…"
+                  value={noteInput}
+                  onChange={(e) => { setNoteInput(e.target.value); setNoteError(""); }}
+                  onKeyDown={(e) => e.key === "Enter" && handleAddNote()}
+                  className={inputCls}
+                />
+                <button
+                  onClick={handleAddNote}
+                  disabled={!noteInput.trim()}
+                  className="shrink-0 rounded-lg bg-orange-600 px-3 py-2 text-xs font-medium text-white hover:bg-orange-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  Pin
+                </button>
               </div>
+              {activeRacks.length > 0 && (
+                <select
+                  value={noteRackId}
+                  onChange={(e) => setNoteRackId(e.target.value)}
+                  className={inputCls}
+                >
+                  <option value="">No specific rack (delivery-level)</option>
+                  {activeRacks.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.rackCode} — {STAGE_LABEL[r.status]}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {noteError && <p className="text-xs text-red-500">{noteError}</p>}
             </div>
-          )}
+
+            {consignerNotes.length > 0 && (
+              <div className="space-y-1.5">
+                {consignerNotes.map((note) => {
+                  const attachedRack = note.rackId ? myRacks.find((r) => r.id === note.rackId) : undefined;
+                  return (
+                    <div key={note.id} className="flex items-start gap-3 rounded-lg bg-amber-50 border border-amber-100 px-3 py-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-amber-400 shrink-0 mt-1.5" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-stone-700">{note.note}</p>
+                        <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                          {attachedRack && (
+                            <button
+                              onClick={() => router.push(`/racks/${attachedRack.id}`)}
+                              className="text-[10px] font-mono font-medium text-sky-600 hover:underline"
+                            >
+                              {attachedRack.rackCode}
+                            </button>
+                          )}
+                          {note.createdBy && (
+                            <span className="text-[10px] text-stone-400">by {note.createdBy}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-[10px] text-stone-400">{timeAgo(note.createdAt)}</span>
+                        <button
+                          onClick={() => deleteNote(note.id)}
+                          className="text-[10px] text-stone-300 hover:text-red-400 transition-colors"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
           {/* Delivery history */}
           {completedDeliveries.length > 0 && (
@@ -231,7 +327,7 @@ export default function ConsignerDetailPage() {
                           {d.consignerJNumber ?? d.deliveryCode}
                         </p>
                         <p className="text-xs text-stone-400">
-                          {formatDate(d.scheduledDate)} · {rackCount} rack{rackCount !== 1 ? "s" : ""}
+                          {formatDate(d.arrivedAt?.slice(0, 10) ?? d.scheduledDate)} · {rackCount} rack{rackCount !== 1 ? "s" : ""}
                           {d.completedAt && ` · completed ${timeAgo(d.completedAt)}`}
                         </p>
                       </div>

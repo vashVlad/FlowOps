@@ -29,7 +29,7 @@ function ExportCard({ title, description, detail, onExport, count, countLabel, u
   return (
     <div className={`rounded-xl border bg-white shadow-sm overflow-hidden ${urgent ? "border-red-200" : "border-stone-200"}`}>
       <div className={`h-0.5 ${urgent ? "bg-red-500" : "bg-orange-500"}`} />
-      <div className="px-5 py-4 flex items-start justify-between gap-4">
+      <div className="px-5 py-4 flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 space-y-1">
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-sm font-semibold text-stone-800">{title}</p>
@@ -132,7 +132,7 @@ export default function ReportsPage() {
           <ExportCard
             title="All Deliveries"
             description="Delivery summary with progress and rack counts."
-            detail="Columns: delivery code, consigner, type, status, scheduled, arrived, completed, expected racks, linked, done, progress %"
+            detail="Columns: delivery code, consigner, type, status, date, completed, auction date, expected racks, linked, done, progress %"
             onExport={() => exportDeliveries(deliveries, racks)}
             count={activeDeliveries}
             countLabel="active"

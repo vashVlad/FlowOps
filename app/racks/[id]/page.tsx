@@ -235,7 +235,7 @@ export default function RackDetailPage() {
                   <p className="mt-0.5 text-xs text-stone-400 font-mono">{delivery.consignerJNumber}</p>
                 )}
               </div>
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-2 flex-wrap justify-end">
                 <Link
                   href={`/racks/${rack.id}/label`}
                   className="rounded-lg border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-600 hover:bg-stone-50 transition-colors"
@@ -486,7 +486,8 @@ export default function RackDetailPage() {
             {/* Pipeline progress */}
             <div className="border-t border-stone-100 pt-4">
               <SectionLabel>Pipeline Progress</SectionLabel>
-              <div className="flex items-end gap-0 mt-3">
+              <div className="overflow-x-auto -mx-5 px-5">
+              <div className="flex items-end gap-0 mt-3 min-w-[340px]">
                 {STAGE_STEPS.map((s, i) => {
                   const completed = rack.status === "completed";
                   const isPast    = i < stepIdx || completed;
@@ -514,6 +515,7 @@ export default function RackDetailPage() {
                     </Fragment>
                   );
                 })}
+              </div>
               </div>
             </div>
 

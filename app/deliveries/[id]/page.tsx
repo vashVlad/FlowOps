@@ -362,19 +362,13 @@ export default function DeliveryDetailPage() {
             {/* Metadata */}
             <dl className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4 border-t border-stone-100 pt-4">
               <div>
-                <dt className="text-[11px] font-medium uppercase tracking-wide text-stone-400 mb-1">{delivery.type === "walkin" ? "Arrived" : "Scheduled"}</dt>
+                <dt className="text-[11px] font-medium uppercase tracking-wide text-stone-400 mb-1">
+                  {delivery.arrivedAt ? "Arrived" : "Scheduled"}
+                </dt>
                 <dd className="text-sm text-stone-700">
-                  {delivery.type === "walkin" && delivery.arrivedAt
-                    ? timeAgo(delivery.arrivedAt)
-                    : formatDate(delivery.scheduledDate)}
+                  {delivery.arrivedAt ? timeAgo(delivery.arrivedAt) : formatDate(delivery.scheduledDate)}
                 </dd>
               </div>
-              {delivery.type === "scheduled" && delivery.arrivedAt && (
-                <div>
-                  <dt className="text-[11px] font-medium uppercase tracking-wide text-stone-400 mb-1">Arrived</dt>
-                  <dd className="text-sm text-stone-700">{timeAgo(delivery.arrivedAt)}</dd>
-                </div>
-              )}
               {delivery.completedAt && (
                 <div>
                   <dt className="text-[11px] font-medium uppercase tracking-wide text-stone-400 mb-1">Completed</dt>

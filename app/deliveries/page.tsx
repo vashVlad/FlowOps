@@ -10,7 +10,7 @@ import Select from "@/components/Select";
 import DeliveryStatusBadge from "@/components/DeliveryStatusBadge";
 import { LoadingCards } from "@/components/LoadingCards";
 import ErrorBanner from "@/components/ErrorBanner";
-import { formatDate, today } from "@/lib/utils";
+import { formatDate, today, timeAgo } from "@/lib/utils";
 import { estimateRackCount, getConsignerSummary } from "@/lib/deliveries";
 import type { ConsignerSummary } from "@/lib/deliveries";
 import PageHeader from "@/components/ui/PageHeader";
@@ -348,7 +348,7 @@ export default function DeliveriesPage() {
                     </div>
                     <p className="text-sm font-medium text-stone-700">{delivery.consignerName}</p>
                     <p className="mt-1 text-xs text-stone-400">
-                      {delivery.type === "walkin" ? "Arrived today" : `Scheduled ${formatDate(delivery.scheduledDate)}`}
+                      {delivery.arrivedAt ? `Arrived ${timeAgo(delivery.arrivedAt)}` : `Scheduled ${formatDate(delivery.scheduledDate)}`}
                       {zone && <><span className="mx-1">·</span><span className="font-medium text-stone-500">{zone.name}</span></>}
                       {" · "}
                       {delivery.expectedRackCount > 0
