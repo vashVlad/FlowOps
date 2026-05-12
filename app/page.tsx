@@ -80,16 +80,6 @@ export default function Dashboard() {
   const heldRacks = activeRacks.filter((r) => !!r.holdReason);
   const heldCount = heldRacks.length;
 
-  // Item count snapshot (only racks that have item_count set)
-  const racksWithItems    = activeRacks.filter((r) => r.itemCount != null);
-  const totalItemsActive  = racksWithItems.reduce((s, r) => s + r.itemCount!, 0);
-  const itemsInLotting    = racks.filter((r) => r.status === "lotting" && r.itemCount != null)
-                              .reduce((s, r) => s + r.itemCount!, 0);
-  const avgItemsPerRack   = racksWithItems.length > 0
-    ? Math.round(totalItemsActive / racksWithItems.length)
-    : null;
-  const hasItemData = racksWithItems.length > 0;
-
   // Stuck count: exclude held racks + waiting stages
   const stuckCount = activeRacks.filter(
     (r) => !r.holdReason && !WAITING_STAGES.has(r.status) && isRackStuck(r, history)
@@ -252,13 +242,6 @@ export default function Dashboard() {
               inLotting={inLotting}
             />
 
-            {hasItemData && (
-              <ItemInventoryStrip
-                totalItems={totalItemsActive}
-                itemsInLotting={itemsInLotting}
-                avgPerRack={avgItemsPerRack}
-              />
-            )}
           </div>
 
           {/* ── CENTER: warehouse state ──────────────────────────────────── */}
@@ -789,38 +772,6 @@ function DailyBriefing({
             <span className="text-xs text-stone-500">Pipeline flowing normally</span>
           </div>
         )}
-      </div>
-    </Card>
-  );
-}
-
-// ── Item Inventory Strip ──────────────────────────────────────────────────────
-
-function ItemInventoryStrip({
-  totalItems, itemsInLotting, avgPerRack,
-}: {
-  totalItems: number;
-  itemsInLotting: number;
-  avgPerRack: number | null;
-}) {
-  return (
-    <Card className="space-y-2" padding="px-3.5 py-3">
-      <p className="text-[10px] font-medium uppercase tracking-wide text-stone-400">Inventory snapshot</p>
-      <div className="grid grid-cols-3 gap-3">
-        <div className="text-center">
-          <p className="text-base font-bold text-stone-900 tabular-nums">{totalItems.toLocaleString()}</p>
-          <p className="text-[10px] text-stone-400 mt-0.5">active items</p>
-        </div>
-        <div className="text-center">
-          <p className="text-base font-bold text-amber-700 tabular-nums">{itemsInLotting.toLocaleString()}</p>
-          <p className="text-[10px] text-stone-400 mt-0.5">in lotting</p>
-        </div>
-        <div className="text-center">
-          <p className="text-base font-bold text-stone-900 tabular-nums">
-            {avgPerRack != null ? avgPerRack : "—"}
-          </p>
-          <p className="text-[10px] text-stone-400 mt-0.5">avg / rack</p>
-        </div>
       </div>
     </Card>
   );

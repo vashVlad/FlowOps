@@ -10,6 +10,7 @@ import { useAuthStore } from "@/store/auth";
 import { useZonesStore } from "@/store/zones";
 import { useNotesStore } from "@/store/notes";
 import { usePhotosStore } from "@/store/photos";
+import { useRackConsignersStore } from "@/store/rackConsigners";
 import DeliveryStatusBadge from "@/components/DeliveryStatusBadge";
 import PriorityPicker from "@/components/ui/PriorityPicker";
 import Select from "@/components/Select";
@@ -63,6 +64,7 @@ export default function DeliveryDetailPage() {
   const { zones } = useZonesStore();
   const { notes, addNote, deleteNote } = useNotesStore();
   const { photos, uploading, fetchForDelivery, upload, deletePhoto } = usePhotosStore();
+  const { consigners: allConsigners } = useRackConsignersStore();
   const addToast     = useToastStore((s) => s.add);
   const isSupervisor = useIsSupervisor();
   const user         = useAuthStore((s) => s.user);
@@ -129,9 +131,6 @@ export default function DeliveryDetailPage() {
   const pct        = total > 0 ? Math.round((done.length / total) * 100) : 0;
   const nextStatus = NEXT_STATUS[delivery.status];
 
-  const racksWithItems = linked.filter((r) => r.itemCount != null);
-  const totalItems     = racksWithItems.reduce((s, r) => s + r.itemCount!, 0);
-  const hasItemData    = racksWithItems.length > 0;
 
   // All notes for this delivery: delivery-level + rack-level for linked racks
   const linkedRackIds  = new Set(linked.map((r) => r.id));
@@ -671,12 +670,7 @@ export default function DeliveryDetailPage() {
             <div className="border-t border-stone-100 pt-4 space-y-3">
               <div className="flex items-center justify-between">
                 <SectionLabel>Progress</SectionLabel>
-                <div className="flex items-center gap-3">
-                  {hasItemData && (
-                    <span className="text-xs text-stone-400">{totalItems} item{totalItems !== 1 ? "s" : ""}</span>
-                  )}
-                  <span className="text-xs text-stone-500">{done.length} done{total > 0 && ` · ${pct}%`}</span>
-                </div>
+                <span className="text-xs text-stone-500">{done.length} done{total > 0 && ` · ${pct}%`}</span>
               </div>
               <div className="flex h-2 w-full overflow-hidden rounded-full bg-stone-100">
                 {total === 0 ? null : counts.map(({ status, color, count }) =>
@@ -759,10 +753,10 @@ export default function DeliveryDetailPage() {
                       {rack.priority === "high" && !rack.holdReason && (
                         <span className="rounded-md bg-amber-100 px-1.5 py-0.5 text-[11px] font-medium text-amber-700">high</span>
                       )}
-                      {rack.itemCount != null && (
-                        <span className="text-[11px] text-stone-400">{rack.itemCount} items</span>
+                      {allConsigners.some((c) => c.rackId === rack.id) && (
+                        <span className="rounded-md bg-violet-100 px-1.5 py-0.5 text-[11px] font-medium text-violet-700">mixed</span>
                       )}
-                    </div>
+                      </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <span className="text-[11px] text-stone-400">{timeAgo(rack.updatedAt)}</span>
                       <button

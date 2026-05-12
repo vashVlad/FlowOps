@@ -393,7 +393,6 @@ export default function ConsignerDetailPage() {
                         <span>{delivery.consignerJNumber ?? delivery.deliveryCode}</span>
                       )}
                       {zone && <span>· {zone.name}</span>}
-                      {rack.itemCount != null && <span>· {rack.itemCount} items</span>}
                     </div>
                   </div>
                 );

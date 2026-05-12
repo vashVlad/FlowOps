@@ -75,12 +75,6 @@ export function buildConsignerProfiles(
       tags.push({ label: "Frequently held", color: "amber" });
     if (avgProcessingDays !== null && avgProcessingDays > 7)
       tags.push({ label: "Slow to process", color: "orange" });
-    const racksWithItems = linkedRacks.filter((r) => r.itemCount != null);
-    if (racksWithItems.length >= 3) {
-      const avgItems = racksWithItems.reduce((s, r) => s + r.itemCount!, 0) / racksWithItems.length;
-      if (avgItems > 20) tags.push({ label: "Large inventory", color: "violet" });
-    }
-
     profiles.push({
       key,
       name:                 mostRecent.consignerName,

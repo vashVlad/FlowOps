@@ -8,6 +8,8 @@ import { STATUS_ORDER, HOLD_REASONS } from "@/lib/racks";
 import { useDeliveriesStore } from "@/store/deliveries";
 import { useZonesStore } from "@/store/zones";
 import { useNotesStore } from "@/store/notes";
+import { useRackConsignersStore } from "@/store/rackConsigners";
+import { useAuthStore } from "@/store/auth";
 import StatusBadge from "@/components/StatusBadge";
 import { SectionLabel } from "@/components/ui/Card";
 import CustomSelect from "@/components/ui/CustomSelect";
@@ -39,11 +41,10 @@ export default function RackDetailPage() {
   const { deliveries } = useDeliveriesStore();
   const { zones }      = useZonesStore();
 
-  const [editOpen,      setEditOpen]      = useState(false);
-  const [editRackCode,  setEditRackCode]  = useState("");
-  const [editPriority,  setEditPriority]  = useState<Priority>("normal");
-  const [editItemCount, setEditItemCount] = useState("");
-  const [editError,     setEditError]     = useState("");
+  const [editOpen,     setEditOpen]     = useState(false);
+  const [editRackCode, setEditRackCode] = useState("");
+  const [editPriority, setEditPriority] = useState<Priority>("normal");
+  const [editError,    setEditError]    = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   // Hold form state
@@ -55,11 +56,18 @@ export default function RackDetailPage() {
   const [noteError,      setNoteError]      = useState("");
   const [quickNoteOpen,  setQuickNoteOpen]  = useState(false);
 
+  // Consigners
+  const { consigners: allConsigners, add: addConsigner, remove: removeConsigner } = useRackConsignersStore();
+  const [consignerInput,  setConsignerInput]  = useState("");
+  const [consignerJInput, setConsignerJInput] = useState("");
+  const [consignerError,  setConsignerError]  = useState("");
+
   const isSupervisor = useIsSupervisor();
 
   const rack = racks.find((r) => r.id === id);
 
-  const rackNotes = notes.filter((n) => n.rackId === id);
+  const rackNotes      = notes.filter((n) => n.rackId === id);
+  const rackConsigners = allConsigners.filter((c) => c.rackId === id);
 
   if (!rack) {
     return (
@@ -101,7 +109,6 @@ export default function RackDetailPage() {
   function openEdit() {
     setEditRackCode(rack!.rackCode);
     setEditPriority(rack!.priority);
-    setEditItemCount(rack!.itemCount != null ? String(rack!.itemCount) : "");
     setEditError("");
     setEditOpen(true);
   }
@@ -109,15 +116,10 @@ export default function RackDetailPage() {
   async function handleEditSave(e: React.FormEvent) {
     e.preventDefault();
     if (!editRackCode.trim()) return setEditError("Rack ID required.");
-    const itemCountNum = editItemCount.trim() ? Number(editItemCount.trim()) : null;
-    if (editItemCount.trim() && (isNaN(itemCountNum!) || itemCountNum! < 0)) {
-      return setEditError("Item count must be a positive number.");
-    }
     setEditError("");
     const result = await updateRack(rack!.id, {
-      rackCode:  editRackCode.trim(),
-      priority:  editPriority,
-      itemCount: itemCountNum,
+      rackCode: editRackCode.trim(),
+      priority: editPriority,
     });
     if (!result.ok) { setEditError(result.error); return; }
     setEditOpen(false);
@@ -171,9 +173,6 @@ export default function RackDetailPage() {
                 <input type="text" placeholder="Rack ID (e.g. RC-0042)" value={editRackCode}
                   onChange={(e) => { setEditRackCode(e.target.value); setEditError(""); }} className={inputCls} autoFocus />
                 <PriorityPicker value={editPriority} onChange={setEditPriority} />
-                <input type="number" placeholder="Item count (optional, e.g. 24)" value={editItemCount}
-                  onChange={(e) => { setEditItemCount(e.target.value); setEditError(""); }}
-                  min={0} className={inputCls} />
                 {editError && <p className="text-xs text-red-500">{editError}</p>}
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex gap-2">
@@ -336,12 +335,6 @@ export default function RackDetailPage() {
                 </dd>
               </div>
               <div>
-                <dt className="text-[11px] font-medium uppercase tracking-wide text-stone-400 mb-1">Items</dt>
-                <dd className="text-sm font-medium text-stone-700">
-                  {rack.itemCount != null ? `${rack.itemCount} items` : <span className="text-stone-300">—</span>}
-                </dd>
-              </div>
-              <div>
                 <dt className="text-[11px] font-medium uppercase tracking-wide text-stone-400 mb-1">Created</dt>
                 <dd className="text-sm font-medium text-stone-700">{timeAgo(rack.createdAt)}</dd>
               </div>
@@ -440,6 +433,81 @@ export default function RackDetailPage() {
               )}
             </div>
 
+
+            {/* ── CONSIGNERS ───────────────────────────────────────────────── */}
+            <div className="border-t border-stone-100 pt-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <SectionLabel>Consigners</SectionLabel>
+                {rackConsigners.length > 0 && (
+                  <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-medium text-violet-700">
+                    mixed
+                  </span>
+                )}
+              </div>
+
+              {/* Primary consigner (from delivery) */}
+              <div className="flex items-center gap-2 rounded-lg bg-stone-50 border border-stone-200 px-3 py-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-orange-400 shrink-0" />
+                <span className="flex-1 text-xs font-medium text-stone-700">{rack.consignerName}</span>
+                {delivery?.consignerJNumber && (
+                  <span className="text-[11px] font-mono text-stone-400">{delivery.consignerJNumber}</span>
+                )}
+                <span className="text-[10px] text-stone-400">primary</span>
+              </div>
+
+              {/* Secondary consigners */}
+              {rackConsigners.map((c) => (
+                <div key={c.id} className="flex items-center gap-2 rounded-lg bg-violet-50 border border-violet-100 px-3 py-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-violet-400 shrink-0" />
+                  <span className="flex-1 text-xs font-medium text-stone-700">{c.consignerName}</span>
+                  {c.jNumber && (
+                    <span className="text-[11px] font-mono text-stone-400">{c.jNumber}</span>
+                  )}
+                  <button
+                    onClick={() => removeConsigner(c.id)}
+                    className="text-[10px] text-stone-300 hover:text-red-400 transition-colors ml-1"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+
+              {/* Add consigner row */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Consigner name"
+                  value={consignerInput}
+                  onChange={(e) => { setConsignerInput(e.target.value); setConsignerError(""); }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && consignerInput.trim()) {
+                      addConsigner({ rackId: rack.id, consignerName: consignerInput.trim(), jNumber: consignerJInput.trim() || undefined })
+                        .then((r) => { if (r.ok) { setConsignerInput(""); setConsignerJInput(""); } else setConsignerError(r.error); });
+                    }
+                  }}
+                  className={inputCls}
+                />
+                <input
+                  type="text"
+                  placeholder="J-Number"
+                  value={consignerJInput}
+                  onChange={(e) => setConsignerJInput(e.target.value)}
+                  className="w-28 rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+                <button
+                  onClick={() => {
+                    if (!consignerInput.trim()) return;
+                    addConsigner({ rackId: rack.id, consignerName: consignerInput.trim(), jNumber: consignerJInput.trim() || undefined })
+                      .then((r) => { if (r.ok) { setConsignerInput(""); setConsignerJInput(""); } else setConsignerError(r.error); });
+                  }}
+                  disabled={!consignerInput.trim()}
+                  className="shrink-0 rounded-lg bg-violet-600 px-3 py-2 text-xs font-medium text-white hover:bg-violet-700 disabled:opacity-40 transition-colors"
+                >
+                  Add
+                </button>
+              </div>
+              {consignerError && <p className="text-xs text-red-500">{consignerError}</p>}
+            </div>
 
             {/* ── OPERATIONAL NOTES ────────────────────────────────────────── */}
             <div className="border-t border-stone-100 pt-4 space-y-3">

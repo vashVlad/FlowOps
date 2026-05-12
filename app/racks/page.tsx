@@ -8,6 +8,7 @@ import { useRacksStore } from "@/store/racks";
 import { useDeliveriesStore } from "@/store/deliveries";
 import { useZonesStore } from "@/store/zones";
 import { useNotesStore } from "@/store/notes";
+import { useRackConsignersStore } from "@/store/rackConsigners";
 import Select from "@/components/Select";
 import { LoadingCards } from "@/components/LoadingCards";
 import ErrorBanner from "@/components/ErrorBanner";
@@ -89,7 +90,7 @@ export function StageStrip({ status }: { status: RackStatus }) {
 // ── Rack card ─────────────────────────────────────────────────────────────────
 
 function RackCard({
-  rack, delivery, zone, stuck, timeInStage, noteCount, onAdvance, onClick,
+  rack, delivery, zone, stuck, timeInStage, noteCount, isMixed, onAdvance, onClick,
 }: {
   rack: Rack;
   delivery?: Delivery;
@@ -97,6 +98,7 @@ function RackCard({
   stuck: boolean;
   timeInStage: number;
   noteCount: number;
+  isMixed: boolean;
   onAdvance: () => void;
   onClick: () => void;
 })
@@ -140,6 +142,11 @@ function RackCard({
               low
             </span>
           ) : null}
+          {isMixed && (
+            <span className="rounded-md bg-violet-100 px-1.5 py-0.5 text-[11px] font-medium text-violet-700">
+              mixed
+            </span>
+          )}
         </div>
         <span className="text-[11px] text-stone-400 shrink-0">{timeAgo(rack.updatedAt)}</span>
       </div>
@@ -170,11 +177,6 @@ function RackCard({
               {STAGE_LABEL[rack.status]}
             </span>
             <div className="flex items-center gap-2">
-              {rack.itemCount != null && (
-                <span className="text-[11px] text-stone-400 tabular-nums">
-                  {rack.itemCount} item{rack.itemCount !== 1 ? "s" : ""}
-                </span>
-              )}
               {noteCount > 0 && (
                 <span className="text-[11px] text-amber-600">
                   {noteCount} note{noteCount !== 1 ? "s" : ""}
@@ -230,6 +232,7 @@ function RacksContent() {
   const { deliveries } = useDeliveriesStore();
   const { zones }      = useZonesStore();
   const { notes }      = useNotesStore();
+  const { consigners: rackConsigners } = useRackConsignersStore();
   const addToast       = useToastStore((s) => s.add);
 
   const [query, setQuery]                 = useState("");
@@ -239,7 +242,6 @@ function RacksContent() {
   const [priority, setPriority]           = useState<Priority>("normal");
   const [zoneId, setZoneId]               = useState(preselectedZone);
   const [deliveryId, setDeliveryId]       = useState(preselectedDelivery);
-  const [formItemCount, setFormItemCount] = useState("");
   const [formError, setFormError]         = useState("");
 
   const activeDeliveries = deliveries.filter((d) => d.status !== "complete");
@@ -250,21 +252,19 @@ function RacksContent() {
     const selectedDelivery = activeDeliveries.find((d) => d.id === deliveryId);
     if (!selectedDelivery) return setFormError("Select a delivery.");
     setFormError("");
-    const itemCount = formItemCount.trim() ? Number(formItemCount.trim()) : undefined;
     const result = await addRack({
       consignerName: selectedDelivery.consignerName,
       priority,
       zoneId: zoneId || undefined,
       deliveryId,
-      itemCount: !isNaN(itemCount!) && itemCount! >= 0 ? itemCount : undefined,
-      rackCode:  rackCodeInput.trim() || undefined,
+      rackCode: rackCodeInput.trim() || undefined,
     });
     if (!result.ok) {
       setFormError(result.error);
       return;
     }
     setRackCodeInput(""); setPriority("normal"); setZoneId(preselectedZone);
-    setDeliveryId(preselectedDelivery); setFormItemCount("");
+    setDeliveryId(preselectedDelivery);
     setShowForm(false);
     addToast(`${result.data.rackCode} added`);
   }
@@ -331,8 +331,6 @@ function RacksContent() {
             })}
           </Select>
           <PriorityPicker value={priority} onChange={setPriority} />
-          <input type="number" placeholder="Item count (optional, e.g. 24)" value={formItemCount}
-            onChange={(e) => setFormItemCount(e.target.value)} min={0} className={inputCls} />
           {formError && <p className="text-xs text-red-500">{formError}</p>}
           <button type="submit"
             className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700 transition-colors">
@@ -383,6 +381,7 @@ function RacksContent() {
             const delivery    = deliveries.find((d) => d.id === rack.deliveryId);
             const zone        = zones.find((z) => z.id === rack.zoneId);
             const noteCount   = notes.filter((n) => n.rackId === rack.id).length;
+            const isMixed     = rackConsigners.some((c) => c.rackId === rack.id);
             return (
               <RackCard
                 key={rack.id}
@@ -392,6 +391,7 @@ function RacksContent() {
                 stuck={stuck}
                 timeInStage={timeInStage}
                 noteCount={noteCount}
+                isMixed={isMixed}
                 onAdvance={() => advanceStatus(rack.id)}
                 onClick={() => router.push(`/racks/${rack.id}`)}
               />

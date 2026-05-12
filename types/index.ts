@@ -22,7 +22,6 @@ export interface Rack {
   notes?: string;
   holdReason?: string;     // set when rack is on hold
   holdStartedAt?: string;  // ISO 8601 — when hold was placed
-  itemCount?: number;
   isArchived: boolean;
   createdAt: string;       // ISO 8601
   updatedAt: string;       // ISO 8601
@@ -33,7 +32,6 @@ export interface CreateRackInput {
   priority?: Priority;
   zoneId?: string;
   deliveryId: string;
-  itemCount?: number;
   rackCode?: string; // optional manual override; auto-generated if omitted
 }
 
@@ -42,7 +40,6 @@ export interface UpdateRackInput {
   priority?: Priority;
   holdReason?: string | null;
   holdStartedAt?: string | null;
-  itemCount?: number | null;
 }
 
 // ── History ──────────────────────────────────────────────────────────────────
@@ -118,6 +115,22 @@ export interface CreateDeliveryInput {
   expectedRackCount: number;
   scheduledDate?: string; // optional for walk-ins (defaults to today)
   auctionDate?: string;   // YYYY-MM-DD — auction cycle deadline
+}
+
+// ── Rack Consigners ──────────────────────────────────────────────────────────
+
+export interface RackConsigner {
+  id: string;
+  rackId: string;
+  consignerName: string;
+  jNumber?: string;
+  createdAt: string;
+}
+
+export interface CreateRackConsignerInput {
+  rackId: string;
+  consignerName: string;
+  jNumber?: string;
 }
 
 // ── Rack Notes ───────────────────────────────────────────────────────────────

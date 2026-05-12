@@ -7,6 +7,7 @@ import { useZonesStore } from "@/store/zones";
 import { useDeliveriesStore } from "@/store/deliveries";
 import { useRacksStore } from "@/store/racks";
 import { useNotesStore } from "@/store/notes";
+import { useRackConsignersStore } from "@/store/rackConsigners";
 import { useConnectionStore } from "@/store/connection";
 import {
   toRack,
@@ -29,14 +30,15 @@ export default function StoreHydrator() {
   const hydrateZones      = useZonesStore((s) => s.hydrate);
   const hydrateDeliveries = useDeliveriesStore((s) => s.hydrate);
   const hydrateRacks      = useRacksStore((s) => s.hydrate);
-  const hydrateNotes      = useNotesStore((s) => s.hydrate);
-  const setConnStatus     = useConnectionStore((s) => s.setStatus);
+  const hydrateNotes           = useNotesStore((s) => s.hydrate);
+  const hydrateRackConsigners  = useRackConsignersStore((s) => s.hydrate);
+  const setConnStatus          = useConnectionStore((s) => s.setStatus);
 
   useEffect(() => {
     let channel: RealtimeChannel | null = null;
     let cancelled = false;
 
-    Promise.all([hydrateZones(), hydrateDeliveries(), hydrateRacks(), hydrateNotes()])
+    Promise.all([hydrateZones(), hydrateDeliveries(), hydrateRacks(), hydrateNotes(), hydrateRackConsigners()])
       .then(() => {
         if (cancelled) return;
 
@@ -89,6 +91,18 @@ export default function StoreHydrator() {
               }
             })
 
+            .on("postgres_changes", { event: "*", schema: "public", table: "rack_consigners" }, (payload) => {
+              if (payload.eventType === "DELETE") {
+                useRackConsignersStore.getState().evict((payload.old as { id: string }).id);
+              } else {
+                const row = payload.new as { id: string; rack_id: string; consigner_name: string; j_number: string | null; created_at: string };
+                useRackConsignersStore.getState().upsert({
+                  id: row.id, rackId: row.rack_id, consignerName: row.consigner_name,
+                  jNumber: row.j_number ?? undefined, createdAt: row.created_at,
+                });
+              }
+            })
+
             .subscribe((status) => {
               if (status === "SUBSCRIBED")                              setConnStatus("connected");
               else if (status === "TIMED_OUT" || status === "CLOSED")  setConnStatus("disconnected");
@@ -109,7 +123,7 @@ export default function StoreHydrator() {
         try { getSupabase().removeChannel(channel); } catch { /* already torn down */ }
       }
     };
-  }, [hydrateZones, hydrateDeliveries, hydrateRacks, hydrateNotes, setConnStatus]);
+  }, [hydrateZones, hydrateDeliveries, hydrateRacks, hydrateNotes, hydrateRackConsigners, setConnStatus]);
 
   return null;
 }

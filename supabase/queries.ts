@@ -10,6 +10,7 @@
 import { supabase } from "@/lib/supabase";
 import type {
   Rack, Delivery, Zone, HistoryEvent, RackNote, DeliveryPhoto,
+  RackConsigner, CreateRackConsignerInput,
   RackStatus, Priority, DeliveryStatus, DeliveryType,
   UpdateRackInput, UpdateDeliveryInput,
 } from "@/types";
@@ -26,7 +27,6 @@ export interface RackRow {
   delivery_id: string;
   hold_reason: string | null;
   hold_started_at: string | null;
-  item_count: number | null;
   is_archived: boolean;
   created_at: string;
   updated_at: string;
@@ -98,7 +98,6 @@ export function toRack(row: RackRow): Rack {
     deliveryId:     row.delivery_id,
     holdReason:     row.hold_reason     ?? undefined,
     holdStartedAt:  row.hold_started_at ?? undefined,
-    itemCount:      row.item_count      ?? undefined,
     isArchived:     row.is_archived,
     createdAt:      row.created_at,
     updatedAt:      row.updated_at,
@@ -389,7 +388,6 @@ export async function createRack(input: {
   zoneId?: string;
   deliveryId: string;
   notes?: string;
-  itemCount?: number;
   rackCode?: string;
 }): Promise<Rack> {
   const insertData: Record<string, unknown> = {
@@ -397,7 +395,6 @@ export async function createRack(input: {
     priority:       input.priority  ?? "normal",
     zone_id:        input.zoneId    ?? null,
     delivery_id:    input.deliveryId,
-    item_count:     input.itemCount ?? null,
   };
   if (input.rackCode?.trim()) {
     insertData.rack_code = input.rackCode.trim();
@@ -418,7 +415,6 @@ export async function updateRack(rackId: string, patch: UpdateRackInput): Promis
   if (patch.priority      !== undefined) update.priority        = patch.priority;
   if ("holdReason"    in patch)          update.hold_reason     = patch.holdReason     ?? null;
   if ("holdStartedAt" in patch)          update.hold_started_at = patch.holdStartedAt  ?? null;
-  if ("itemCount"     in patch)          update.item_count      = patch.itemCount      ?? null;
 
   const { data, error } = await supabase
     .from("racks")
@@ -566,6 +562,57 @@ export async function deleteDelivery(deliveryId: string): Promise<void> {
     .select("id");
   if (error) throw error;
   if (!data?.length) throw new Error("Delete failed — row not found or access denied");
+}
+
+// ── Rack Consigners ───────────────────────────────────────────────────────────
+
+interface RackConsignerRow {
+  id: string;
+  rack_id: string;
+  consigner_name: string;
+  j_number: string | null;
+  created_at: string;
+}
+
+function toRackConsigner(row: RackConsignerRow): RackConsigner {
+  return {
+    id:            row.id,
+    rackId:        row.rack_id,
+    consignerName: row.consigner_name,
+    jNumber:       row.j_number ?? undefined,
+    createdAt:     row.created_at,
+  };
+}
+
+export async function fetchAllRackConsigners(): Promise<RackConsigner[]> {
+  const { data, error } = await supabase
+    .from("rack_consigners")
+    .select("*")
+    .order("created_at");
+  if (error) throw error;
+  return (data as RackConsignerRow[]).map(toRackConsigner);
+}
+
+export async function createRackConsigner(input: CreateRackConsignerInput): Promise<RackConsigner> {
+  const { data, error } = await supabase
+    .from("rack_consigners")
+    .insert({
+      rack_id:        input.rackId,
+      consigner_name: input.consignerName.trim(),
+      j_number:       input.jNumber?.trim() || null,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return toRackConsigner(data as RackConsignerRow);
+}
+
+export async function deleteRackConsigner(id: string): Promise<void> {
+  const { error } = await supabase
+    .from("rack_consigners")
+    .delete()
+    .eq("id", id);
+  if (error) throw error;
 }
 
 export async function createZone(input: {
