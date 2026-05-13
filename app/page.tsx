@@ -428,7 +428,7 @@ function ZoneCell({ zone, count }: { zone: Zone; count: number }) {
         <span className={`text-xs font-bold leading-none ${s.name}`}>{zone.name}</span>
         <span className="text-xs font-semibold text-stone-700 leading-none">{count}</span>
       </div>
-      <p className="text-[9px] text-stone-400 mt-1 leading-tight line-clamp-1">{zone.label ?? "—"}</p>
+      <p className="text-[9px] text-stone-400 mt-1 leading-tight line-clamp-1 font-mono">{zone.label ?? "Empty"}</p>
       {cap && (
         <div className="mt-1.5 h-1 w-full rounded-full bg-white/70 overflow-hidden">
           <div className={`h-full rounded-full transition-all ${s.bar}`} style={{ width: `${pct * 100}%` }} />

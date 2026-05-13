@@ -31,7 +31,7 @@ export default function DeliveryDetailPage() {
   const router = useRouter();
   const { deliveries, setStatus, deleteDelivery, updateDelivery } = useDeliveriesStore();
   const { racks, addRack, advanceStatus } = useRacksStore();
-  const { zones } = useZonesStore();
+  const { zones, updateZone } = useZonesStore();
   const addToast = useToastStore((s) => s.add);
 
   const [addOpen, setAddOpen]           = useState(false);
@@ -41,6 +41,9 @@ export default function DeliveryDetailPage() {
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [notesEditing, setNotesEditing] = useState(false);
   const [notesValue,   setNotesValue]   = useState("");
+  const [zoneEditing,  setZoneEditing]  = useState(false);
+  const [zoneValue,    setZoneValue]    = useState("");
+  const [showSortingWarning, setShowSortingWarning] = useState(false);
 
   const delivery = deliveries.find((d) => d.id === id);
 
@@ -72,6 +75,32 @@ export default function DeliveryDetailPage() {
   }));
 
   const inputCls = "w-full rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500";
+
+  async function handleZoneSave() {
+    const newZoneId = zoneValue || null;
+    const oldZoneId = delivery!.zoneId ?? null;
+
+    const res = await updateDelivery(delivery!.id, { zoneId: newZoneId });
+    if (!res.ok) return;
+
+    if (oldZoneId && oldZoneId !== newZoneId) {
+      const oldZone = zones.find((z) => z.id === oldZoneId);
+      if (oldZone) await updateZone(oldZoneId, { label: undefined, capacity: oldZone.capacity });
+    }
+
+    if (newZoneId) {
+      const newZone = zones.find((z) => z.id === newZoneId);
+      if (newZone) {
+        await updateZone(newZoneId, {
+          label: delivery!.consignerJNumber || undefined,
+          capacity: newZone.capacity,
+        });
+      }
+    }
+
+    setZoneEditing(false);
+    addToast("Zone updated");
+  }
 
   async function handleAddRack() {
     const result = await addRack({
@@ -145,15 +174,32 @@ export default function DeliveryDetailPage() {
                   </div>
                 )}
                 {nextStatus && (
-                  <button
-                    onClick={async () => {
-                      const result = await setStatus(delivery.id, nextStatus);
-                      if (result.ok) addToast(`Delivery ${DELIVERY_STATUS_LABEL[nextStatus].toLowerCase()}`);
-                    }}
-                    className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${DELIVERY_NEXT_BTN[delivery.status]}`}
-                  >
-                    {DELIVERY_NEXT_LABEL[delivery.status]}
-                  </button>
+                  <div className="flex flex-col items-end gap-1.5">
+                    <button
+                      onClick={async () => {
+                        if (nextStatus === "complete") {
+                          const notSorted = linked.filter(
+                            (r) => r.status === "intake" || r.status === "unpacking" || r.status === "sorting"
+                          );
+                          if (notSorted.length > 0) {
+                            setShowSortingWarning(true);
+                            return;
+                          }
+                        }
+                        setShowSortingWarning(false);
+                        const result = await setStatus(delivery.id, nextStatus);
+                        if (result.ok) addToast(`Delivery ${DELIVERY_STATUS_LABEL[nextStatus].toLowerCase()}`);
+                      }}
+                      className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${DELIVERY_NEXT_BTN[delivery.status]}`}
+                    >
+                      {DELIVERY_NEXT_LABEL[delivery.status]}
+                    </button>
+                    {showSortingWarning && (
+                      <p className="text-[11px] text-amber-600 text-right max-w-[200px] leading-tight">
+                        {linked.filter((r) => r.status === "intake" || r.status === "unpacking" || r.status === "sorting").length} rack(s) not yet sorted — finish sorting so donation photos can be taken first.
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -188,15 +234,35 @@ export default function DeliveryDetailPage() {
                     : `${linked.length} linked`}
                 </dd>
               </div>
-              {delivery.zoneId && (() => {
-                const zone = zones.find((z) => z.id === delivery.zoneId);
-                return zone ? (
-                  <div>
-                    <dt className="text-[11px] font-medium uppercase tracking-wide text-stone-400 mb-1">Zone</dt>
-                    <dd className="text-sm font-medium text-stone-700">{zone.name}</dd>
+              <div>
+                <dt className="text-[11px] font-medium uppercase tracking-wide text-stone-400 mb-1">Zone</dt>
+                {zoneEditing ? (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <select
+                      value={zoneValue}
+                      onChange={(e) => setZoneValue(e.target.value)}
+                      className="rounded-lg border border-stone-200 bg-white px-2 py-1.5 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="">None</option>
+                      {zones.map((z) => (
+                        <option key={z.id} value={z.id}>{z.name}</option>
+                      ))}
+                    </select>
+                    <button onClick={handleZoneSave} className="text-xs font-medium text-orange-600 hover:text-orange-700 transition-colors">Save</button>
+                    <button onClick={() => setZoneEditing(false)} className="text-xs text-stone-400 hover:text-stone-700 transition-colors">Cancel</button>
                   </div>
-                ) : null;
-              })()}
+                ) : (
+                  <dd className="flex items-center gap-2 text-sm font-medium text-stone-700">
+                    {delivery.zoneId ? (zones.find((z) => z.id === delivery.zoneId)?.name ?? "—") : "None"}
+                    <button
+                      onClick={() => { setZoneValue(delivery.zoneId ?? ""); setZoneEditing(true); }}
+                      className="text-xs text-stone-400 hover:text-stone-700 transition-colors"
+                    >
+                      Edit
+                    </button>
+                  </dd>
+                )}
+              </div>
             </dl>
 
             {/* Notes — editable */}
