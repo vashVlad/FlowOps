@@ -15,7 +15,7 @@ const H = 3_600_000; // one hour in ms
 
 export const STAGE_THRESHOLDS_MS: Record<RackStatus, number> = {
   intake:    4  * H,           // 4 business hours
-  unpacking: 24 * H,           // 24 business hours
+  unpacking: 36 * H,           // 36 business hours
   sorting:   5  * BH_DAILY_MS, // 5 business days (45 h operational)
   lotting:   16 * H,           // 16 business hours (~2 business days)
   ready:     14 * BH_DAILY_MS, // 14 business days — scheduled wait

@@ -85,7 +85,6 @@ export default function DeliveriesPage() {
   const [formMode, setFormMode]         = useState<FormMode>("walkin");
   const [consignerName, setConsignerName] = useState("");
   const [jNumber, setJNumber]           = useState("");
-  const [zoneId, setZoneId]             = useState("");
   const [error, setError]               = useState("");
   const [walkinCount, setWalkinCount]   = useState("");
   const [expectedCount, setExpectedCount] = useState("");
@@ -96,7 +95,7 @@ export default function DeliveriesPage() {
   const summary  = getConsignerSummary(consignerName, deliveries, racks);
 
   function resetForm() {
-    setConsignerName(""); setJNumber(""); setZoneId(""); setError(""); setWalkinCount("");
+    setConsignerName(""); setJNumber(""); setError(""); setWalkinCount("");
     setExpectedCount(""); setScheduledDate(today()); setAuctionDate("");
   }
 
@@ -108,7 +107,6 @@ export default function DeliveriesPage() {
       type: "walkin",
       consignerName: consignerName.trim(),
       consignerJNumber: jNumber.trim() || undefined,
-      zoneId: zoneId || undefined,
       expectedRackCount: Number(walkinCount) || 0,
       auctionDate: auctionDate || undefined,
     });
@@ -130,7 +128,6 @@ export default function DeliveriesPage() {
       type: "scheduled",
       consignerName: consignerName.trim(),
       consignerJNumber: jNumber.trim() || undefined,
-      zoneId: zoneId || undefined,
       expectedRackCount: count,
       scheduledDate,
       auctionDate: auctionDate || undefined,
@@ -214,12 +211,6 @@ export default function DeliveriesPage() {
               </div>
               <input type="text" placeholder="J-Number (optional, e.g. J-10294)" value={jNumber}
                 onChange={(e) => setJNumber(e.target.value)} className={inputCls} />
-              <Select value={zoneId} onChange={(e) => setZoneId(e.target.value)}>
-                <option value="">Zone (optional)</option>
-                {zones.map((z) => (
-                  <option key={z.id} value={z.id}>{z.name}{z.label ? ` — ${z.label}` : ""}</option>
-                ))}
-              </Select>
               <input type="number" placeholder="Estimated rack count (optional)" value={walkinCount}
                 onChange={(e) => setWalkinCount(e.target.value)} min={0} className={inputCls} />
               <div className="space-y-1">
@@ -248,12 +239,6 @@ export default function DeliveriesPage() {
               </div>
               <input type="text" placeholder="J-Number (optional, e.g. J-10294)" value={jNumber}
                 onChange={(e) => setJNumber(e.target.value)} className={inputCls} />
-              <Select value={zoneId} onChange={(e) => setZoneId(e.target.value)}>
-                <option value="">Zone (optional)</option>
-                {zones.map((z) => (
-                  <option key={z.id} value={z.id}>{z.name}{z.label ? ` — ${z.label}` : ""}</option>
-                ))}
-              </Select>
               <input type="number" placeholder="Expected rack count" value={expectedCount}
                 onChange={(e) => setExpectedCount(e.target.value)} min={1} className={inputCls} />
               <input type="date" value={scheduledDate}
@@ -311,7 +296,7 @@ export default function DeliveriesPage() {
             const total      = Math.max(delivery.expectedRackCount, linked.length);
             const pct        = total > 0 ? Math.round((done.length / total) * 100) : 0;
             const nextStatus = NEXT_STATUS[delivery.status];
-            const zone       = delivery.zoneId ? zones.find((z) => z.id === delivery.zoneId) : undefined;
+            const zone       = zones.find((z) => z.deliveryId === delivery.id);
             const noteCount  = notes.filter((n) => n.deliveryId === delivery.id).length;
             const auctionDays = delivery.auctionDate ? businessDaysUntil(delivery.auctionDate) : null;
             const auctionUrgent = auctionDays !== null && auctionDays >= 0 && auctionDays <= 3;
@@ -350,10 +335,6 @@ export default function DeliveriesPage() {
                     <p className="mt-1 text-xs text-stone-400">
                       {delivery.arrivedAt ? `Arrived ${timeAgo(delivery.arrivedAt)}` : `Scheduled ${formatDate(delivery.scheduledDate)}`}
                       {zone && <><span className="mx-1">·</span><span className="font-medium text-stone-500">{zone.name}</span></>}
-                      {" · "}
-                      {delivery.expectedRackCount > 0
-                        ? `${linked.length} / ${delivery.expectedRackCount} racks`
-                        : `${linked.length} rack${linked.length !== 1 ? "s" : ""}`}
                     </p>
                     {delivery.auctionDate && (
                       <p className={`mt-0.5 text-xs font-medium ${

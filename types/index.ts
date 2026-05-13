@@ -65,7 +65,6 @@ export interface Delivery {
   deliveryCode: string;
   consignerName: string;
   consignerJNumber?: string; // optional warehouse J-Number
-  zoneId?: string;           // receiving zone
   expectedRackCount: number; // 0 = unknown (common for walk-ins)
   type: DeliveryType;
   status: DeliveryStatus;
@@ -82,7 +81,6 @@ export interface Delivery {
 export interface UpdateDeliveryInput {
   consignerName?: string;
   consignerJNumber?: string | null;
-  zoneId?: string | null;
   expectedRackCount?: number;
   auctionDate?: string | null;
   donationPercent?: number | null;
@@ -93,9 +91,10 @@ export interface UpdateDeliveryInput {
 
 export interface Zone {
   id: string;
-  name: string;      // short floor code: "A1", "B2", "OVF"
-  label?: string;    // human description: "Receiving dock"
-  capacity?: number; // max racks before warning; undefined = unlimited
+  name: string;         // short floor code: "A1", "B2", "OVF"
+  label?: string;       // human description or assigned consigner J-number
+  capacity?: number;    // max racks before warning; undefined = unlimited
+  deliveryId?: string;  // delivery currently assigned to this zone
   createdAt: string;
 }
 
@@ -111,7 +110,6 @@ export interface CreateDeliveryInput {
   type: DeliveryType;
   consignerName: string;
   consignerJNumber?: string;
-  zoneId?: string;
   expectedRackCount: number;
   scheduledDate?: string; // optional for walk-ins (defaults to today)
   auctionDate?: string;   // YYYY-MM-DD — auction cycle deadline

@@ -6,11 +6,12 @@ import Link from "next/link";
 import { useZonesStore } from "@/store/zones";
 import { useRacksStore } from "@/store/racks";
 import { useDeliveriesStore } from "@/store/deliveries";
+import Select from "@/components/Select";
 import StatusBadge from "@/components/StatusBadge";
 import { StageStrip } from "@/app/racks/page";
 import { timeAgo } from "@/lib/utils";
 import { formatBusinessDuration } from "@/lib/timeTracking";
-import { getZoneOccupancy } from "@/lib/zones";
+import { getZoneOccupancy, FIXED_ZONE_LABELS } from "@/lib/zones";
 import { isRackStuck, getTimeInCurrentStatus, WAITING_STAGES } from "@/lib/timeTracking";
 import { OCCUPANCY_STYLE } from "@/lib/tokens";
 import { OperationalAlerts, type AlertItem } from "@/components/OperationalAlerts";
@@ -25,10 +26,11 @@ export default function ZoneDetailPage() {
   const { racks, history, advanceStatus } = useRacksStore();
   const { deliveries } = useDeliveriesStore();
 
-  const [editing, setEditing]           = useState(false);
-  const [editLabel, setEditLabel]       = useState("");
-  const [editCapacity, setEditCapacity] = useState("");
-  const [editError, setEditError]       = useState("");
+  const [editing, setEditing]               = useState(false);
+  const [editLabel, setEditLabel]           = useState("");
+  const [editCapacity, setEditCapacity]     = useState("");
+  const [editDeliveryId, setEditDeliveryId] = useState("");
+  const [editError, setEditError]           = useState("");
 
   const zone = zones.find((z) => z.id === id);
 
@@ -96,6 +98,7 @@ export default function ZoneDetailPage() {
   function openEdit() {
     setEditLabel(zone!.label ?? "");
     setEditCapacity(zone!.capacity ? String(zone!.capacity) : "");
+    setEditDeliveryId(zone!.deliveryId ?? "");
     setEditError("");
     setEditing(true);
   }
@@ -107,10 +110,22 @@ export default function ZoneDetailPage() {
       return setEditError("Capacity must be a positive number.");
     }
     setEditError("");
-    const result = await updateZone(zone!.id, {
-      label:    editLabel.trim() || undefined,
-      capacity: cap ? Number(cap) : undefined,
-    });
+
+    const isFixed = !!FIXED_ZONE_LABELS[zone!.name];
+    const newDel  = editDeliveryId ? deliveries.find((d) => d.id === editDeliveryId) : null;
+
+    const patch: Parameters<typeof updateZone>[1] = {
+      capacity:   cap ? Number(cap) : undefined,
+      deliveryId: editDeliveryId || null,
+    };
+
+    if (!isFixed) {
+      patch.label = newDel
+        ? (newDel.consignerJNumber ?? newDel.consignerName)
+        : editLabel.trim() || undefined;
+    }
+
+    const result = await updateZone(zone!.id, patch);
     if (!result.ok) return;
     setEditing(false);
   }
@@ -128,8 +143,21 @@ export default function ZoneDetailPage() {
           {editing ? (
             <form onSubmit={handleSave} className="space-y-3">
               <p className="text-sm font-semibold text-stone-900">Edit {zone.name}</p>
-              <input type="text" placeholder="Description (optional)" value={editLabel}
-                onChange={(e) => setEditLabel(e.target.value)} className={inputCls} autoFocus />
+              <Select value={editDeliveryId} onChange={(e) => setEditDeliveryId(e.target.value)}>
+                <option value="">No delivery assigned</option>
+                {deliveries
+                  .filter((d) => d.status !== "complete" || d.id === editDeliveryId)
+                  .sort((a, b) => a.consignerName.localeCompare(b.consignerName))
+                  .map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.consignerJNumber ?? d.deliveryCode} — {d.consignerName}
+                    </option>
+                  ))}
+              </Select>
+              {!FIXED_ZONE_LABELS[zone.name] && (
+                <input type="text" placeholder="Description (optional)" value={editLabel}
+                  onChange={(e) => setEditLabel(e.target.value)} className={inputCls} autoFocus />
+              )}
               <div className="space-y-1">
                 <input type="number" placeholder="Rack capacity (optional)" value={editCapacity}
                   onChange={(e) => setEditCapacity(e.target.value)} min={1} className={inputCls} />
@@ -172,7 +200,12 @@ export default function ZoneDetailPage() {
                       {healthLabel}
                     </span>
                   </div>
-                  {zone.label && <p className="mt-1 text-sm text-stone-400">{zone.label}</p>}
+                  {(() => {
+                    const fixed = FIXED_ZONE_LABELS[zone.name];
+                    const d     = deliveries.find((del) => del.id === zone.deliveryId);
+                    const text  = fixed ?? (d ? (d.consignerJNumber ?? d.consignerName) : null);
+                    return text ? <p className="mt-1 text-sm font-mono text-stone-400">{text}</p> : null;
+                  })()}
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <div className="text-right">

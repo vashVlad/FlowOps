@@ -8,8 +8,9 @@ import {
 } from "@/supabase/queries";
 
 export interface ZonePatch {
-  label:    string | undefined;
-  capacity: number | undefined;
+  label?:      string;
+  capacity?:   number;
+  deliveryId?: string | null;
 }
 
 interface ZonesStore {

@@ -192,7 +192,7 @@ export default function ConsignerDetailPage() {
                 {activeDeliveries.map((d) => {
                   const linked  = racks.filter((r) => r.deliveryId === d.id);
                   const active  = linked.filter((r) => r.status !== "completed").length;
-                  const zone    = d.zoneId ? zones.find((z) => z.id === d.zoneId) : undefined;
+                  const zone    = zones.find((z) => z.deliveryId === d.id);
                   return (
                     <Link
                       key={d.id}

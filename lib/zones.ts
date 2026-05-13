@@ -1,5 +1,13 @@
 import type { Rack, Zone, OccupancyStatus } from "@/types";
 
+// Zone names whose labels are fixed and must never be overwritten
+export const FIXED_ZONE_LABELS: Record<string, string> = {
+  H:  "Warehouse Hallway",
+  B:  "Lotting Room",
+  C:  "Sorting Room",
+  PU: "Pick-Up",
+};
+
 export interface ZoneOccupancy {
   count:    number;
   capacity: number | undefined;

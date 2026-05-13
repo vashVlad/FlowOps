@@ -17,6 +17,7 @@ import Select from "@/components/Select";
 import { StageStrip } from "@/app/racks/page";
 import { SectionLabel } from "@/components/ui/Card";
 import { formatDate, timeAgo } from "@/lib/utils";
+import { FIXED_ZONE_LABELS } from "@/lib/zones";
 import {
   PIPELINE_STAGES,
   STAGE_BAR,
@@ -61,7 +62,7 @@ export default function DeliveryDetailPage() {
   const router = useRouter();
   const { deliveries, setStatus, deleteDelivery, updateDelivery } = useDeliveriesStore();
   const { racks, addRack, advanceStatus } = useRacksStore();
-  const { zones } = useZonesStore();
+  const { zones, updateZone } = useZonesStore();
   const { notes, addNote, deleteNote } = useNotesStore();
   const { photos, uploading, fetchForDelivery, upload, deletePhoto } = usePhotosStore();
   const { consigners: allConsigners } = useRackConsignersStore();
@@ -81,11 +82,16 @@ export default function DeliveryDetailPage() {
   const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   // ── Edit delivery ─────────────────────────────────────────────────────────
-  const [editing, setEditing]                   = useState(false);
-  const [editName, setEditName]                 = useState("");
-  const [editJNumber, setEditJNumber]           = useState("");
-  const [editZoneId, setEditZoneId]             = useState("");
+  const [editing, setEditing]                     = useState(false);
+  const [editName, setEditName]                   = useState("");
+  const [editJNumber, setEditJNumber]             = useState("");
   const [editExpectedCount, setEditExpectedCount] = useState("");
+
+  // ── Zone assignment ───────────────────────────────────────────────────────
+  const [zonePickerValue, setZonePickerValue] = useState("");
+
+  // ── Sorting warning ───────────────────────────────────────────────────────
+  const [showSortingWarning, setShowSortingWarning] = useState(false);
 
   // ── Auction date ──────────────────────────────────────────────────────────
   const [auctionEditing, setAuctionEditing] = useState(false);
@@ -201,12 +207,32 @@ export default function DeliveryDetailPage() {
     const name = editName.trim();
     if (!name) return;
     const result = await updateDelivery(delivery!.id, {
-      consignerName:    name,
-      consignerJNumber: editJNumber.trim() || null,
-      zoneId:           editZoneId || null,
+      consignerName:     name,
+      consignerJNumber:  editJNumber.trim() || null,
       expectedRackCount: Number(editExpectedCount) || delivery!.expectedRackCount,
     });
     if (result.ok) { setEditing(false); addToast("Delivery updated"); }
+  }
+
+  async function handleAssignZone(zoneId: string) {
+    if (!zoneId) return;
+    const zone = zones.find((z) => z.id === zoneId);
+    if (!zone) return;
+    const patch: Parameters<typeof updateZone>[1] = { deliveryId: delivery!.id };
+    if (!FIXED_ZONE_LABELS[zone.name])
+      patch.label = delivery!.consignerJNumber ?? delivery!.consignerName;
+    await updateZone(zoneId, patch);
+    setZonePickerValue("");
+    addToast(`${zone.name} assigned`);
+  }
+
+  async function handleUnassignZone(zoneId: string) {
+    const zone = zones.find((z) => z.id === zoneId);
+    if (!zone) return;
+    const patch: Parameters<typeof updateZone>[1] = { deliveryId: null };
+    if (!FIXED_ZONE_LABELS[zone.name]) patch.label = undefined;
+    await updateZone(zoneId, patch);
+    addToast(`${zone.name} removed`);
   }
 
   async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -251,8 +277,8 @@ export default function DeliveryDetailPage() {
                   )}
                 </div>
                 <p className="mt-1 text-sm text-stone-400">{delivery.consignerName}</p>
-                {delivery.consignerJNumber && (
-                  <p className="mt-0.5 text-xs text-stone-400 font-mono">{delivery.consignerJNumber}</p>
+                {delivery.arrivedAt && (
+                  <p className="mt-0.5 text-xs text-stone-400">{formatDate(delivery.arrivedAt)}</p>
                 )}
               </div>
               <div className="flex items-center gap-1.5 flex-wrap">
@@ -262,8 +288,8 @@ export default function DeliveryDetailPage() {
                     onClick={() => {
                       setEditName(delivery.consignerName);
                       setEditJNumber(delivery.consignerJNumber ?? "");
-                      setEditZoneId(delivery.zoneId ?? "");
                       setEditExpectedCount(delivery.expectedRackCount > 0 ? String(delivery.expectedRackCount) : "");
+                      setShowSortingWarning(false);
                       setEditing(true);
                     }}
                     className="rounded-lg border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-600 hover:bg-stone-50 transition-colors"
@@ -296,6 +322,13 @@ export default function DeliveryDetailPage() {
                 {nextStatus && (
                   <button
                     onClick={async () => {
+                      if (nextStatus === "complete") {
+                        const unsorted = linked.filter((r) =>
+                          r.status === "intake" || r.status === "unpacking" || r.status === "sorting"
+                        );
+                        if (unsorted.length > 0) { setShowSortingWarning(true); return; }
+                        setShowSortingWarning(false);
+                      }
                       const result = await setStatus(delivery.id, nextStatus);
                       if (result.ok) addToast(`Delivery ${DELIVERY_STATUS_LABEL[nextStatus].toLowerCase()}`);
                     }}
@@ -306,6 +339,17 @@ export default function DeliveryDetailPage() {
                 )}
               </div>
             </div>
+
+            {showSortingWarning && (() => {
+              const n = linked.filter((r) =>
+                r.status === "intake" || r.status === "unpacking" || r.status === "sorting"
+              ).length;
+              return (
+                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  {n} rack{n !== 1 ? "s" : ""} not yet sorted — finish sorting so donation photos can be taken first.
+                </p>
+              );
+            })()}
 
             {/* Inline edit form */}
             {editing && (
@@ -326,12 +370,6 @@ export default function DeliveryDetailPage() {
                   onChange={(e) => setEditJNumber(e.target.value)}
                   className={inputCls}
                 />
-                <Select value={editZoneId} onChange={(e) => setEditZoneId(e.target.value)}>
-                  <option value="">Zone (optional)</option>
-                  {zones.map((z) => (
-                    <option key={z.id} value={z.id}>{z.name}{z.label ? ` — ${z.label}` : ""}</option>
-                  ))}
-                </Select>
                 <input
                   type="number"
                   placeholder="Expected rack count"
@@ -382,14 +420,42 @@ export default function DeliveryDetailPage() {
                     : `${linked.length} linked`}
                 </dd>
               </div>
-              {delivery.zoneId && (() => {
-                const zone = zones.find((z) => z.id === delivery.zoneId);
-                return zone ? (
+              {/* Zones — multi-assign */}
+              {(() => {
+                const assignedZones = zones.filter((z) => z.deliveryId === delivery.id);
+                const pickableZones = zones.filter((z) => !z.deliveryId);
+                return (
                   <div>
-                    <dt className="text-[11px] font-medium uppercase tracking-wide text-stone-400 mb-1">Zone</dt>
-                    <dd className="text-sm font-medium text-stone-700">{zone.name}</dd>
+                    <dt className="text-[11px] font-medium uppercase tracking-wide text-stone-400 mb-1">Zones</dt>
+                    <dd className="flex flex-wrap items-center gap-1.5">
+                      {assignedZones.length === 0 && (
+                        <span className="text-sm text-stone-400">None</span>
+                      )}
+                      {assignedZones.map((z) => (
+                        <span key={z.id} className="inline-flex items-center gap-1 rounded-md bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-700">
+                          {z.name}
+                          <button
+                            onClick={() => handleUnassignZone(z.id)}
+                            className="text-stone-400 hover:text-red-500 transition-colors leading-none"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                      {pickableZones.length > 0 && (
+                        <Select
+                          value={zonePickerValue}
+                          onChange={(e) => { handleAssignZone(e.target.value); }}
+                        >
+                          <option value="">+ Add zone</option>
+                          {pickableZones.map((z) => (
+                            <option key={z.id} value={z.id}>{z.name}{FIXED_ZONE_LABELS[z.name] ? ` — ${FIXED_ZONE_LABELS[z.name]}` : ""}</option>
+                          ))}
+                        </Select>
+                      )}
+                    </dd>
                   </div>
-                ) : null;
+                );
               })()}
               {/* Auction date */}
               <div>

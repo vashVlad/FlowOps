@@ -37,7 +37,6 @@ export interface DeliveryRow {
   delivery_code: string;
   consigner_name: string;
   consigner_j_number: string | null;
-  zone_id: string | null;
   expected_rack_count: number;
   type: DeliveryType;
   status: DeliveryStatus;
@@ -56,6 +55,7 @@ export interface ZoneRow {
   name: string;
   label: string | null;
   capacity: number | null;
+  delivery_id: string | null;
   created_at: string;
 }
 
@@ -110,7 +110,6 @@ export function toDelivery(row: DeliveryRow): Delivery {
     deliveryCode:      row.delivery_code,
     consignerName:     row.consigner_name,
     consignerJNumber:  row.consigner_j_number ?? undefined,
-    zoneId:            row.zone_id            ?? undefined,
     expectedRackCount: row.expected_rack_count,
     type:              row.type,
     status:            row.status,
@@ -127,11 +126,12 @@ export function toDelivery(row: DeliveryRow): Delivery {
 
 export function toZone(row: ZoneRow): Zone {
   return {
-    id:        row.id,
-    name:      row.name,
-    label:     row.label    ?? undefined,
-    capacity:  row.capacity ?? undefined,
-    createdAt: row.created_at,
+    id:         row.id,
+    name:       row.name,
+    label:      row.label       ?? undefined,
+    capacity:   row.capacity    ?? undefined,
+    deliveryId: row.delivery_id ?? undefined,
+    createdAt:  row.created_at,
   };
 }
 
@@ -392,8 +392,8 @@ export async function createRack(input: {
 }): Promise<Rack> {
   const insertData: Record<string, unknown> = {
     consigner_name: input.consignerName,
-    priority:       input.priority  ?? "normal",
-    zone_id:        input.zoneId    ?? null,
+    priority:       input.priority ?? "normal",
+    zone_id:        input.zoneId   ?? null,
     delivery_id:    input.deliveryId,
   };
   if (input.rackCode?.trim()) {
@@ -466,7 +466,6 @@ export async function createDelivery(input: {
     .insert({
       consigner_name:       input.consignerName,
       consigner_j_number:   input.consignerJNumber?.trim() || null,
-      zone_id:              input.zoneId       ?? null,
       expected_rack_count:  input.expectedRackCount,
       type:                 input.type,
       status:               isWalkin ? "arrived" : "scheduled",
@@ -485,7 +484,6 @@ export async function updateDelivery(deliveryId: string, patch: UpdateDeliveryIn
   if ("consignerName"    in patch) update.consigner_name      = patch.consignerName;
   if ("consignerJNumber" in patch) update.consigner_j_number  = patch.consignerJNumber  ?? null;
   if ("expectedRackCount" in patch) update.expected_rack_count = patch.expectedRackCount;
-  if ("zoneId"           in patch) update.zone_id             = patch.zoneId            ?? null;
   if ("auctionDate"      in patch) update.auction_date        = patch.auctionDate       ?? null;
   if ("donationPercent"  in patch) update.donation_percent    = patch.donationPercent   ?? null;
   if ("trashPercent"     in patch) update.trash_percent       = patch.trashPercent      ?? null;
@@ -518,14 +516,15 @@ export async function setDeliveryStatus(
 
 export async function updateZone(
   id: string,
-  patch: { label: string | undefined; capacity: number | undefined }
+  patch: { label?: string; capacity?: number; deliveryId?: string | null }
 ): Promise<Zone> {
+  const update: Record<string, unknown> = {};
+  if ("label"      in patch) update.label       = patch.label      ?? null;
+  if ("capacity"   in patch) update.capacity    = patch.capacity   ?? null;
+  if ("deliveryId" in patch) update.delivery_id = patch.deliveryId ?? null;
   const { data, error } = await supabase
     .from("zones")
-    .update({
-      label:    patch.label    ?? null,
-      capacity: patch.capacity ?? null,
-    })
+    .update(update)
     .eq("id", id)
     .select()
     .single();

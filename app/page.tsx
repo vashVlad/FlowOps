@@ -29,6 +29,7 @@ import {
   KPI_ACCENT,
   OCCUPANCY_STYLE,
 } from "@/lib/tokens";
+import { FIXED_ZONE_LABELS } from "@/lib/zones";
 import PageHeader from "@/components/ui/PageHeader";
 import Card, { SectionLabel } from "@/components/ui/Card";
 import { buildIntakeForecast, type ForecastItem } from "@/lib/consigners";
@@ -246,7 +247,7 @@ export default function Dashboard() {
 
           {/* ── CENTER: warehouse state ──────────────────────────────────── */}
           <div className="flex flex-col gap-4">
-            {zones.length > 0 && <ZoneMap zones={zones} racks={racks} />}
+            {zones.length > 0 && <ZoneMap zones={zones} racks={racks} deliveries={deliveries} />}
             <PipelineBar racks={racks} />
           </div>
 
@@ -424,7 +425,7 @@ function StageVelocityPanel({ velocity }: { velocity: StageVelocity[] }) {
 
 // ── Warehouse Zone Map ────────────────────────────────────────────────────────
 
-function ZoneMap({ zones, racks }: { zones: Zone[]; racks: Rack[] }) {
+function ZoneMap({ zones, racks, deliveries }: { zones: Zone[]; racks: Rack[]; deliveries: Delivery[] }) {
   const byName    = new Map(zones.map((z) => [z.name, z]));
   const occupancy = new Map<string, number>();
   racks.forEach((r) => {
@@ -433,7 +434,7 @@ function ZoneMap({ zones, racks }: { zones: Zone[]; racks: Rack[] }) {
 
   function cell(name: string) {
     const z = byName.get(name);
-    if (z) return <ZoneCell key={z.id} zone={z} count={occupancy.get(z.id) ?? 0} />;
+    if (z) return <ZoneCell key={z.id} zone={z} count={occupancy.get(z.id) ?? 0} assignedDelivery={deliveries.find((d) => d.id === z.deliveryId)} />;
     return (
       <div key={name} className="rounded-lg border border-dashed border-stone-200 p-2 opacity-40">
         <span className="text-xs font-bold text-stone-400 leading-none">{name}</span>
@@ -489,11 +490,17 @@ function ZoneMap({ zones, racks }: { zones: Zone[]; racks: Rack[] }) {
   );
 }
 
-function ZoneCell({ zone, count }: { zone: Zone; count: number }) {
+function ZoneCell({ zone, count, assignedDelivery }: { zone: Zone; count: number; assignedDelivery?: Delivery }) {
   const cap   = zone.capacity;
   const pct   = cap ? Math.min(count / cap, 1) : 0;
   const level = !cap ? "none" : pct >= 0.9 ? "full" : pct >= 0.7 ? "near" : "ok";
   const s     = OCCUPANCY_STYLE[level];
+  const fixedLabel = FIXED_ZONE_LABELS[zone.name];
+  const identity   = fixedLabel
+    ? fixedLabel
+    : assignedDelivery
+    ? (assignedDelivery.consignerJNumber ?? assignedDelivery.consignerName)
+    : "Empty";
 
   return (
     <Link
@@ -504,7 +511,7 @@ function ZoneCell({ zone, count }: { zone: Zone; count: number }) {
         <span className={`text-xs font-bold leading-none ${s.name}`}>{zone.name}</span>
         <span className="text-xs font-semibold text-stone-700 leading-none">{count}</span>
       </div>
-      <p className="text-[9px] text-stone-400 mt-1 leading-tight line-clamp-1">{zone.label ?? "—"}</p>
+      <p className="text-[9px] text-stone-400 mt-1 leading-tight line-clamp-1 font-mono">{identity}</p>
       {cap && (
         <div className="mt-1.5 h-1 w-full rounded-full bg-white/70 overflow-hidden">
           <div className={`h-full rounded-full transition-all ${s.bar}`} style={{ width: `${pct * 100}%` }} />
