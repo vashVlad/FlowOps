@@ -11,7 +11,7 @@ import {
   exportStuckRacks,
   exportStageDurations,
 } from "@/lib/export";
-import { isRackStuck } from "@/lib/timeTracking";
+import { isRackNeedsAttention } from "@/lib/timeTracking";
 import PageHeader from "@/components/ui/PageHeader";
 import { useAuthStore, useIsSupervisor } from "@/store/auth";
 
@@ -63,7 +63,7 @@ export default function ReportsPage() {
   const { deliveries }                        = useDeliveriesStore();
   const { zones }                             = useZonesStore();
 
-  const stuckCount       = racks.filter((r) => isRackStuck(r, history)).length;
+  const stuckCount       = racks.filter((r) => isRackNeedsAttention(r, history)).length;
   const activeRacks      = racks.filter((r) => r.status !== "completed").length;
   const activeDeliveries = deliveries.filter((d) => d.status !== "complete").length;
   const completedRacks   = racks.filter((r) => r.status === "completed").length;

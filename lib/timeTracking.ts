@@ -14,21 +14,15 @@ const H = 3_600_000; // one hour in ms
 // One business day = 9 h = BH_DAILY_MS
 
 export const STAGE_THRESHOLDS_MS: Record<RackStatus, number> = {
-  intake:    4  * H,           // 4 business hours
-  unpacking: 36 * H,           // 36 business hours
-  sorting:   5  * BH_DAILY_MS, // 5 business days (45 h operational)
-  lotting:   16 * H,           // 16 business hours (~2 business days)
-  ready:     14 * BH_DAILY_MS, // 14 business days — scheduled wait
-  pickup:    7  * BH_DAILY_MS, // 7 business days — capacity-constrained
-  completed: Infinity,
+  unpacking_sorting: 5  * BH_DAILY_MS, // 5 business days
+  sorted:            24 * H,           // 24 business hours
+  lotting:           16 * H,           // 16 business hours (~2 business days)
+  ready:             14 * BH_DAILY_MS, // 14 business days — scheduled wait
+  pickup:            7  * BH_DAILY_MS, // 7 business days — capacity-constrained
+  completed:         Infinity,
 };
 
-// ── Alert thresholds ─────────────────────────────────────────────────────────
-
-export const SORTING_CRITICAL_MS  = 7 * BH_DAILY_MS; // > 7 business days → critical
-export const SORTING_BLOCKED_MS   = 1 * BH_DAILY_MS; // > 1 business day in sorting AND delivery still unpacking
-
-// Waiting stages — excluded from stuck detection, velocity, pressure
+// Waiting stages — excluded from pressure/velocity panels (expected long waits)
 export const WAITING_STAGES = new Set<RackStatus>(["ready", "pickup"]);
 
 // Lotting queue: ~4 racks/day capacity; >10 in queue is a problem
@@ -49,10 +43,10 @@ export interface StageDuration {
 }
 
 export interface BottleneckStage {
-  status: RackStatus;
-  rackCount: number;
-  stuckCount: number;
-  avgTimeMs: number;
+  status:              RackStatus;
+  rackCount:           number;
+  needsAttentionCount: number;
+  avgTimeMs:           number;
 }
 
 // ── Core helpers ─────────────────────────────────────────────────────────────
@@ -71,26 +65,9 @@ export function getTimeInCurrentStatus(rack: Rack, history: HistoryEvent[]): num
 }
 
 /** True if the rack exceeds the per-stage warning threshold (business time). */
-export function isRackStuck(rack: Rack, history: HistoryEvent[]): boolean {
+export function isRackNeedsAttention(rack: Rack, history: HistoryEvent[]): boolean {
   if (rack.status === "completed") return false;
   return getTimeInCurrentStatus(rack, history) > STAGE_THRESHOLDS_MS[rack.status];
-}
-
-/**
- * A sorting rack is BLOCKED when:
- * - it has spent > 1 business day in sorting, AND
- * - its delivery still has racks in intake or unpacking
- */
-export function isRackBlocked(
-  rack: Rack,
-  deliveryRacks: Rack[],
-  history: HistoryEvent[]
-): boolean {
-  if (rack.status !== "sorting") return false;
-  if (getTimeInCurrentStatus(rack, history) <= SORTING_BLOCKED_MS) return false;
-  return deliveryRacks.some(
-    (r) => r.id !== rack.id && (r.status === "intake" || r.status === "unpacking")
-  );
 }
 
 // ── Detailed breakdown ───────────────────────────────────────────────────────
@@ -209,11 +186,11 @@ export function getBottleneckSummary(
     if (status === "completed") return [];
     const inStage = racks.filter((r) => r.status === status);
     if (inStage.length === 0) return [];
-    const stuckCount = inStage.filter((r) => isRackStuck(r, history)).length;
+    const needsAttentionCount = inStage.filter((r) => isRackNeedsAttention(r, history)).length;
     const avgTimeMs = Math.round(
       inStage.reduce((sum, r) => sum + getTimeInCurrentStatus(r, history), 0) /
         inStage.length
     );
-    return [{ status, rackCount: inStage.length, stuckCount, avgTimeMs }];
+    return [{ status, rackCount: inStage.length, needsAttentionCount, avgTimeMs }];
   });
 }

@@ -3,70 +3,73 @@ import type { RackStatus, Priority, OccupancyStatus } from "@/types";
 // ── Stage colors ──────────────────────────────────────────────────────────────
 
 export const STAGE_DOT: Record<RackStatus, string> = {
-  intake:    "bg-stone-400",
-  unpacking: "bg-sky-400",
-  sorting:   "bg-teal-400",
-  lotting:   "bg-amber-400",
-  ready:     "bg-emerald-400",
-  pickup:    "bg-violet-400",
-  completed: "bg-stone-300",
+  unpacking_sorting: "bg-sky-400",
+  sorted:            "bg-teal-400",
+  lotting:           "bg-amber-400",
+  ready:             "bg-emerald-400",
+  pickup:            "bg-violet-400",
+  completed:         "bg-stone-300",
 };
 
 export const STAGE_BAR: Record<RackStatus, string> = {
-  intake:    "bg-stone-400",
-  unpacking: "bg-sky-400",
-  sorting:   "bg-teal-400",
-  lotting:   "bg-amber-400",
-  ready:     "bg-emerald-400",
-  pickup:    "bg-violet-400",
-  completed: "bg-stone-300",
+  unpacking_sorting: "bg-sky-400",
+  sorted:            "bg-teal-400",
+  lotting:           "bg-amber-400",
+  ready:             "bg-emerald-400",
+  pickup:            "bg-violet-400",
+  completed:         "bg-stone-300",
 };
 
 export const STAGE_BADGE: Record<RackStatus, string> = {
-  intake:    "bg-stone-100 text-stone-600",
-  unpacking: "bg-sky-100 text-sky-700",
-  sorting:   "bg-teal-100 text-teal-700",
-  lotting:   "bg-amber-100 text-amber-700",
-  ready:     "bg-emerald-100 text-emerald-700",
-  pickup:    "bg-violet-100 text-violet-700",
-  completed: "bg-stone-100 text-stone-400",
+  unpacking_sorting: "bg-sky-100 text-sky-700",
+  sorted:            "bg-teal-100 text-teal-700",
+  lotting:           "bg-amber-100 text-amber-700",
+  ready:             "bg-emerald-100 text-emerald-700",
+  pickup:            "bg-violet-100 text-violet-700",
+  completed:         "bg-stone-100 text-stone-400",
 };
 
 export const STAGE_LABEL: Record<RackStatus, string> = {
-  intake:    "Intake",
-  unpacking: "Unpacking",
-  sorting:   "Sorting",
-  lotting:   "Lotting",
-  ready:     "Ready",
-  pickup:    "Pickup",
-  completed: "Completed",
+  unpacking_sorting: "Unpacking & Sorting",
+  sorted:            "Sorted",
+  lotting:           "Lotting",
+  ready:             "Ready",
+  pickup:            "Pickup",
+  completed:         "Completed",
+};
+
+export const STAGE_SHORT_LABEL: Record<RackStatus, string> = {
+  unpacking_sorting: "Prep",
+  sorted:            "Sorted",
+  lotting:           "Lotting",
+  ready:             "Ready",
+  pickup:            "Pickup",
+  completed:         "Completed",
 };
 
 export const PIPELINE_STAGES: { status: RackStatus; label: string }[] = [
-  { status: "intake",    label: "Intake"    },
-  { status: "unpacking", label: "Unpacking" },
-  { status: "sorting",   label: "Sorting"   },
-  { status: "lotting",   label: "Lotting"   },
-  { status: "ready",     label: "Ready"     },
-  { status: "pickup",    label: "Pickup"    },
+  { status: "unpacking_sorting", label: "Unpacking & Sorting" },
+  { status: "sorted",            label: "Sorted"              },
+  { status: "lotting",           label: "Lotting"             },
+  { status: "ready",             label: "Ready"               },
+  { status: "pickup",            label: "Pickup"              },
 ];
 
 export const NEXT_STAGE_LABEL: Partial<Record<RackStatus, string>> = {
-  intake:    "Unpacking",
-  unpacking: "Sorting",
-  sorting:   "Lotting",
-  lotting:   "Ready",
-  ready:     "Pickup",
-  pickup:    "Complete",
+  unpacking_sorting: "Sorted",
+  sorted:            "Lotting",
+  lotting:           "Ready",
+  ready:             "Pickup",
+  pickup:            "Complete",
 };
 
 // ── Priority / urgency ────────────────────────────────────────────────────────
 
-export const PRIORITY_BORDER: Record<Priority | "stuck", string> = {
-  stuck:  "border-l-4 border-l-red-500",
-  high:   "border-l-4 border-l-amber-400",
-  normal: "border-l-4 border-l-orange-300",
-  low:    "border-l-4 border-l-stone-200",
+export const PRIORITY_BORDER: Record<Priority | "needs_attention", string> = {
+  needs_attention: "border-l-4 border-l-red-500",
+  high:            "border-l-4 border-l-amber-400",
+  normal:          "border-l-4 border-l-orange-300",
+  low:             "border-l-4 border-l-stone-200",
 };
 
 // ── KPI accent left-borders ───────────────────────────────────────────────────
@@ -87,50 +90,45 @@ export const KPI_ACCENT: Record<string, string> = {
 import type { DeliveryStatus } from "@/types";
 
 export const DELIVERY_STATUS_BADGE: Record<DeliveryStatus, string> = {
-  scheduled:          "bg-stone-100 text-stone-600",
-  arrived:            "bg-sky-100 text-sky-700",
-  processing:         "bg-orange-100 text-orange-700",
-  unpacking_complete: "bg-teal-100 text-teal-700",
-  complete:           "bg-emerald-100 text-emerald-700",
+  scheduled:  "bg-stone-100 text-stone-600",
+  arrived:    "bg-sky-100 text-sky-700",
+  processing: "bg-orange-100 text-orange-700",
+  complete:   "bg-emerald-100 text-emerald-700",
 };
 
 export const DELIVERY_STATUS_LABEL: Record<DeliveryStatus, string> = {
-  scheduled:          "Scheduled",
-  arrived:            "Arrived",
-  processing:         "Processing",
-  unpacking_complete: "Unpacking Complete",
-  complete:           "Complete",
+  scheduled:  "Scheduled",
+  arrived:    "Arrived",
+  processing: "Processing",
+  complete:   "Complete",
 };
 
 export const DELIVERY_STATUS_BORDER: Record<DeliveryStatus, string> = {
-  scheduled:          "border-l-4 border-l-amber-400",
-  arrived:            "border-l-4 border-l-sky-400",
-  processing:         "border-l-4 border-l-orange-500",
-  unpacking_complete: "border-l-4 border-l-teal-500",
-  complete:           "border-l-4 border-l-stone-200",
+  scheduled:  "border-l-4 border-l-amber-400",
+  arrived:    "border-l-4 border-l-sky-400",
+  processing: "border-l-4 border-l-orange-500",
+  complete:   "border-l-4 border-l-stone-200",
 };
 
 export const DELIVERY_NEXT_LABEL: Record<DeliveryStatus, string> = {
-  scheduled:          "Mark arrived",
-  arrived:            "Start processing",
-  processing:         "Unpacking complete",
-  unpacking_complete: "Mark complete",
-  complete:           "",
+  scheduled:  "Mark arrived",
+  arrived:    "Start processing",
+  processing: "Mark complete",
+  complete:   "",
 };
 
 export const DELIVERY_NEXT_BTN: Record<DeliveryStatus, string> = {
-  scheduled:          "bg-amber-500 hover:bg-amber-600 text-white transition-colors",
-  arrived:            "bg-sky-600 hover:bg-sky-700 text-white transition-colors",
-  processing:         "bg-teal-600 hover:bg-teal-700 text-white transition-colors",
-  unpacking_complete: "bg-emerald-600 hover:bg-emerald-700 text-white transition-colors",
-  complete:           "",
+  scheduled:  "bg-amber-500 hover:bg-amber-600 text-white transition-colors",
+  arrived:    "bg-sky-600 hover:bg-sky-700 text-white transition-colors",
+  processing: "bg-emerald-600 hover:bg-emerald-700 text-white transition-colors",
+  complete:   "",
 };
 
 // ── Notification types ────────────────────────────────────────────────────────
 
 export const NOTIFICATION_DOT: Record<string, string> = {
-  stuck:      "bg-red-500 animate-pulse",
-  bottleneck: "bg-amber-400",
+  needs_attention: "bg-red-500 animate-pulse",
+  bottleneck:      "bg-amber-400",
 };
 
 // ── Zone occupancy ────────────────────────────────────────────────────────────

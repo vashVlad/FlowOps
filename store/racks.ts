@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Rack, RackStatus, HistoryEvent, CreateRackInput, UpdateRackInput } from "@/types";
+import type { Rack, RackStatus, Priority, HistoryEvent, CreateRackInput, UpdateRackInput } from "@/types";
 import { ok, err, logMutationError, type MutationResult } from "@/lib/store";
 import { STATUS_ORDER, getNextStatus } from "@/lib/racks";
 import { useDeliveriesStore } from "@/store/deliveries";
@@ -25,6 +25,7 @@ interface RacksStore {
   updateRack:         (id: string, patch: UpdateRackInput) => Promise<MutationResult<Rack>>;
   deleteRack:         (id: string) => Promise<MutationResult<undefined>>;
   advanceStatus:      (id: string) => Promise<MutationResult<undefined>>;
+  advanceToSorted:    (id: string, priority: Priority) => Promise<MutationResult<undefined>>;
   moveToZone:         (rackId: string, zoneId: string | undefined) => Promise<MutationResult<undefined>>;
   closeAuctionCycle:  () => Promise<MutationResult<number>>;
   setHold:            (id: string, reason: string) => Promise<MutationResult<Rack>>;
@@ -198,6 +199,43 @@ export const useRacksStore = create<RacksStore>()((set, get) => ({
       set({ error: message });
       return err(message);
     }
+  },
+
+  advanceToSorted: async (id, priority) => {
+    set({ error: null });
+    const { racks, history } = get();
+    const rack = racks.find((r) => r.id === id);
+    if (!rack) {
+      const message = logMutationError("advanceToSorted", new Error(`rack ${id} not found`));
+      set({ error: message });
+      return err(message);
+    }
+
+    try {
+      await dbUpdate(id, { priority });
+      await dbAdvance(id, "sorted");
+    } catch (e) {
+      const message = logMutationError("advanceToSorted", e);
+      set({ error: message });
+      return err(message);
+    }
+
+    const ts = new Date().toISOString();
+    const event: HistoryEvent = {
+      id: crypto.randomUUID(),
+      rackId: id,
+      from: rack.status,
+      to: "sorted",
+      timestamp: ts,
+    };
+    set({
+      history: [...history, event],
+      racks: racks.map((r) =>
+        r.id === id ? { ...r, status: "sorted", priority, updatedAt: ts } : r
+      ),
+    });
+
+    return ok(undefined);
   },
 
   setHold: async (id, reason) => {

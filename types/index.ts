@@ -1,9 +1,8 @@
 // ── Rack ────────────────────────────────────────────────────────────────────
 
 export type RackStatus =
-  | "intake"
-  | "unpacking"
-  | "sorting"
+  | "unpacking_sorting"
+  | "sorted"
   | "lotting"
   | "ready"
   | "pickup"
@@ -29,10 +28,13 @@ export interface Rack {
 
 export interface CreateRackInput {
   consignerName: string;
-  priority?: Priority;
+  status?: RackStatus;
+  priority?: Priority; // only relevant when status is "sorted" at creation
   zoneId?: string;
   deliveryId: string;
   rackCode?: string; // optional manual override; auto-generated if omitted
+  holdReason?: string;
+  holdStartedAt?: string;
 }
 
 export interface UpdateRackInput {
@@ -54,7 +56,7 @@ export interface HistoryEvent {
 
 // ── Delivery ─────────────────────────────────────────────────────────────────
 
-export type DeliveryStatus = "scheduled" | "arrived" | "processing" | "unpacking_complete" | "complete";
+export type DeliveryStatus = "scheduled" | "arrived" | "processing" | "complete";
 
 // "walkin"    — unscheduled, truck just showed up; starts as arrived
 // "scheduled" — pre-registered with expected count and date
@@ -81,7 +83,6 @@ export interface Delivery {
 export interface UpdateDeliveryInput {
   consignerName?: string;
   consignerJNumber?: string | null;
-  expectedRackCount?: number;
   auctionDate?: string | null;
   donationPercent?: number | null;
   trashPercent?: number | null;
@@ -110,7 +111,6 @@ export interface CreateDeliveryInput {
   type: DeliveryType;
   consignerName: string;
   consignerJNumber?: string;
-  expectedRackCount: number;
   scheduledDate?: string; // optional for walk-ins (defaults to today)
   auctionDate?: string;   // YYYY-MM-DD — auction cycle deadline
 }

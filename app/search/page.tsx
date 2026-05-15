@@ -195,9 +195,7 @@ export default function SearchPage() {
 
 function DeliveryRow({ result }: { result: DeliveryResult }) {
   const rackLabel =
-    result.expectedRackCount > 0
-      ? `${result.linkedRackCount} / ${result.expectedRackCount} racks`
-      : result.linkedRackCount > 0
+    result.linkedRackCount > 0
       ? `${result.linkedRackCount} rack${result.linkedRackCount !== 1 ? "s" : ""}`
       : null;
 
@@ -223,11 +221,10 @@ function DeliveryRow({ result }: { result: DeliveryResult }) {
 }
 
 function RackRow({ result, onNavigate }: { result: RackResult; onNavigate: () => void }) {
-  const isWaiting  = WAITING_STAGES.has(result.status);
+  const isWaiting    = WAITING_STAGES.has(result.status);
   const showCritical = result.isCritical;
-  const showBlocked  = result.isBlocked;
-  const showWarning  = !showCritical && !showBlocked && result.stuck && !isWaiting;
-  const borderKey    = showCritical || showBlocked ? "stuck" : result.priority === "high" ? "high" : result.priority === "low" ? "low" : "normal";
+  const showWarning  = !showCritical && result.needsAttention && !isWaiting;
+  const borderKey    = showCritical ? "needs_attention" : result.priority === "high" ? "high" : result.priority === "low" ? "low" : "normal";
 
   return (
     <li
@@ -241,20 +238,15 @@ function RackRow({ result, onNavigate }: { result: RackResult; onNavigate: () =>
             {showCritical && (
               <span className="inline-flex items-center gap-1 rounded-md bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-600">
                 <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
-                critical · {formatBusinessDuration(result.timeInStageMs)}
-              </span>
-            )}
-            {showBlocked && (
-              <span className="inline-flex items-center gap-1 rounded-md bg-orange-100 px-1.5 py-0.5 text-xs font-medium text-orange-700">
-                blocked · waiting on unpacking
+                needs attention · {formatBusinessDuration(result.timeInStageMs)}
               </span>
             )}
             {showWarning && (
               <span className="rounded-md bg-amber-50 px-1.5 py-0.5 text-xs text-amber-600">
-                delayed · {formatBusinessDuration(result.timeInStageMs)}
+                needs attention · {formatBusinessDuration(result.timeInStageMs)}
               </span>
             )}
-            {!showCritical && !showBlocked && !showWarning && result.priority === "high" && (
+            {!showCritical && !showWarning && result.priority === "high" && (
               <span className="rounded-md bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-700">high</span>
             )}
           </div>

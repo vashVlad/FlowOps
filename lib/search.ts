@@ -1,10 +1,8 @@
 import type { Rack, Delivery, Zone, HistoryEvent, RackStatus, DeliveryStatus, Priority } from "@/types";
 import {
-  isRackStuck,
-  isRackBlocked,
+  isRackNeedsAttention,
   getTimeInCurrentStatus,
   WAITING_STAGES,
-  SORTING_CRITICAL_MS,
 } from "@/lib/timeTracking";
 
 // ── Result types ──────────────────────────────────────────────────────────────
@@ -21,8 +19,7 @@ export interface RackResult {
   deliveryCode?: string;
   deliveryJNumber?: string;
   deliveryId?: string;
-  stuck: boolean;
-  isBlocked: boolean;
+  needsAttention: boolean;
   isCritical: boolean;
   timeInStageMs: number;
 }
@@ -35,7 +32,6 @@ export interface DeliveryResult {
   consignerName: string;
   status: DeliveryStatus;
   linkedRackCount: number;
-  expectedRackCount: number;
 }
 
 export interface SearchResults {
@@ -72,10 +68,10 @@ export function search(
     }
   }
 
-  // Severity bucket: 0 = critical/blocked, 1 = warning, 2 = normal
+  // Severity bucket: 0 = critical, 1 = needs attention, 2 = normal
   function severity(r: RackResult): number {
-    if (r.isCritical || r.isBlocked) return 0;
-    if (r.stuck && !WAITING_STAGES.has(r.status)) return 1;
+    if (r.isCritical) return 0;
+    if (r.needsAttention && !WAITING_STAGES.has(r.status)) return 1;
     return 2;
   }
 
@@ -97,11 +93,9 @@ export function search(
     .map((rack): RackResult => {
       const delivery      = rack.deliveryId ? deliveryMap.get(rack.deliveryId)     : undefined;
       const zone          = rack.zoneId     ? zoneMap.get(rack.zoneId)             : undefined;
-      const deliveryRacks = rack.deliveryId ? (racksByDelivery.get(rack.deliveryId) ?? []) : [];
-      const stuck         = isRackStuck(rack, history);
+      const attention     = isRackNeedsAttention(rack, history);
       const timeInStageMs = getTimeInCurrentStatus(rack, history);
-      const isBlocked     = isRackBlocked(rack, deliveryRacks, history);
-      const isCritical    = !WAITING_STAGES.has(rack.status) && stuck && timeInStageMs > SORTING_CRITICAL_MS;
+      const isCritical    = !WAITING_STAGES.has(rack.status) && attention && rack.priority === "high";
       return {
         type: "rack",
         id: rack.id,
@@ -114,8 +108,7 @@ export function search(
         deliveryId: rack.deliveryId,
         deliveryCode: delivery?.deliveryCode,
         deliveryJNumber: delivery?.consignerJNumber,
-        stuck,
-        isBlocked,
+        needsAttention: attention,
         isCritical,
         timeInStageMs,
       };
@@ -129,7 +122,7 @@ export function search(
   // ── Delivery results ──────────────────────────────────────────────────────
   const deliveryStatusOrder: DeliveryStatus[] = [
     "arrived", "processing", "scheduled", "complete",
-  ];
+  ]; // unpacking_complete removed from pipeline
 
   const deliveryResults: DeliveryResult[] = deliveries
     .filter((d) => hit(d.deliveryCode, q) || hit(d.consignerName, q) || hit(d.consignerJNumber, q))
@@ -141,7 +134,6 @@ export function search(
       consignerName: d.consignerName,
       status: d.status,
       linkedRackCount: linkedCounts.get(d.id) ?? 0,
-      expectedRackCount: d.expectedRackCount,
     }))
     .sort(
       (a, b) =>

@@ -384,21 +384,24 @@ export async function deleteDeliveryPhoto(
 
 export async function createRack(input: {
   consignerName: string;
+  status?: RackStatus;
   priority?: Priority;
   zoneId?: string;
   deliveryId: string;
-  notes?: string;
   rackCode?: string;
+  holdReason?: string;
+  holdStartedAt?: string;
 }): Promise<Rack> {
   const insertData: Record<string, unknown> = {
-    consigner_name: input.consignerName,
-    priority:       input.priority ?? "normal",
-    zone_id:        input.zoneId   ?? null,
-    delivery_id:    input.deliveryId,
+    consigner_name:  input.consignerName,
+    zone_id:         input.zoneId        ?? null,
+    delivery_id:     input.deliveryId,
+    hold_reason:     input.holdReason    ?? null,
+    hold_started_at: input.holdStartedAt ?? null,
   };
-  if (input.rackCode?.trim()) {
-    insertData.rack_code = input.rackCode.trim();
-  }
+  if (input.status)           insertData.status    = input.status;
+  if (input.priority)         insertData.priority  = input.priority;
+  if (input.rackCode?.trim()) insertData.rack_code = input.rackCode.trim();
 
   const { data, error } = await supabase
     .from("racks")
@@ -452,11 +455,8 @@ export async function createDelivery(input: {
   type: DeliveryType;
   consignerName: string;
   consignerJNumber?: string;
-  zoneId?: string;
-  expectedRackCount: number;
   scheduledDate: string;
   auctionDate?: string;
-  notes?: string;
 }): Promise<Delivery> {
   const isWalkin = input.type === "walkin";
   const now      = new Date().toISOString();
@@ -464,14 +464,14 @@ export async function createDelivery(input: {
   const { data, error } = await supabase
     .from("deliveries")
     .insert({
-      consigner_name:       input.consignerName,
-      consigner_j_number:   input.consignerJNumber?.trim() || null,
-      expected_rack_count:  input.expectedRackCount,
-      type:                 input.type,
-      status:               isWalkin ? "arrived" : "scheduled",
-      scheduled_date:       input.scheduledDate,
-      arrived_at:           isWalkin ? now : null,
-      auction_date:         input.auctionDate  ?? null,
+      consigner_name:      input.consignerName,
+      consigner_j_number:  input.consignerJNumber?.trim() || null,
+      expected_rack_count: 0,
+      type:                input.type,
+      status:              isWalkin ? "arrived" : "scheduled",
+      scheduled_date:      input.scheduledDate,
+      arrived_at:          isWalkin ? now : null,
+      auction_date:        input.auctionDate ?? null,
     })
     .select()
     .single();
@@ -481,12 +481,11 @@ export async function createDelivery(input: {
 
 export async function updateDelivery(deliveryId: string, patch: UpdateDeliveryInput): Promise<Delivery> {
   const update: Record<string, unknown> = {};
-  if ("consignerName"    in patch) update.consigner_name      = patch.consignerName;
-  if ("consignerJNumber" in patch) update.consigner_j_number  = patch.consignerJNumber  ?? null;
-  if ("expectedRackCount" in patch) update.expected_rack_count = patch.expectedRackCount;
-  if ("auctionDate"      in patch) update.auction_date        = patch.auctionDate       ?? null;
-  if ("donationPercent"  in patch) update.donation_percent    = patch.donationPercent   ?? null;
-  if ("trashPercent"     in patch) update.trash_percent       = patch.trashPercent      ?? null;
+  if ("consignerName"    in patch) update.consigner_name     = patch.consignerName;
+  if ("consignerJNumber" in patch) update.consigner_j_number = patch.consignerJNumber ?? null;
+  if ("auctionDate"      in patch) update.auction_date       = patch.auctionDate      ?? null;
+  if ("donationPercent"  in patch) update.donation_percent   = patch.donationPercent  ?? null;
+  if ("trashPercent"     in patch) update.trash_percent      = patch.trashPercent     ?? null;
 
   const { data, error } = await supabase
     .from("deliveries")

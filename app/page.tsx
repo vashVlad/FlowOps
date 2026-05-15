@@ -7,13 +7,9 @@ import { useDeliveriesStore } from "@/store/deliveries";
 import { useZonesStore } from "@/store/zones";
 import { LoadingStatCards } from "@/components/LoadingCards";
 import {
-  isRackStuck,
-  isRackBlocked,
+  isRackNeedsAttention,
   getStagePressure,
   getStageVelocity,
-  getTimeInCurrentStatus,
-  STAGE_THRESHOLDS_MS,
-  SORTING_CRITICAL_MS,
   WAITING_STAGES,
   LOTTING_QUEUE_WARN,
   PICKUP_WARN,
@@ -26,6 +22,7 @@ import { calculateBusinessDuration } from "@/lib/businessTime";
 import {
   PIPELINE_STAGES,
   STAGE_BAR,
+  STAGE_SHORT_LABEL,
   KPI_ACCENT,
   OCCUPANCY_STYLE,
 } from "@/lib/tokens";
@@ -81,9 +78,9 @@ export default function Dashboard() {
   const heldRacks = activeRacks.filter((r) => !!r.holdReason);
   const heldCount = heldRacks.length;
 
-  // Stuck count: exclude held racks + waiting stages
-  const stuckCount = activeRacks.filter(
-    (r) => !r.holdReason && !WAITING_STAGES.has(r.status) && isRackStuck(r, history)
+  // Needs attention count: exclude held racks + waiting stages
+  const needsAttentionCount = activeRacks.filter(
+    (r) => !r.holdReason && !WAITING_STAGES.has(r.status) && isRackNeedsAttention(r, history)
   ).length;
 
   const H24 = 24 * 60 * 60 * 1000;
@@ -101,7 +98,7 @@ export default function Dashboard() {
   const throughputDelta = throughput24h - throughputYesterday;
 
   const stageEfficiency = inPipeline > 0
-    ? Math.round((1 - stuckCount / inPipeline) * 100)
+    ? Math.round((1 - needsAttentionCount / inPipeline) * 100)
     : 100;
 
   const completedRacks = racks.filter((r) => r.status === "completed");
@@ -112,35 +109,8 @@ export default function Dashboard() {
       ) / completedRacks.length
     : null;
 
-  const processingStuckRacks = activeRacks.filter(
-    (r) => !r.holdReason && !WAITING_STAGES.has(r.status) && isRackStuck(r, history)
-  );
-  const blockedMs = processingStuckRacks.reduce((sum, r) => {
-    const t = getTimeInCurrentStatus(r, history);
-    return sum + Math.max(0, t - STAGE_THRESHOLDS_MS[r.status]);
-  }, 0);
-
   // ── Typed operational alerts ──────────────────────────────────────────────
-  const sortingRacks = activeRacks.filter((r) => r.status === "sorting");
-  const pickupCount  = racks.filter((r) => r.status === "pickup").length;
-
-  const sortingBlockedRacks = sortingRacks.filter((r) => {
-    if (r.holdReason) return false;
-    const deliveryRacks = racks.filter((d) => d.deliveryId === r.deliveryId);
-    return isRackBlocked(r, deliveryRacks, history);
-  });
-  const blockedIds = new Set(sortingBlockedRacks.map((r) => r.id));
-
-  const sortingCriticalCount = sortingRacks.filter((r) => {
-    if (blockedIds.has(r.id) || r.holdReason) return false;
-    return getTimeInCurrentStatus(r, history) > SORTING_CRITICAL_MS;
-  }).length;
-
-  const sortingWarnCount = sortingRacks.filter((r) => {
-    if (blockedIds.has(r.id) || r.holdReason) return false;
-    const t = getTimeInCurrentStatus(r, history);
-    return t > STAGE_THRESHOLDS_MS["sorting"] && t <= SORTING_CRITICAL_MS;
-  }).length;
+  const pickupCount = racks.filter((r) => r.status === "pickup").length;
 
   // ── Auction urgency ───────────────────────────────────────────────────────
   const urgentAuctionDeliveries = deliveries
@@ -184,11 +154,11 @@ export default function Dashboard() {
                 {heldCount} on hold
               </span>
             )}
-            {stuckCount > 0 && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 border border-red-200 px-3 py-1 text-xs font-medium text-red-600">
-                <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
-                {stuckCount} stuck
-              </span>
+            {needsAttentionCount > 0 && (
+              <Link href="/racks/needs-attention" className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-3 py-1 text-xs font-medium text-amber-700 hover:opacity-80 transition-opacity">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+                {needsAttentionCount} need attention
+              </Link>
             )}
             {connStatus === "connected" && (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-xs font-medium text-emerald-700">
@@ -232,13 +202,12 @@ export default function Dashboard() {
               throughputDelta={throughputDelta}
               efficiency={stageEfficiency}
               avgDwellMs={avgDwellMs}
-              blockedMs={blockedMs}
             />
 
             <DailyBriefing
               throughput={throughput24h}
               heldCount={heldCount}
-              stuckCount={stuckCount}
+              needsAttentionCount={needsAttentionCount}
               readyForPickup={readyForPickup}
               inLotting={inLotting}
             />
@@ -255,9 +224,7 @@ export default function Dashboard() {
           <div className="flex flex-col gap-4">
             {velocity.length > 0 && <StageVelocityPanel velocity={velocity} />}
             <AlertsPanel
-              sortingBlockedCount={sortingBlockedRacks.length}
-              sortingCriticalCount={sortingCriticalCount}
-              sortingWarnCount={sortingWarnCount}
+              needsAttentionCount={needsAttentionCount}
               lottingCount={inLotting}
               pickupCount={pickupCount}
               heldCount={heldCount}
@@ -293,13 +260,12 @@ function KpiCard({
 // ── Analytics Strip ───────────────────────────────────────────────────────────
 
 function AnalyticsStrip({
-  throughput, throughputDelta, efficiency, avgDwellMs, blockedMs,
+  throughput, throughputDelta, efficiency, avgDwellMs,
 }: {
   throughput: number;
   throughputDelta: number;
   efficiency: number;
   avgDwellMs: number | null;
-  blockedMs: number;
 }) {
   const effColor =
     efficiency < 80 ? "text-red-600" :
@@ -333,13 +299,6 @@ function AnalyticsStrip({
       <MetricTile
         label="avg dwell time"
         value={avgDwellMs != null ? formatBusinessDuration(avgDwellMs) : "—"}
-      />
-      <MetricTile
-        label="flow blocked"
-        value={blockedMs > 0 ? formatBusinessDuration(blockedMs) : "—"}
-        valueColor={blockedMs > 0 ? "text-red-600" : "text-stone-900"}
-        sub={blockedMs > 0 ? "delay active" : "clear"}
-        subColor={blockedMs > 0 ? "text-red-400" : "text-stone-400"}
       />
     </div>
   );
@@ -383,8 +342,8 @@ function StageVelocityPanel({ velocity }: { velocity: StageVelocity[] }) {
 
           return (
             <div key={s.status} className="flex items-center gap-2.5">
-              <span className="w-[68px] text-[11px] text-stone-400 capitalize shrink-0">
-                {s.status}
+              <span className="w-[68px] text-[11px] text-stone-400 shrink-0">
+                {STAGE_SHORT_LABEL[s.status]}
               </span>
               <div className="flex-1 h-1 rounded-full bg-stone-100 overflow-hidden">
                 <div
@@ -576,18 +535,14 @@ function PipelineBar({ racks }: { racks: Rack[] }) {
 // ── Alerts Panel ──────────────────────────────────────────────────────────────
 
 function AlertsPanel({
-  sortingBlockedCount,
-  sortingCriticalCount,
-  sortingWarnCount,
+  needsAttentionCount,
   lottingCount,
   pickupCount,
   heldCount,
   urgentAuctionDeliveries,
   forecastItems,
 }: {
-  sortingBlockedCount: number;
-  sortingCriticalCount: number;
-  sortingWarnCount: number;
+  needsAttentionCount: number;
   lottingCount: number;
   pickupCount: number;
   heldCount: number;
@@ -595,9 +550,7 @@ function AlertsPanel({
   forecastItems: ForecastItem[];
 }) {
   const hasAlerts =
-    sortingBlockedCount > 0 ||
-    sortingCriticalCount > 0 ||
-    sortingWarnCount > 0 ||
+    needsAttentionCount > 0 ||
     lottingCount > LOTTING_QUEUE_WARN ||
     pickupCount >= PICKUP_WARN ||
     heldCount > 0 ||
@@ -617,13 +570,24 @@ function AlertsPanel({
     <div className="space-y-2">
       <SectionLabel>Operational Alerts</SectionLabel>
 
+      {needsAttentionCount > 0 && (
+        <AlertCard severity="critical" href="/racks/needs-attention">
+          <p className="text-xs font-medium text-stone-800">
+            {needsAttentionCount} rack{needsAttentionCount !== 1 ? "s" : ""} need attention
+          </p>
+          <p className="text-[10px] text-stone-400 mt-0.5">
+            Over time limit — review and advance
+          </p>
+        </AlertCard>
+      )}
+
       {heldCount > 0 && (
         <AlertCard severity="info" href="/racks">
           <p className="text-xs font-medium text-stone-800">
             {heldCount} rack{heldCount !== 1 ? "s" : ""} on hold
           </p>
           <p className="text-[10px] text-stone-400 mt-0.5">
-            Intentionally paused — not counted as stuck
+            Intentionally paused — not counted in attention
           </p>
         </AlertCard>
       )}
@@ -638,39 +602,6 @@ function AlertsPanel({
           </p>
         </AlertCard>
       ))}
-
-      {sortingBlockedCount > 0 && (
-        <AlertCard severity="critical" href="/racks">
-          <p className="text-xs font-medium text-stone-800">
-            {sortingBlockedCount} rack{sortingBlockedCount !== 1 ? "s" : ""} blocked in sorting
-          </p>
-          <p className="text-[10px] text-stone-400 mt-0.5">
-            Waiting on incomplete unpacking from same delivery
-          </p>
-        </AlertCard>
-      )}
-
-      {sortingCriticalCount > 0 && (
-        <AlertCard severity="critical" href="/racks">
-          <p className="text-xs font-medium text-stone-800">
-            {sortingCriticalCount} rack{sortingCriticalCount !== 1 ? "s" : ""} critical in sorting
-          </p>
-          <p className="text-[10px] text-stone-400 mt-0.5">
-            Over 7 days — immediate attention required
-          </p>
-        </AlertCard>
-      )}
-
-      {sortingWarnCount > 0 && (
-        <AlertCard severity="warning" href="/racks">
-          <p className="text-xs font-medium text-stone-800">
-            {sortingWarnCount} rack{sortingWarnCount !== 1 ? "s" : ""} delayed in sorting
-          </p>
-          <p className="text-[10px] text-stone-400 mt-0.5">
-            Over 5 days — review sorting capacity
-          </p>
-        </AlertCard>
-      )}
 
       {lottingCount > LOTTING_QUEUE_WARN && (
         <AlertCard severity="warning" href="/lotting">
@@ -723,11 +654,11 @@ function AlertsPanel({
 // ── Daily Briefing ────────────────────────────────────────────────────────────
 
 function DailyBriefing({
-  throughput, heldCount, stuckCount, readyForPickup, inLotting,
+  throughput, heldCount, needsAttentionCount, readyForPickup, inLotting,
 }: {
   throughput: number;
   heldCount: number;
-  stuckCount: number;
+  needsAttentionCount: number;
   readyForPickup: number;
   inLotting: number;
 }) {
@@ -749,11 +680,11 @@ function DailyBriefing({
             {" "}rack{throughput !== 1 ? "s" : ""} completed today
           </span>
         </div>
-        {stuckCount > 0 && (
+        {needsAttentionCount > 0 && (
           <div className="flex items-center gap-2">
             <span className="text-amber-500 text-[11px] font-mono leading-none">⚠</span>
             <span className="text-xs text-stone-700">
-              <span className="font-semibold">{stuckCount}</span> delayed in processing
+              <span className="font-semibold">{needsAttentionCount}</span> need attention
             </span>
           </div>
         )}
@@ -773,7 +704,7 @@ function DailyBriefing({
             <span className="font-semibold">{inLotting}</span> in lotting
           </span>
         </div>
-        {stuckCount === 0 && heldCount === 0 && (
+        {needsAttentionCount === 0 && heldCount === 0 && (
           <div className="flex items-center gap-2">
             <span className="text-emerald-500 text-[11px] font-mono leading-none">✓</span>
             <span className="text-xs text-stone-500">Pipeline flowing normally</span>

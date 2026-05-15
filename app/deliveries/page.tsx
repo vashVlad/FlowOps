@@ -27,20 +27,18 @@ const inputCls =
   "w-full rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500";
 
 const NEXT_STATUS: Record<DeliveryStatus, DeliveryStatus | null> = {
-  scheduled:          "arrived",
-  arrived:            "processing",
-  processing:         "unpacking_complete",
-  unpacking_complete: "complete",
-  complete:           null,
+  scheduled:  "arrived",
+  arrived:    "processing",
+  processing: "complete",
+  complete:   null,
 };
 
 // Lower = earlier in list
 const STATUS_SORT: Record<DeliveryStatus, number> = {
-  processing:         0,
-  unpacking_complete: 1,
-  arrived:            2,
-  scheduled:          3,
-  complete:           4,
+  processing: 0,
+  arrived:    1,
+  scheduled:  2,
+  complete:   3,
 };
 
 type FormMode = "walkin" | "scheduled";
@@ -81,22 +79,20 @@ export default function DeliveriesPage() {
     setLastVisited(localStorage.getItem(LAST_VISITED_KEY));
   }, []);
 
-  const [showForm, setShowForm]         = useState(false);
-  const [formMode, setFormMode]         = useState<FormMode>("walkin");
+  const [showForm, setShowForm]           = useState(false);
+  const [formMode, setFormMode]           = useState<FormMode>("walkin");
   const [consignerName, setConsignerName] = useState("");
-  const [jNumber, setJNumber]           = useState("");
-  const [error, setError]               = useState("");
-  const [walkinCount, setWalkinCount]   = useState("");
-  const [expectedCount, setExpectedCount] = useState("");
+  const [jNumber, setJNumber]             = useState("");
+  const [error, setError]                 = useState("");
   const [scheduledDate, setScheduledDate] = useState(today());
-  const [auctionDate, setAuctionDate]   = useState("");
+  const [auctionDate, setAuctionDate]     = useState("");
 
   const estimate = estimateRackCount(consignerName, deliveries, racks);
   const summary  = getConsignerSummary(consignerName, deliveries, racks);
 
   function resetForm() {
-    setConsignerName(""); setJNumber(""); setError(""); setWalkinCount("");
-    setExpectedCount(""); setScheduledDate(today()); setAuctionDate("");
+    setConsignerName(""); setJNumber(""); setError("");
+    setScheduledDate(today()); setAuctionDate("");
   }
 
   async function handleWalkinSubmit(e: React.FormEvent) {
@@ -107,7 +103,6 @@ export default function DeliveriesPage() {
       type: "walkin",
       consignerName: consignerName.trim(),
       consignerJNumber: jNumber.trim() || undefined,
-      expectedRackCount: Number(walkinCount) || 0,
       auctionDate: auctionDate || undefined,
     });
     if (!result.ok) return;
@@ -120,15 +115,12 @@ export default function DeliveriesPage() {
   function handleScheduledSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!consignerName.trim()) return setError("Consigner name required.");
-    const count = Number(expectedCount);
-    if (!count || count < 1) return setError("Valid rack count required.");
     if (!scheduledDate) return setError("Scheduled date required.");
     setError("");
     addDelivery({
       type: "scheduled",
       consignerName: consignerName.trim(),
       consignerJNumber: jNumber.trim() || undefined,
-      expectedRackCount: count,
       scheduledDate,
       auctionDate: auctionDate || undefined,
     });
@@ -202,17 +194,12 @@ export default function DeliveriesPage() {
                 <input type="text" placeholder="Consigner name" value={consignerName}
                   onChange={(e) => setConsignerName(e.target.value)} className={inputCls} autoFocus />
                 {summary && (
-                  <ConsignerCard summary={summary} estimate={estimate?.estimate}
-                    onSelect={() => {
-                      setConsignerName(summary.canonicalName);
-                      if (estimate) setWalkinCount(String(estimate.estimate));
-                    }} />
+                  <ConsignerCard summary={summary}
+                    onSelect={() => setConsignerName(summary.canonicalName)} />
                 )}
               </div>
               <input type="text" placeholder="J-Number (optional, e.g. J-10294)" value={jNumber}
                 onChange={(e) => setJNumber(e.target.value)} className={inputCls} />
-              <input type="number" placeholder="Estimated rack count (optional)" value={walkinCount}
-                onChange={(e) => setWalkinCount(e.target.value)} min={0} className={inputCls} />
               <div className="space-y-1">
                 <label className="text-xs text-stone-400">Auction date (optional)</label>
                 <input type="date" value={auctionDate}
@@ -230,17 +217,12 @@ export default function DeliveriesPage() {
                 <input type="text" placeholder="Consigner name" value={consignerName}
                   onChange={(e) => setConsignerName(e.target.value)} className={inputCls} autoFocus />
                 {summary && (
-                  <ConsignerCard summary={summary} estimate={estimate?.estimate}
-                    onSelect={() => {
-                      setConsignerName(summary.canonicalName);
-                      if (estimate) setExpectedCount(String(estimate.estimate));
-                    }} />
+                  <ConsignerCard summary={summary}
+                    onSelect={() => setConsignerName(summary.canonicalName)} />
                 )}
               </div>
               <input type="text" placeholder="J-Number (optional, e.g. J-10294)" value={jNumber}
                 onChange={(e) => setJNumber(e.target.value)} className={inputCls} />
-              <input type="number" placeholder="Expected rack count" value={expectedCount}
-                onChange={(e) => setExpectedCount(e.target.value)} min={1} className={inputCls} />
               <input type="date" value={scheduledDate}
                 onChange={(e) => setScheduledDate(e.target.value)} className={inputCls} />
               <div className="space-y-1">
@@ -293,7 +275,7 @@ export default function DeliveriesPage() {
           {sorted.map((delivery) => {
             const linked     = racks.filter((r) => r.deliveryId === delivery.id);
             const done       = linked.filter((r) => r.status === "pickup" || r.status === "completed");
-            const total      = Math.max(delivery.expectedRackCount, linked.length);
+            const total      = linked.length;
             const pct        = total > 0 ? Math.round((done.length / total) * 100) : 0;
             const nextStatus = NEXT_STATUS[delivery.status];
             const zone       = zones.find((z) => z.deliveryId === delivery.id);
@@ -388,10 +370,9 @@ export default function DeliveriesPage() {
 }
 
 function ConsignerCard({
-  summary, estimate, onSelect,
+  summary, onSelect,
 }: {
   summary: ConsignerSummary;
-  estimate?: number;
   onSelect?: () => void;
 }) {
   return (
@@ -408,11 +389,6 @@ function ConsignerCard({
           {" · "}last {summary.lastDeliveryDate}
         </p>
       </div>
-      {estimate && (
-        <span className="shrink-0 rounded-md bg-orange-50 px-2 py-0.5 text-xs font-medium text-orange-600">
-          ~{estimate} racks
-        </span>
-      )}
     </button>
   );
 }

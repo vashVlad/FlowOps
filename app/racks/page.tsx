@@ -18,7 +18,7 @@ import { useToastStore } from "@/store/toast";
 import { timeAgo } from "@/lib/utils";
 import { formatBusinessDuration } from "@/lib/timeTracking";
 import { getZoneOccupancy } from "@/lib/zones";
-import { isRackStuck, getTimeInCurrentStatus } from "@/lib/timeTracking";
+import { isRackNeedsAttention, getTimeInCurrentStatus } from "@/lib/timeTracking";
 import {
   PIPELINE_STAGES,
   PRIORITY_BORDER,
@@ -31,30 +31,29 @@ import type { Priority, RackStatus, Rack, Delivery, Zone } from "@/types";
 const inputCls =
   "w-full rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500";
 
-type RackFilter = "all" | "stuck" | "held" | "high" | RackStatus;
+type RackFilter = "all" | "needs_attention" | "held" | "high" | RackStatus;
 
 const FILTER_OPTIONS: { key: RackFilter; label: string }[] = [
-  { key: "all",       label: "All"       },
-  { key: "stuck",     label: "Stuck"     },
-  { key: "held",      label: "Held"      },
-  { key: "high",      label: "High"      },
-  { key: "intake",    label: "Intake"    },
-  { key: "unpacking", label: "Unpacking" },
-  { key: "sorting",   label: "Sorting"   },
-  { key: "lotting",   label: "Lotting"   },
-  { key: "ready",     label: "Ready"     },
-  { key: "pickup",    label: "Pickup"    },
+  { key: "all",               label: "All"                  },
+  { key: "needs_attention",   label: "Needs Attention"      },
+  { key: "held",              label: "Held"                 },
+  { key: "high",              label: "High"                 },
+  { key: "unpacking_sorting", label: "Unpacking & Sorting"  },
+  { key: "sorted",            label: "Sorted"               },
+  { key: "lotting",           label: "Lotting"              },
+  { key: "ready",             label: "Ready"                },
+  { key: "pickup",            label: "Pickup"               },
 ];
 
 const STAGE_STEPS = PIPELINE_STAGES.map((s) => s.status);
 
-function rackBorderCls(priority: Priority, stuck: boolean, held: boolean) {
-  if (held)                      return "border-l-4 border-l-blue-400";
-  const critical = stuck && priority === "high";
-  if (critical)              return PRIORITY_BORDER.stuck;
-  if (priority === "high")   return PRIORITY_BORDER.high;
-  if (priority === "low")    return PRIORITY_BORDER.low;
-  return                            PRIORITY_BORDER.normal;
+function rackBorderCls(priority: Priority, needsAttention: boolean, held: boolean) {
+  if (held)                               return "border-l-4 border-l-blue-400";
+  const critical = needsAttention && priority === "high";
+  if (critical)                       return PRIORITY_BORDER.needs_attention;
+  if (priority === "high")            return PRIORITY_BORDER.high;
+  if (priority === "low")             return PRIORITY_BORDER.low;
+  return                                     PRIORITY_BORDER.normal;
 }
 
 // ── Stage strip ───────────────────────────────────────────────────────────────
@@ -90,28 +89,27 @@ export function StageStrip({ status }: { status: RackStatus }) {
 // ── Rack card ─────────────────────────────────────────────────────────────────
 
 function RackCard({
-  rack, delivery, zone, stuck, timeInStage, noteCount, isMixed, onAdvance, onClick,
+  rack, delivery, zone, needsAttention, timeInStage, noteCount, isMixed, onAdvance, onClick,
 }: {
   rack: Rack;
   delivery?: Delivery;
   zone?: Zone;
-  stuck: boolean;
+  needsAttention: boolean;
   timeInStage: number;
   noteCount: number;
   isMixed: boolean;
   onAdvance: () => void;
   onClick: () => void;
-})
- {
+}) {
   const isCompleted = rack.status === "completed";
   const nextLabel   = NEXT_STAGE_LABEL[rack.status];
   const isHeld      = !!rack.holdReason;
-  const isCritical  = stuck && !isHeld && rack.priority === "high";
+  const isCritical  = needsAttention && !isHeld && rack.priority === "high";
 
   return (
     <li
       onClick={onClick}
-      className={`cursor-pointer rounded-xl border border-stone-200 bg-white shadow-sm hover:shadow-md hover:-translate-y-px transition-all duration-150 overflow-hidden ${rackBorderCls(rack.priority, stuck, isHeld)}`}
+      className={`cursor-pointer rounded-xl border border-stone-200 bg-white shadow-sm hover:shadow-md hover:-translate-y-px transition-all duration-150 overflow-hidden ${rackBorderCls(rack.priority, needsAttention, isHeld)}`}
     >
       {/* TOP — ID · urgency · age */}
       <div className="px-4 pt-2.5 pb-1 flex items-center justify-between gap-2">
@@ -127,11 +125,11 @@ function RackCard({
           ) : isCritical ? (
             <span className="inline-flex items-center gap-1 rounded-md bg-red-100 px-1.5 py-0.5 text-[11px] font-medium text-red-600">
               <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse shrink-0" />
-              critical · {formatBusinessDuration(timeInStage)}
+              needs attention · {formatBusinessDuration(timeInStage)}
             </span>
-          ) : stuck ? (
-            <span className="rounded-md bg-red-50 px-1.5 py-0.5 text-[11px] text-red-400">
-              stuck · {formatBusinessDuration(timeInStage)}
+          ) : needsAttention ? (
+            <span className="rounded-md bg-amber-50 px-1.5 py-0.5 text-[11px] text-amber-600">
+              needs attention · {formatBusinessDuration(timeInStage)}
             </span>
           ) : rack.priority === "high" ? (
             <span className="rounded-md bg-amber-100 px-1.5 py-0.5 text-[11px] font-medium text-amber-700">
@@ -182,7 +180,7 @@ function RackCard({
                   {noteCount} note{noteCount !== 1 ? "s" : ""}
                 </span>
               )}
-              {timeInStage > 0 && !stuck && !isHeld && (
+              {timeInStage > 0 && !needsAttention && !isHeld && (
                 <span className="text-[11px] text-stone-400">{formatBusinessDuration(timeInStage)}</span>
               )}
             </div>
@@ -235,14 +233,16 @@ function RacksContent() {
   const { consigners: rackConsigners } = useRackConsignersStore();
   const addToast       = useToastStore((s) => s.add);
 
-  const [query, setQuery]                 = useState("");
-  const [filter, setFilter]               = useState<RackFilter>("all");
-  const [showForm, setShowForm]           = useState(!!(preselectedDelivery || preselectedZone));
-  const [rackCodeInput, setRackCodeInput] = useState("");
-  const [priority, setPriority]           = useState<Priority>("normal");
-  const [zoneId, setZoneId]               = useState(preselectedZone);
-  const [deliveryId, setDeliveryId]       = useState(preselectedDelivery);
-  const [formError, setFormError]         = useState("");
+  const [query, setQuery]                       = useState("");
+  const [filter, setFilter]                     = useState<RackFilter>("all");
+  const [showForm, setShowForm]                 = useState(!!(preselectedDelivery || preselectedZone));
+  const [rackCodeInput, setRackCodeInput]       = useState("");
+  const [initialStatus, setInitialStatus]       = useState<"unpacking_sorting" | "sorted">("unpacking_sorting");
+  const [sortedPriority, setSortedPriority]     = useState<Priority>("normal");
+  const [isHeldAtCreation, setIsHeldAtCreation] = useState(false);
+  const [zoneId, setZoneId]                     = useState(preselectedZone);
+  const [deliveryId, setDeliveryId]             = useState(preselectedDelivery);
+  const [formError, setFormError]               = useState("");
 
   const activeDeliveries = deliveries.filter((d) => d.status !== "complete");
 
@@ -252,18 +252,23 @@ function RacksContent() {
     const selectedDelivery = activeDeliveries.find((d) => d.id === deliveryId);
     if (!selectedDelivery) return setFormError("Select a delivery.");
     setFormError("");
+    const now = new Date().toISOString();
     const result = await addRack({
       consignerName: selectedDelivery.consignerName,
-      priority,
-      zoneId: zoneId || undefined,
+      status:        initialStatus,
+      priority:      initialStatus === "sorted" ? sortedPriority : undefined,
+      zoneId:        zoneId || undefined,
       deliveryId,
-      rackCode: rackCodeInput.trim() || undefined,
+      rackCode:      rackCodeInput.trim() || undefined,
+      holdReason:    isHeldAtCreation ? "On Hold" : undefined,
+      holdStartedAt: isHeldAtCreation ? now : undefined,
     });
     if (!result.ok) {
       setFormError(result.error);
       return;
     }
-    setRackCodeInput(""); setPriority("normal"); setZoneId(preselectedZone);
+    setRackCodeInput(""); setInitialStatus("unpacking_sorting"); setSortedPriority("normal");
+    setIsHeldAtCreation(false); setZoneId(preselectedZone);
     setDeliveryId(preselectedDelivery);
     setShowForm(false);
     addToast(`${result.data.rackCode} added`);
@@ -271,10 +276,10 @@ function RacksContent() {
 
   const q = query.toLowerCase();
   const filtered = racks.filter((r) => {
-    const stuck    = isRackStuck(r, history);
-    const isHeld   = !!r.holdReason;
-    const zone     = r.zoneId     ? zones.find((z) => z.id === r.zoneId)          : undefined;
-    const delivery = r.deliveryId ? deliveries.find((d) => d.id === r.deliveryId) : undefined;
+    const attention = isRackNeedsAttention(r, history);
+    const isHeld    = !!r.holdReason;
+    const zone      = r.zoneId     ? zones.find((z) => z.id === r.zoneId)          : undefined;
+    const delivery  = r.deliveryId ? deliveries.find((d) => d.id === r.deliveryId) : undefined;
 
     if (q && !(
       r.rackCode.toLowerCase().includes(q) ||
@@ -285,10 +290,10 @@ function RacksContent() {
       (r.holdReason ?? "").toLowerCase().includes(q)
     )) return false;
 
-    if (filter === "stuck") return stuck && !isHeld;
-    if (filter === "held")  return isHeld;
-    if (filter === "high")  return r.priority === "high";
-    if (filter !== "all")   return r.status === filter;
+    if (filter === "needs_attention") return attention && !isHeld;
+    if (filter === "held")            return isHeld;
+    if (filter === "high")            return r.priority === "high";
+    if (filter !== "all")             return r.status === filter;
     return true;
   });
 
@@ -330,7 +335,38 @@ function RacksContent() {
               return <option key={z.id} value={z.id}>{z.name}{desc}{cap}</option>;
             })}
           </Select>
-          <PriorityPicker value={priority} onChange={setPriority} />
+
+          {/* Status at creation */}
+          <div className="space-y-1.5">
+            <p className="text-xs font-medium text-stone-600">Initial status</p>
+            <div className="flex gap-2">
+              {(["unpacking_sorting", "sorted"] as const).map((s) => (
+                <button key={s} type="button"
+                  onClick={() => setInitialStatus(s)}
+                  className={`flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${
+                    initialStatus === s
+                      ? "border-orange-400 bg-orange-50 text-orange-700"
+                      : "border-stone-200 bg-white text-stone-500 hover:border-stone-300"
+                  }`}>
+                  {s === "unpacking_sorting" ? "Unpacking & Sorting" : "Sorted"}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Priority — only shown when starting at Sorted */}
+          {initialStatus === "sorted" && (
+            <PriorityPicker value={sortedPriority} onChange={setSortedPriority} />
+          )}
+
+          {/* Hold checkbox */}
+          <label className="flex items-center gap-2.5 cursor-pointer select-none">
+            <input type="checkbox" checked={isHeldAtCreation}
+              onChange={(e) => setIsHeldAtCreation(e.target.checked)}
+              className="h-4 w-4 rounded border-stone-300 accent-orange-600 cursor-pointer" />
+            <span className="text-sm text-stone-600">Place on hold</span>
+          </label>
+
           {formError && <p className="text-xs text-red-500">{formError}</p>}
           <button type="submit"
             className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700 transition-colors">
@@ -376,7 +412,7 @@ function RacksContent() {
       ) : (
         <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((rack) => {
-            const stuck       = isRackStuck(rack, history);
+            const attention   = isRackNeedsAttention(rack, history);
             const timeInStage = getTimeInCurrentStatus(rack, history);
             const delivery    = deliveries.find((d) => d.id === rack.deliveryId);
             const zone        = zones.find((z) => z.id === rack.zoneId);
@@ -388,7 +424,7 @@ function RacksContent() {
                 rack={rack}
                 delivery={delivery}
                 zone={zone}
-                stuck={stuck}
+                needsAttention={attention}
                 timeInStage={timeInStage}
                 noteCount={noteCount}
                 isMixed={isMixed}

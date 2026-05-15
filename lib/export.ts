@@ -1,7 +1,7 @@
 import type { Rack, Delivery, Zone, HistoryEvent } from "@/types";
 import { formatDuration } from "@/lib/utils";
 import {
-  isRackStuck,
+  isRackNeedsAttention,
   getTimeInCurrentStatus,
   getStageDurations,
   STAGE_THRESHOLDS_MS,
@@ -64,7 +64,7 @@ export function exportRacks(
     isoToLocal(r.createdAt),
     isoToLocal(r.updatedAt),
     formatDuration(getTimeInCurrentStatus(r, history)),
-    isRackStuck(r, history) ? "Yes" : "No",
+    isRackNeedsAttention(r, history) ? "Yes" : "No",
   ]);
 
   downloadCSV(`flowops-racks-${today()}.csv`, headers, rows);
@@ -85,7 +85,7 @@ export function exportDeliveries(
   const rows = deliveries.map((d) => {
     const linked    = racks.filter((r) => r.deliveryId === d.id);
     const done      = linked.filter((r) => r.status === "pickup" || r.status === "completed");
-    const total     = Math.max(d.expectedRackCount, linked.length);
+    const total     = linked.length;
     const pct       = total > 0 ? Math.round((done.length / total) * 100) : 0;
     const donation  = d.donationPercent ?? null;
     const trash     = d.trashPercent    ?? null;
@@ -124,7 +124,7 @@ export function exportStuckRacks(
   const zoneMap     = new Map(zones.map((z) => [z.id, z.name]));
   const deliveryMap = new Map(deliveries.map((d) => [d.id, d.consignerJNumber ?? d.deliveryCode]));
 
-  const stuck = racks.filter((r) => isRackStuck(r, history));
+  const stuck = racks.filter((r) => isRackNeedsAttention(r, history));
 
   const headers = [
     "Rack Code", "Consigner", "Status", "Priority",

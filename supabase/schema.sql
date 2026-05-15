@@ -98,8 +98,8 @@ CREATE TABLE IF NOT EXISTS racks (
   rack_code      text        NOT NULL UNIQUE
                              DEFAULT 'RC-' || LPAD(nextval('rack_code_seq')::text, 4, '0'),
   consigner_name text        NOT NULL,
-  status         text        NOT NULL DEFAULT 'intake'
-                             CHECK (status IN ('intake', 'unpacking', 'sorting', 'lotting', 'ready', 'pickup', 'completed')),
+  status         text        NOT NULL DEFAULT 'unpacking_sorting'
+                             CHECK (status IN ('unpacking_sorting', 'sorted', 'lotting', 'ready', 'pickup', 'completed')),
   priority       text        NOT NULL DEFAULT 'normal'
                              CHECK (priority IN ('high', 'normal', 'low')),
 
@@ -134,9 +134,9 @@ CREATE TABLE IF NOT EXISTS rack_events (
   id          uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
   rack_id     uuid        NOT NULL REFERENCES racks(id) ON DELETE CASCADE,
   from_status text        NOT NULL
-                          CHECK (from_status IN ('intake', 'unpacking', 'lotting', 'ready', 'pickup', 'completed')),
+                          CHECK (from_status IN ('unpacking_sorting', 'sorted', 'lotting', 'ready', 'pickup', 'completed')),
   to_status   text        NOT NULL
-                          CHECK (to_status   IN ('intake', 'unpacking', 'lotting', 'ready', 'pickup', 'completed')),
+                          CHECK (to_status   IN ('unpacking_sorting', 'sorted', 'lotting', 'ready', 'pickup', 'completed')),
   -- user_id uuid REFERENCES auth.users(id)  -- uncomment when auth is added
   created_at  timestamptz NOT NULL DEFAULT NOW()
 );

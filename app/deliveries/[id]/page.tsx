@@ -30,11 +30,10 @@ import { useToastStore } from "@/store/toast";
 import type { DeliveryStatus, Priority } from "@/types";
 
 const NEXT_STATUS: Record<DeliveryStatus, DeliveryStatus | null> = {
-  scheduled:          "arrived",
-  arrived:            "processing",
-  processing:         "unpacking_complete",
-  unpacking_complete: "complete",
-  complete:           null,
+  scheduled:  "arrived",
+  arrived:    "processing",
+  processing: "complete",
+  complete:   null,
 };
 
 function formatAuctionDate(dateStr: string): string {
@@ -72,9 +71,8 @@ export default function DeliveryDetailPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Add rack ──────────────────────────────────────────────────────────────
-  const [addOpen, setAddOpen]             = useState(false);
-  const [addPriority, setAddPriority]     = useState<Priority>("normal");
-  const [addRackCode, setAddRackCode]     = useState("");
+  const [addOpen, setAddOpen]         = useState(false);
+  const [addRackCode, setAddRackCode] = useState("");
   const [addRackZoneId, setAddRackZoneId] = useState("");
   const [addRackError, setAddRackError]   = useState("");
 
@@ -82,10 +80,9 @@ export default function DeliveryDetailPage() {
   const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   // ── Edit delivery ─────────────────────────────────────────────────────────
-  const [editing, setEditing]                     = useState(false);
-  const [editName, setEditName]                   = useState("");
-  const [editJNumber, setEditJNumber]             = useState("");
-  const [editExpectedCount, setEditExpectedCount] = useState("");
+  const [editing, setEditing]         = useState(false);
+  const [editName, setEditName]       = useState("");
+  const [editJNumber, setEditJNumber] = useState("");
 
   // ── Zone assignment ───────────────────────────────────────────────────────
   const [zonePickerValue, setZonePickerValue] = useState("");
@@ -133,8 +130,9 @@ export default function DeliveryDetailPage() {
 
   const linked     = racks.filter((r) => r.deliveryId === id);
   const done       = linked.filter((r) => r.status === "pickup" || r.status === "completed");
-  const total      = Math.max(delivery.expectedRackCount, linked.length);
+  const total      = linked.length;
   const pct        = total > 0 ? Math.round((done.length / total) * 100) : 0;
+  const sortedCount = linked.filter((r) => !["unpacking_sorting"].includes(r.status)).length;
   const nextStatus = NEXT_STATUS[delivery.status];
 
 
@@ -167,7 +165,6 @@ export default function DeliveryDetailPage() {
   async function handleAddRack() {
     const result = await addRack({
       consignerName: delivery!.consignerName,
-      priority:      addPriority,
       deliveryId:    delivery!.id,
       rackCode:      addRackCode.trim() || undefined,
       zoneId:        addRackZoneId || undefined,
@@ -176,7 +173,6 @@ export default function DeliveryDetailPage() {
       setAddRackError(result.error);
       return;
     }
-    setAddPriority("normal");
     setAddRackCode("");
     setAddRackZoneId("");
     setAddRackError("");
@@ -207,9 +203,8 @@ export default function DeliveryDetailPage() {
     const name = editName.trim();
     if (!name) return;
     const result = await updateDelivery(delivery!.id, {
-      consignerName:     name,
-      consignerJNumber:  editJNumber.trim() || null,
-      expectedRackCount: Number(editExpectedCount) || delivery!.expectedRackCount,
+      consignerName:    name,
+      consignerJNumber: editJNumber.trim() || null,
     });
     if (result.ok) { setEditing(false); addToast("Delivery updated"); }
   }
@@ -288,7 +283,6 @@ export default function DeliveryDetailPage() {
                     onClick={() => {
                       setEditName(delivery.consignerName);
                       setEditJNumber(delivery.consignerJNumber ?? "");
-                      setEditExpectedCount(delivery.expectedRackCount > 0 ? String(delivery.expectedRackCount) : "");
                       setShowSortingWarning(false);
                       setEditing(true);
                     }}
@@ -323,9 +317,7 @@ export default function DeliveryDetailPage() {
                   <button
                     onClick={async () => {
                       if (nextStatus === "complete") {
-                        const unsorted = linked.filter((r) =>
-                          r.status === "intake" || r.status === "unpacking" || r.status === "sorting"
-                        );
+                        const unsorted = linked.filter((r) => r.status === "unpacking_sorting");
                         if (unsorted.length > 0) { setShowSortingWarning(true); return; }
                         setShowSortingWarning(false);
                       }
@@ -341,12 +333,10 @@ export default function DeliveryDetailPage() {
             </div>
 
             {showSortingWarning && (() => {
-              const n = linked.filter((r) =>
-                r.status === "intake" || r.status === "unpacking" || r.status === "sorting"
-              ).length;
+              const n = linked.filter((r) => r.status === "unpacking_sorting").length;
               return (
                 <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                  {n} rack{n !== 1 ? "s" : ""} not yet sorted — finish sorting so donation photos can be taken first.
+                  {n} rack{n !== 1 ? "s" : ""} still in Unpacking & Sorting — finish sorting before completing.
                 </p>
               );
             })()}
@@ -368,14 +358,6 @@ export default function DeliveryDetailPage() {
                   placeholder="J-Number (optional)"
                   value={editJNumber}
                   onChange={(e) => setEditJNumber(e.target.value)}
-                  className={inputCls}
-                />
-                <input
-                  type="number"
-                  placeholder="Expected rack count"
-                  value={editExpectedCount}
-                  onChange={(e) => setEditExpectedCount(e.target.value)}
-                  min={0}
                   className={inputCls}
                 />
                 <div className="flex gap-2">
@@ -415,9 +397,10 @@ export default function DeliveryDetailPage() {
               <div>
                 <dt className="text-[11px] font-medium uppercase tracking-wide text-stone-400 mb-1">Racks</dt>
                 <dd className="text-sm font-semibold text-stone-700">
-                  {delivery.expectedRackCount > 0
-                    ? `${linked.length} / ${delivery.expectedRackCount}`
-                    : `${linked.length} linked`}
+                  {linked.length} total
+                  {sortedCount > 0 && sortedCount < linked.length && (
+                    <span className="ml-1.5 text-xs font-normal text-stone-400">· {sortedCount} confirmed</span>
+                  )}
                 </dd>
               </div>
               {/* Zones — multi-assign */}
@@ -777,7 +760,6 @@ export default function DeliveryDetailPage() {
               <input type="text" placeholder="Rack ID (optional — auto-generated if blank)" value={addRackCode}
                 onChange={(e) => { setAddRackCode(e.target.value); setAddRackError(""); }}
                 className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500" />
-              <PriorityPicker value={addPriority} onChange={setAddPriority} />
               <Select value={addRackZoneId} onChange={(e) => setAddRackZoneId(e.target.value)}>
                 <option value="">Zone (optional)</option>
                 {zones.map((z) => (

@@ -1,9 +1,8 @@
 import type { RackStatus } from "@/types";
 
 export const STATUS_ORDER: RackStatus[] = [
-  "intake",
-  "unpacking",
-  "sorting",
+  "unpacking_sorting",
+  "sorted",
   "lotting",
   "ready",
   "pickup",

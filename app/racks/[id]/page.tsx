@@ -18,12 +18,12 @@ import { timeAgo, formatTime } from "@/lib/utils";
 import { formatBusinessDuration } from "@/lib/timeTracking";
 import { getZoneOccupancy } from "@/lib/zones";
 import {
-  isRackStuck,
+  isRackNeedsAttention,
   getStageDurations,
   getTimeInCurrentStatus,
   STAGE_THRESHOLDS_MS,
 } from "@/lib/timeTracking";
-import { PIPELINE_STAGES, NEXT_STAGE_LABEL } from "@/lib/tokens";
+import { PIPELINE_STAGES, NEXT_STAGE_LABEL, STAGE_LABEL } from "@/lib/tokens";
 import { useToastStore } from "@/store/toast";
 import { useIsSupervisor } from "@/store/auth";
 import type { Priority } from "@/types";
@@ -35,7 +35,7 @@ const STAGE_STEPS = PIPELINE_STAGES.map((s) => s.status);
 export default function RackDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { racks, history, advanceStatus, moveToZone, updateRack, deleteRack, setHold, clearHold } = useRacksStore();
+  const { racks, history, advanceStatus, advanceToSorted, moveToZone, updateRack, deleteRack, setHold, clearHold } = useRacksStore();
   const { notes, addNote, deleteNote } = useNotesStore();
   const addToast = useToastStore((s) => s.add);
   const { deliveries } = useDeliveriesStore();
@@ -50,6 +50,10 @@ export default function RackDetailPage() {
   // Hold form state
   const [holdOpen,   setHoldOpen]   = useState(false);
   const [holdReason, setHoldReason] = useState(HOLD_REASONS[0]);
+
+  // Priority picker for unpacking_sorting → sorted advance
+  const [showPriorityPick,  setShowPriorityPick]  = useState(false);
+  const [pendingPriority,   setPendingPriority]   = useState<Priority>("normal");
 
   // Notes — shared by quick action bar and full section
   const [noteInput,      setNoteInput]      = useState("");
@@ -83,11 +87,11 @@ export default function RackDetailPage() {
     );
   }
 
-  const rackHistory    = history.filter((e) => e.rackId === rack.id).slice().reverse();
-  const delivery       = deliveries.find((d) => d.id === rack.deliveryId);
-  const stuck          = isRackStuck(rack, history);
-  const isHeld         = !!rack.holdReason;
-  const isCritical     = stuck && !isHeld && rack.priority === "high";
+  const rackHistory      = history.filter((e) => e.rackId === rack.id).slice().reverse();
+  const delivery         = deliveries.find((d) => d.id === rack.deliveryId);
+  const needsAttention   = isRackNeedsAttention(rack, history);
+  const isHeld           = !!rack.holdReason;
+  const isCritical       = needsAttention && !isHeld && rack.priority === "high";
   const timeInStage    = getTimeInCurrentStatus(rack, history);
   const stageDurations = getStageDurations(rack, history);
   const stepIdx        = STATUS_ORDER.indexOf(rack.status);
@@ -221,11 +225,11 @@ export default function RackDetailPage() {
                   ) : isCritical ? (
                     <span className="inline-flex items-center gap-1 rounded-md bg-red-100 px-2 py-0.5 text-xs font-medium text-red-600">
                       <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
-                      Critical · {formatBusinessDuration(timeInStage)}
+                      Needs attention · {formatBusinessDuration(timeInStage)}
                     </span>
-                  ) : stuck ? (
-                    <span className="rounded-md bg-orange-50 px-2 py-0.5 text-xs text-orange-500">
-                      Stuck · {formatBusinessDuration(timeInStage)}
+                  ) : needsAttention ? (
+                    <span className="rounded-md bg-amber-50 px-2 py-0.5 text-xs text-amber-600">
+                      Needs attention · {formatBusinessDuration(timeInStage)}
                     </span>
                   ) : null}
                 </div>
@@ -254,10 +258,38 @@ export default function RackDetailPage() {
 
             {/* ── QUICK ACTION BAR ────────────────────────────────────────── */}
             <div className="border-t border-stone-100 pt-4 space-y-2">
+              {/* Priority picker — shown when advancing unpacking_sorting → sorted */}
+              {showPriorityPick && (
+                <div className="rounded-lg border border-orange-200 bg-orange-50 p-3.5 space-y-2.5">
+                  <p className="text-xs font-semibold text-stone-700">Set priority before marking Sorted</p>
+                  <PriorityPicker value={pendingPriority} onChange={setPendingPriority} />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={async () => {
+                        const result = await advanceToSorted(rack.id, pendingPriority);
+                        if (result.ok) { setShowPriorityPick(false); addToast("Moved to Sorted"); }
+                      }}
+                      className="rounded-lg bg-orange-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-700 transition-colors"
+                    >
+                      Confirm Sorted
+                    </button>
+                    <button onClick={() => setShowPriorityPick(false)}
+                      className="rounded-lg border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-600 hover:bg-stone-50 transition-colors">
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="flex gap-2">
                 {/* Primary: move forward */}
                 <button
                   onClick={async () => {
+                    if (rack.status === "unpacking_sorting") {
+                      setPendingPriority("normal");
+                      setShowPriorityPick(true);
+                      return;
+                    }
                     const next = NEXT_STAGE_LABEL[rack.status];
                     const result = await advanceStatus(rack.id);
                     if (result.ok && next) addToast(`Moved to ${next}`);
@@ -570,11 +602,11 @@ export default function RackDetailPage() {
                             ? "h-2 w-2 bg-stone-400"
                             : "h-2 w-2 bg-stone-100 border border-stone-200"
                         }`} />
-                        <span className={`text-[10px] capitalize leading-none ${
+                        <span className={`text-[10px] leading-none text-center max-w-[52px] break-words ${
                           isCurrent ? "font-semibold text-orange-600" :
                           isPast    ? "text-stone-400"                :
                                       "text-stone-300"
-                        }`}>{s}</span>
+                        }`}>{STAGE_LABEL[s]}</span>
                       </div>
                       {i < STAGE_STEPS.length - 1 && (
                         <div className={`flex-1 h-px mb-3.5 ${isPast ? "bg-stone-400" : "bg-stone-150"}`}
@@ -602,8 +634,8 @@ export default function RackDetailPage() {
                         stage.overThreshold           ? "bg-amber-300"                :
                         "bg-stone-200"
                       }`} />
-                      <span className={`w-20 text-xs capitalize ${isOpen ? "font-medium text-stone-700" : "text-stone-400"}`}>
-                        {stage.status}
+                      <span className={`w-28 text-xs ${isOpen ? "font-medium text-stone-700" : "text-stone-400"}`}>
+                        {STAGE_LABEL[stage.status]}
                       </span>
                       <span className={`text-xs tabular-nums ${
                         isOpen && stage.overThreshold ? "font-semibold text-orange-600" :
@@ -646,9 +678,9 @@ export default function RackDetailPage() {
                   <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${i === 0 ? "bg-orange-500" : "bg-stone-300"}`} />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-stone-700">
-                      <span className="font-medium capitalize">{event.from}</span>
+                      <span className="font-medium">{STAGE_LABEL[event.from]}</span>
                       <span className="text-stone-300 mx-2">→</span>
-                      <span className="font-medium capitalize">{event.to}</span>
+                      <span className="font-medium">{STAGE_LABEL[event.to]}</span>
                     </p>
                   </div>
                   <span className="text-[11px] text-stone-300 tabular-nums shrink-0">{formatTime(event.timestamp)}</span>

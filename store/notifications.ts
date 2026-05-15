@@ -2,7 +2,7 @@ import { create } from "zustand";
 
 export interface AppNotification {
   id:        string;
-  type:      "stuck" | "bottleneck";
+  type:      "needs_attention" | "bottleneck";
   message:   string;
   rackId?:   string;
   rackCode?: string;

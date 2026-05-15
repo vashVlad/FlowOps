@@ -12,7 +12,7 @@ import { StageStrip } from "@/app/racks/page";
 import { timeAgo } from "@/lib/utils";
 import { formatBusinessDuration } from "@/lib/timeTracking";
 import { getZoneOccupancy, FIXED_ZONE_LABELS } from "@/lib/zones";
-import { isRackStuck, getTimeInCurrentStatus, WAITING_STAGES } from "@/lib/timeTracking";
+import { isRackNeedsAttention, getTimeInCurrentStatus, WAITING_STAGES } from "@/lib/timeTracking";
 import { OCCUPANCY_STYLE } from "@/lib/tokens";
 import { OperationalAlerts, type AlertItem } from "@/components/OperationalAlerts";
 
@@ -55,7 +55,7 @@ export default function ZoneDetailPage() {
   const waitingInZone    = activeRacks.filter((r) => WAITING_STAGES.has(r.status));
   const isWaitingZone    = waitingInZone.length > processingInZone.length;
 
-  const stuckInZone = processingInZone.filter((r) => isRackStuck(r, history)).length;
+  const stuckInZone = processingInZone.filter((r) => isRackNeedsAttention(r, history)).length;
 
   const avgDwellMs = activeRacks.length > 0
     ? activeRacks.reduce((sum, r) => sum + getTimeInCurrentStatus(r, history), 0) / activeRacks.length
@@ -313,7 +313,7 @@ export default function ZoneDetailPage() {
           <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
             {zoneRacks.map((rack) => {
               const isWaiting = WAITING_STAGES.has(rack.status);
-              const stuck     = !isWaiting && isRackStuck(rack, history);
+              const stuck     = !isWaiting && isRackNeedsAttention(rack, history);
               const delivery  = deliveries.find((d) => d.id === rack.deliveryId);
               return (
                 <li key={rack.id} onClick={() => router.push(`/racks/${rack.id}`)}
