@@ -31,7 +31,7 @@ export interface CreateRackInput {
   status?: RackStatus;
   priority?: Priority; // only relevant when status is "sorted" at creation
   zoneId?: string;
-  deliveryId: string;
+  deliveryId?: string; // optional: sorted racks created without a delivery
   rackCode?: string; // optional manual override; auto-generated if omitted
   holdReason?: string;
   holdStartedAt?: string;
@@ -40,6 +40,7 @@ export interface CreateRackInput {
 export interface UpdateRackInput {
   rackCode?: string;
   priority?: Priority;
+  deliveryId?: string;
   holdReason?: string | null;
   holdStartedAt?: string | null;
 }

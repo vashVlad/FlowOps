@@ -393,7 +393,7 @@ export async function createRack(input: {
   status?: RackStatus;
   priority?: Priority;
   zoneId?: string;
-  deliveryId: string;
+  deliveryId?: string;
   rackCode?: string;
   holdReason?: string;
   holdStartedAt?: string;
@@ -401,7 +401,7 @@ export async function createRack(input: {
   const insertData: Record<string, unknown> = {
     consigner_name:  input.consignerName,
     zone_id:         input.zoneId        ?? null,
-    delivery_id:     input.deliveryId,
+    delivery_id:     input.deliveryId ?? null,
     hold_reason:     input.holdReason    ?? null,
     hold_started_at: input.holdStartedAt ?? null,
   };
@@ -422,6 +422,7 @@ export async function updateRack(rackId: string, patch: UpdateRackInput): Promis
   const update: Record<string, unknown> = {};
   if (patch.rackCode      !== undefined) update.rack_code       = patch.rackCode;
   if (patch.priority      !== undefined) update.priority        = patch.priority;
+  if (patch.deliveryId    !== undefined) update.delivery_id     = patch.deliveryId;
   if ("holdReason"    in patch)          update.hold_reason     = patch.holdReason     ?? null;
   if ("holdStartedAt" in patch)          update.hold_started_at = patch.holdStartedAt  ?? null;
 

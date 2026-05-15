@@ -24,6 +24,7 @@ import {
   STAGE_THRESHOLDS_MS,
 } from "@/lib/timeTracking";
 import { PIPELINE_STAGES, NEXT_STAGE_LABEL, STAGE_LABEL } from "@/lib/tokens";
+import { getPrevStatus } from "@/lib/racks";
 import { useToastStore } from "@/store/toast";
 import { useIsSupervisor } from "@/store/auth";
 import type { Priority } from "@/types";
@@ -35,30 +36,33 @@ const STAGE_STEPS = PIPELINE_STAGES.map((s) => s.status);
 export default function RackDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { racks, history, advanceStatus, advanceToSorted, moveToZone, updateRack, deleteRack, setHold, clearHold } = useRacksStore();
+  const { racks, history, advanceStatus, revertStatus, advanceToSorted, moveToZone, updateRack, deleteRack, setHold, clearHold } = useRacksStore();
   const { notes, addNote, deleteNote } = useNotesStore();
   const addToast = useToastStore((s) => s.add);
   const { deliveries } = useDeliveriesStore();
   const { zones }      = useZonesStore();
 
-  const [editOpen,     setEditOpen]     = useState(false);
-  const [editRackCode, setEditRackCode] = useState("");
-  const [editPriority, setEditPriority] = useState<Priority>("normal");
-  const [editError,    setEditError]    = useState("");
-  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [editOpen,       setEditOpen]       = useState(false);
+  const [editRackCode,   setEditRackCode]   = useState("");
+  const [editPriority,   setEditPriority]   = useState<Priority>("normal");
+  const [editDeliveryId, setEditDeliveryId] = useState("");
+  const [editError,      setEditError]      = useState("");
+  const [deleteConfirm,  setDeleteConfirm]  = useState(false);
 
   // Hold form state
   const [holdOpen,   setHoldOpen]   = useState(false);
   const [holdReason, setHoldReason] = useState(HOLD_REASONS[0]);
 
+  // Revert confirm
+  const [revertConfirm, setRevertConfirm] = useState(false);
+
   // Priority picker for unpacking_sorting → sorted advance
   const [showPriorityPick,  setShowPriorityPick]  = useState(false);
   const [pendingPriority,   setPendingPriority]   = useState<Priority>("normal");
 
-  // Notes — shared by quick action bar and full section
-  const [noteInput,      setNoteInput]      = useState("");
-  const [noteError,      setNoteError]      = useState("");
-  const [quickNoteOpen,  setQuickNoteOpen]  = useState(false);
+  const [noteInput,  setNoteInput]  = useState("");
+  const [noteError,  setNoteError]  = useState("");
+  const [noteOpen,   setNoteOpen]   = useState(false);
 
   // Consigners
   const { consigners: allConsigners, add: addConsigner, remove: removeConsigner } = useRackConsignersStore();
@@ -113,6 +117,7 @@ export default function RackDetailPage() {
   function openEdit() {
     setEditRackCode(rack!.rackCode);
     setEditPriority(rack!.priority);
+    setEditDeliveryId(rack!.deliveryId);
     setEditError("");
     setEditOpen(true);
   }
@@ -122,8 +127,9 @@ export default function RackDetailPage() {
     if (!editRackCode.trim()) return setEditError("Rack ID required.");
     setEditError("");
     const result = await updateRack(rack!.id, {
-      rackCode: editRackCode.trim(),
-      priority: editPriority,
+      rackCode:   editRackCode.trim(),
+      priority:   editPriority,
+      deliveryId: editDeliveryId,
     });
     if (!result.ok) { setEditError(result.error); return; }
     setEditOpen(false);
@@ -176,6 +182,17 @@ export default function RackDetailPage() {
                 <p className="text-xs font-semibold text-stone-700">Edit rack</p>
                 <input type="text" placeholder="Rack ID (e.g. RC-0042)" value={editRackCode}
                   onChange={(e) => { setEditRackCode(e.target.value); setEditError(""); }} className={inputCls} autoFocus />
+                <select
+                  value={editDeliveryId}
+                  onChange={(e) => setEditDeliveryId(e.target.value)}
+                  className={inputCls}
+                >
+                  {deliveries.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.consignerJNumber ?? d.deliveryCode} — {d.consignerName}
+                    </option>
+                  ))}
+                </select>
                 <PriorityPicker value={editPriority} onChange={setEditPriority} />
                 {editError && <p className="text-xs text-red-500">{editError}</p>}
                 <div className="flex items-center justify-between gap-2">
@@ -316,11 +333,11 @@ export default function RackDetailPage() {
                   {isHeld ? "Clear Hold" : "Hold"}
                 </button>
 
-                {/* Quick note toggle */}
+                {/* Note toggle */}
                 <button
-                  onClick={() => setQuickNoteOpen((v) => !v)}
+                  onClick={() => setNoteOpen((v) => !v)}
                   className={`rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
-                    quickNoteOpen
+                    noteOpen
                       ? "bg-amber-100 text-amber-700"
                       : "border border-stone-200 text-stone-700 hover:bg-stone-50"
                   }`}
@@ -329,8 +346,8 @@ export default function RackDetailPage() {
                 </button>
               </div>
 
-              {/* Inline note input — quick entry */}
-              {quickNoteOpen && (
+              {/* Inline note input */}
+              {noteOpen && (
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -338,16 +355,14 @@ export default function RackDetailPage() {
                     value={noteInput}
                     onChange={(e) => { setNoteInput(e.target.value); setNoteError(""); }}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        handleAddNote().then(() => setQuickNoteOpen(false));
-                      }
-                      if (e.key === "Escape") setQuickNoteOpen(false);
+                      if (e.key === "Enter") handleAddNote().then(() => setNoteOpen(false));
+                      if (e.key === "Escape") setNoteOpen(false);
                     }}
                     className={inputCls}
                     autoFocus
                   />
                   <button
-                    onClick={() => handleAddNote().then(() => setQuickNoteOpen(false))}
+                    onClick={() => handleAddNote().then(() => setNoteOpen(false))}
                     disabled={!noteInput.trim()}
                     className="shrink-0 rounded-lg bg-orange-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-orange-700 disabled:opacity-40 transition-colors"
                   >
@@ -412,6 +427,7 @@ export default function RackDetailPage() {
             </div>
 
             {/* ── HOLD STATE ──────────────────────────────────────────────── */}
+            {(isHeld || holdOpen) && (
             <div className="border-t border-stone-100 pt-4">
               {isHeld ? (
                 <div className="rounded-lg border border-blue-200 bg-blue-50 p-3.5 space-y-2">
@@ -455,16 +471,43 @@ export default function RackDetailPage() {
                     </button>
                   </div>
                 </div>
-              ) : (
-                <button
-                  onClick={() => setHoldOpen(true)}
-                  className="text-xs text-stone-400 hover:text-blue-600 transition-colors"
-                >
-                  + Put on Hold
-                </button>
-              )}
+              ) : null}
             </div>
+            )}
 
+            {/* ── REVERT STATUS ───────────────────────────────────────────── */}
+            {getPrevStatus(rack.status) && (
+              <div className="border-t border-stone-100 pt-3">
+                {revertConfirm ? (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs text-stone-400">Move back to {STAGE_LABEL[getPrevStatus(rack.status)!]}?</span>
+                    <button
+                      onClick={async () => {
+                        const prev = getPrevStatus(rack.status);
+                        const result = await revertStatus(rack.id);
+                        if (result.ok) { setRevertConfirm(false); addToast(`Moved back to ${STAGE_LABEL[prev!]}`); }
+                      }}
+                      className="rounded-md bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-600 hover:bg-stone-200 transition-colors"
+                    >
+                      Yes, revert
+                    </button>
+                    <button
+                      onClick={() => setRevertConfirm(false)}
+                      className="text-xs text-stone-400 hover:text-stone-600 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setRevertConfirm(true)}
+                    className="text-xs text-stone-400 hover:text-stone-600 transition-colors"
+                  >
+                    ← Move back to {STAGE_LABEL[getPrevStatus(rack.status)!]}
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* ── CONSIGNERS ───────────────────────────────────────────────── */}
             <div className="border-t border-stone-100 pt-4 space-y-3">
@@ -542,27 +585,9 @@ export default function RackDetailPage() {
             </div>
 
             {/* ── OPERATIONAL NOTES ────────────────────────────────────────── */}
-            <div className="border-t border-stone-100 pt-4 space-y-3">
-              <SectionLabel>Operational Notes{rackNotes.length > 0 ? ` (${rackNotes.length})` : ""}</SectionLabel>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Pin a note…"
-                  value={noteInput}
-                  onChange={(e) => { setNoteInput(e.target.value); setNoteError(""); }}
-                  onKeyDown={(e) => e.key === "Enter" && handleAddNote()}
-                  className={inputCls}
-                />
-                <button
-                  onClick={handleAddNote}
-                  disabled={!noteInput.trim()}
-                  className="shrink-0 rounded-lg bg-orange-600 px-3 py-2 text-xs font-medium text-white hover:bg-orange-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                >
-                  Pin
-                </button>
-              </div>
-              {noteError && <p className="text-xs text-red-500">{noteError}</p>}
-              {rackNotes.length > 0 && (
+            {rackNotes.length > 0 && (
+              <div className="border-t border-stone-100 pt-4 space-y-2">
+                <SectionLabel>Operational Notes ({rackNotes.length})</SectionLabel>
                 <div className="space-y-1.5">
                   {rackNotes.map((note) => (
                     <div key={note.id} className="flex items-start gap-3 rounded-lg bg-amber-50 border border-amber-100 px-3 py-2">
@@ -580,14 +605,13 @@ export default function RackDetailPage() {
                     </div>
                   ))}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Pipeline progress */}
             <div className="border-t border-stone-100 pt-4">
               <SectionLabel>Pipeline Progress</SectionLabel>
-              <div className="overflow-x-auto -mx-5 px-5">
-              <div className="flex items-end gap-0 mt-3 min-w-[340px]">
+              <div className="flex items-end gap-0 mt-3 w-full">
                 {STAGE_STEPS.map((s, i) => {
                   const completed = rack.status === "completed";
                   const isPast    = i < stepIdx || completed;
@@ -602,7 +626,7 @@ export default function RackDetailPage() {
                             ? "h-2 w-2 bg-stone-400"
                             : "h-2 w-2 bg-stone-100 border border-stone-200"
                         }`} />
-                        <span className={`text-[10px] leading-none text-center max-w-[52px] break-words ${
+                        <span className={`text-[10px] leading-none text-center w-16 break-words ${
                           isCurrent ? "font-semibold text-orange-600" :
                           isPast    ? "text-stone-400"                :
                                       "text-stone-300"
@@ -615,7 +639,6 @@ export default function RackDetailPage() {
                     </Fragment>
                   );
                 })}
-              </div>
               </div>
             </div>
 

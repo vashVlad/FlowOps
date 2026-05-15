@@ -36,6 +36,13 @@ const NEXT_STATUS: Record<DeliveryStatus, DeliveryStatus | null> = {
   complete:   null,
 };
 
+const PREV_STATUS: Record<DeliveryStatus, DeliveryStatus | null> = {
+  scheduled:  null,
+  arrived:    "scheduled",
+  processing: "arrived",
+  complete:   "processing",
+};
+
 function formatAuctionDate(dateStr: string): string {
   const d = new Date(dateStr + "T00:00:00");
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -89,6 +96,9 @@ export default function DeliveryDetailPage() {
 
   // ── Sorting warning ───────────────────────────────────────────────────────
   const [showSortingWarning, setShowSortingWarning] = useState(false);
+
+  // ── Revert confirm ────────────────────────────────────────────────────────
+  const [revertConfirm, setRevertConfirm] = useState(false);
 
   // ── Auction date ──────────────────────────────────────────────────────────
   const [auctionEditing, setAuctionEditing] = useState(false);
@@ -340,6 +350,40 @@ export default function DeliveryDetailPage() {
                 </p>
               );
             })()}
+
+            {/* Revert delivery status */}
+            {PREV_STATUS[delivery.status] && (
+              <div className="flex items-center gap-2 flex-wrap">
+                {revertConfirm ? (
+                  <>
+                    <span className="text-xs text-stone-400">Move back to {DELIVERY_STATUS_LABEL[PREV_STATUS[delivery.status]!]}?</span>
+                    <button
+                      onClick={async () => {
+                        const prev = PREV_STATUS[delivery.status]!;
+                        const result = await setStatus(delivery.id, prev);
+                        if (result.ok) { setRevertConfirm(false); addToast(`Delivery moved back to ${DELIVERY_STATUS_LABEL[prev].toLowerCase()}`); }
+                      }}
+                      className="rounded-md bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-600 hover:bg-stone-200 transition-colors"
+                    >
+                      Yes, revert
+                    </button>
+                    <button
+                      onClick={() => setRevertConfirm(false)}
+                      className="text-xs text-stone-400 hover:text-stone-600 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => setRevertConfirm(true)}
+                    className="text-xs text-stone-400 hover:text-stone-600 transition-colors"
+                  >
+                    ← Move back to {DELIVERY_STATUS_LABEL[PREV_STATUS[delivery.status]!].toLowerCase()}
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Inline edit form */}
             {editing && (

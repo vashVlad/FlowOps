@@ -14,6 +14,11 @@ export function getNextStatus(current: RackStatus): RackStatus | null {
   return idx < STATUS_ORDER.length - 1 ? STATUS_ORDER[idx + 1] : null;
 }
 
+export function getPrevStatus(current: RackStatus): RackStatus | null {
+  const idx = STATUS_ORDER.indexOf(current);
+  return idx > 0 ? STATUS_ORDER[idx - 1] : null;
+}
+
 export const HOLD_REASONS = [
   "Waiting on remaining boxes",
   "Awaiting director review",

@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import type { Rack, RackStatus, Priority, HistoryEvent, CreateRackInput, UpdateRackInput } from "@/types";
 import { ok, err, logMutationError, type MutationResult } from "@/lib/store";
-import { STATUS_ORDER, getNextStatus } from "@/lib/racks";
+import { STATUS_ORDER, getNextStatus, getPrevStatus } from "@/lib/racks";
 import { useDeliveriesStore } from "@/store/deliveries";
 import { useZonesStore } from "@/store/zones";
 import {
@@ -25,6 +25,7 @@ interface RacksStore {
   updateRack:         (id: string, patch: UpdateRackInput) => Promise<MutationResult<Rack>>;
   deleteRack:         (id: string) => Promise<MutationResult<undefined>>;
   advanceStatus:      (id: string) => Promise<MutationResult<undefined>>;
+  revertStatus:       (id: string) => Promise<MutationResult<undefined>>;
   advanceToSorted:    (id: string, priority: Priority) => Promise<MutationResult<undefined>>;
   moveToZone:         (rackId: string, zoneId: string | undefined) => Promise<MutationResult<undefined>>;
   closeAuctionCycle:  () => Promise<MutationResult<number>>;
@@ -164,6 +165,48 @@ export const useRacksStore = create<RacksStore>()((set, get) => ({
         await useDeliveriesStore.getState().setStatus(rack.deliveryId, "complete");
       }
     }
+
+    return ok(undefined);
+  },
+
+  revertStatus: async (id) => {
+    set({ error: null });
+    const { racks, history } = get();
+    const rack = racks.find((r) => r.id === id);
+    if (!rack) {
+      const message = logMutationError("revertStatus", new Error(`rack ${id} not found`));
+      set({ error: message });
+      return err(message);
+    }
+    const prev = getPrevStatus(rack.status);
+    if (!prev) {
+      const message = logMutationError("revertStatus", new Error(`rack ${id} is already at first status`));
+      set({ error: message });
+      return err(message);
+    }
+
+    try {
+      await dbAdvance(id, prev);
+    } catch (e) {
+      const message = logMutationError("revertStatus", e);
+      set({ error: message });
+      return err(message);
+    }
+
+    const ts = new Date().toISOString();
+    const event: HistoryEvent = {
+      id: crypto.randomUUID(),
+      rackId: id,
+      from: rack.status,
+      to: prev,
+      timestamp: ts,
+    };
+    set({
+      history: [...history, event],
+      racks: racks.map((r) =>
+        r.id === id ? { ...r, status: prev, updatedAt: ts } : r
+      ),
+    });
 
     return ok(undefined);
   },

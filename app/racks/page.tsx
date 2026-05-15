@@ -242,34 +242,44 @@ function RacksContent() {
   const [isHeldAtCreation, setIsHeldAtCreation] = useState(false);
   const [zoneId, setZoneId]                     = useState(preselectedZone);
   const [deliveryId, setDeliveryId]             = useState(preselectedDelivery);
+  const [consignerInput, setConsignerInput]     = useState("");
   const [formError, setFormError]               = useState("");
 
   const activeDeliveries = deliveries.filter((d) => d.status !== "complete");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!deliveryId) return setFormError("Select a delivery.");
-    const selectedDelivery = activeDeliveries.find((d) => d.id === deliveryId);
-    if (!selectedDelivery) return setFormError("Select a delivery.");
+    const isSorted = initialStatus === "sorted";
+    let consignerName: string;
+    let resolvedDeliveryId: string | undefined;
+
+    if (isSorted) {
+      if (!consignerInput.trim()) return setFormError("Consigner name required.");
+      consignerName = consignerInput.trim();
+    } else {
+      if (!deliveryId) return setFormError("Select a delivery.");
+      const selectedDelivery = activeDeliveries.find((d) => d.id === deliveryId);
+      if (!selectedDelivery) return setFormError("Select a delivery.");
+      consignerName = selectedDelivery.consignerName;
+      resolvedDeliveryId = deliveryId;
+    }
+
     setFormError("");
     const now = new Date().toISOString();
     const result = await addRack({
-      consignerName: selectedDelivery.consignerName,
+      consignerName,
       status:        initialStatus,
-      priority:      initialStatus === "sorted" ? sortedPriority : undefined,
+      priority:      isSorted ? sortedPriority : undefined,
       zoneId:        zoneId || undefined,
-      deliveryId,
+      deliveryId:    resolvedDeliveryId,
       rackCode:      rackCodeInput.trim() || undefined,
       holdReason:    isHeldAtCreation ? "On Hold" : undefined,
       holdStartedAt: isHeldAtCreation ? now : undefined,
     });
-    if (!result.ok) {
-      setFormError(result.error);
-      return;
-    }
+    if (!result.ok) { setFormError(result.error); return; }
     setRackCodeInput(""); setInitialStatus("unpacking_sorting"); setSortedPriority("normal");
     setIsHeldAtCreation(false); setZoneId(preselectedZone);
-    setDeliveryId(preselectedDelivery);
+    setDeliveryId(preselectedDelivery); setConsignerInput("");
     setShowForm(false);
     addToast(`${result.data.rackCode} added`);
   }
@@ -318,14 +328,24 @@ function RacksContent() {
           <p className="text-sm font-semibold text-stone-900">New rack</p>
           <input type="text" placeholder="Rack ID (optional — auto-generated if blank)" value={rackCodeInput}
             onChange={(e) => { setRackCodeInput(e.target.value); setFormError(""); }} className={inputCls} autoFocus />
-          <Select value={deliveryId} onChange={(e) => setDeliveryId(e.target.value)}>
-            <option value="">Select a delivery</option>
-            {activeDeliveries.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.consignerName}{d.consignerJNumber ? ` · ${d.consignerJNumber}` : ""}
-              </option>
-            ))}
-          </Select>
+          {initialStatus === "sorted" ? (
+            <input
+              type="text"
+              placeholder="Consigner name"
+              value={consignerInput}
+              onChange={(e) => { setConsignerInput(e.target.value); setFormError(""); }}
+              className={inputCls}
+            />
+          ) : (
+            <Select value={deliveryId} onChange={(e) => setDeliveryId(e.target.value)}>
+              <option value="">Select a delivery</option>
+              {activeDeliveries.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.consignerName}{d.consignerJNumber ? ` · ${d.consignerJNumber}` : ""}
+                </option>
+              ))}
+            </Select>
+          )}
           <Select value={zoneId} onChange={(e) => setZoneId(e.target.value)}>
             <option value="">No zone assigned</option>
             {zones.map((z) => {
