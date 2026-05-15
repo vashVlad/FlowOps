@@ -255,16 +255,23 @@ function RacksContent() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const isSorted = initialStatus === "sorted";
+    const needsDelivery = initialStatus === "unpacking_sorting";
+    const hasOptionalDelivery = initialStatus === "sorted" || initialStatus === "lotting";
     let consignerName = "";
     let resolvedDeliveryId: string | undefined;
 
-    if (!isSorted) {
+    if (needsDelivery) {
       if (!deliveryId) return setFormError("Select a delivery.");
       const selectedDelivery = activeDeliveries.find((d) => d.id === deliveryId);
       if (!selectedDelivery) return setFormError("Select a delivery.");
       consignerName = selectedDelivery.consignerName;
       resolvedDeliveryId = deliveryId;
+    } else if (hasOptionalDelivery && deliveryId) {
+      const selectedDelivery = activeDeliveries.find((d) => d.id === deliveryId);
+      if (selectedDelivery) {
+        consignerName = selectedDelivery.consignerName;
+        resolvedDeliveryId = deliveryId;
+      }
     }
 
     setFormError("");
@@ -272,7 +279,7 @@ function RacksContent() {
     const result = await addRack({
       consignerName,
       status:        initialStatus,
-      priority:      isSorted ? sortedPriority : undefined,
+      priority:      initialStatus !== "unpacking_sorting" ? sortedPriority : undefined,
       zoneId:        zoneId || undefined,
       deliveryId:    resolvedDeliveryId,
       rackCode:      rackCodeInput.trim() || undefined,
@@ -351,16 +358,23 @@ function RacksContent() {
             </div>
           </div>
 
-          {/* Delivery — only when unpacking_sorting */}
-          {initialStatus === "unpacking_sorting" && (
-            <Select value={deliveryId} onChange={(e) => setDeliveryId(e.target.value)}>
-              <option value="">Select a delivery</option>
-              {activeDeliveries.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.consignerName}{d.consignerJNumber ? ` · ${d.consignerJNumber}` : ""}
+          {/* Delivery — required for unpacking_sorting, optional for sorted/lotting */}
+          {(initialStatus === "unpacking_sorting" || initialStatus === "sorted" || initialStatus === "lotting") && (
+            <div className="space-y-1">
+              {(initialStatus === "sorted" || initialStatus === "lotting") && (
+                <p className="text-xs text-stone-400">Delivery <span className="italic">(optional)</span></p>
+              )}
+              <Select value={deliveryId} onChange={(e) => setDeliveryId(e.target.value)}>
+                <option value="">
+                  {initialStatus === "unpacking_sorting" ? "Select a delivery" : "No delivery — skip"}
                 </option>
-              ))}
-            </Select>
+                {activeDeliveries.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.consignerName}{d.consignerJNumber ? ` · ${d.consignerJNumber}` : ""}
+                  </option>
+                ))}
+              </Select>
+            </div>
           )}
 
           <Select value={zoneId} onChange={(e) => setZoneId(e.target.value)}>
