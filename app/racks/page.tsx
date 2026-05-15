@@ -289,7 +289,7 @@ function RacksContent() {
   }
 
   const q = query.toLowerCase();
-  const filtered = racks.filter((r) => {
+  const filtered = [...racks].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).filter((r) => {
     const attention = isRackNeedsAttention(r, history);
     const isHeld    = !!r.holdReason;
     const zone      = r.zoneId     ? zones.find((z) => z.id === r.zoneId)          : undefined;
