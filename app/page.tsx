@@ -67,6 +67,8 @@ export default function Dashboard() {
   const inPipeline       = activeRacks.length;
   const inLotting        = racks.filter((r) => r.status === "lotting").length;
   const readyForPickup   = racks.filter((r) => r.status === "pickup").length;
+  const sortingZone      = zones.find((z) => z.name === "C");
+  const inSortingRoom    = sortingZone ? racks.filter((r) => r.zoneId === sortingZone.id).length : 0;
 
   // Held racks
   const heldRacks = activeRacks.filter((r) => !!r.holdReason);
@@ -189,6 +191,7 @@ export default function Dashboard() {
               <KpiCard label="In pipeline"       value={inPipeline}       href="/racks"      accent="stone"  />
               <KpiCard label="In lotting"        value={inLotting}        href="/lotting"    accent="amber"  />
               <KpiCard label="Ready for pickup"  value={readyForPickup}   href="/racks"      accent="violet" />
+              {sortingZone && <KpiCard label="Sorting room" value={inSortingRoom} href={`/zones/${sortingZone.id}`} accent="sky" />}
             </div>
 
             <AnalyticsStrip

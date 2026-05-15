@@ -81,6 +81,7 @@ export const KPI_ACCENT: Record<string, string> = {
   violet:  "border-l-violet-500",
   red:     "border-l-red-500",
   emerald: "border-l-emerald-500",
+  sky:     "border-l-sky-400",
 };
 
 // ── Zone occupancy ────────────────────────────────────────────────────────────

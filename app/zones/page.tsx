@@ -19,16 +19,17 @@ const MAX_CHIPS = 6;
 
 // ── Rack chips ────────────────────────────────────────────────────────────────
 
-function RackChips({ zoneRacks }: { zoneRacks: Rack[] }) {
+function RackChips({ zoneRacks, max = MAX_CHIPS }: { zoneRacks: Rack[]; max?: number }) {
   if (zoneRacks.length === 0) return null;
-  const visible = zoneRacks.slice(0, MAX_CHIPS);
+  const visible = zoneRacks.slice(0, max);
   const overflow = zoneRacks.length - visible.length;
   return (
     <div className="mt-2 flex flex-wrap gap-1">
       {visible.map((r) => (
         <span
           key={r.id}
-          className={`inline-block rounded px-1 py-0.5 text-[9px] font-mono font-medium leading-none text-white ${STAGE_BAR[r.status]}`}
+          className={`inline-block rounded px-1 py-0.5 text-[9px] font-mono font-medium leading-none text-white ${r.auctionColor ? "" : STAGE_BAR[r.status]}`}
+          style={r.auctionColor ? { backgroundColor: r.auctionColor } : undefined}
         >
           {r.rackCode}
         </span>
@@ -68,10 +69,15 @@ function ZoneCell({
   if (name === "H" || name === "B" || name === "C") {
     return (
       <Link href={`/zones/${zone.id}`} className={`${base} border-stone-200 bg-stone-100`}>
-        <span className="text-sm font-bold leading-none text-stone-500">{name}</span>
+        <div className="flex items-start justify-between gap-1">
+          <span className="text-sm font-bold leading-none text-stone-500">{name}</span>
+          {tall && zoneRacks.length > 0 && (
+            <span className="text-sm font-bold tabular-nums text-stone-500">{zoneRacks.length}</span>
+          )}
+        </div>
         <div>
           <p className="text-[10px] text-stone-400 leading-tight">{FIXED_ZONE_LABELS[name]}</p>
-          <RackChips zoneRacks={zoneRacks} />
+          <RackChips zoneRacks={zoneRacks} max={tall ? 20 : MAX_CHIPS} />
         </div>
       </Link>
     );
