@@ -452,7 +452,10 @@ function ZoneCell({ zone, count, assignedDelivery }: { zone: Zone; count: number
   if (name === "H" || name === "B" || name === "C") {
     return (
       <Link href={`/zones/${zone.id}`} className={`${cell} border-stone-200 bg-stone-100 hover:translate-y-0`}>
-        <span className="text-xs font-bold leading-none text-stone-500">{name}</span>
+        <div className="flex items-start justify-between gap-1">
+          <span className="text-xs font-bold leading-none text-stone-500">{name}</span>
+          {count > 0 && <span className="text-xs font-bold tabular-nums text-stone-600">{count}</span>}
+        </div>
         <p className="text-[9px] text-stone-400 leading-tight line-clamp-1">{FIXED_ZONE_LABELS[name]}</p>
       </Link>
     );

@@ -9,7 +9,7 @@ import { FIXED_ZONE_LABELS } from "@/lib/zones";
 import { LoadingCards } from "@/components/LoadingCards";
 import ErrorBanner from "@/components/ErrorBanner";
 import PageHeader from "@/components/ui/PageHeader";
-import { STAGE_BAR, DELIVERY_STATUS_BADGE, DELIVERY_STATUS_LABEL } from "@/lib/tokens";
+import { DELIVERY_STATUS_BADGE, DELIVERY_STATUS_LABEL } from "@/lib/tokens";
 import type { Zone, Delivery, Rack } from "@/types";
 
 const inputCls =
@@ -19,21 +19,23 @@ const MAX_CHIPS = 6;
 
 // ── Rack chips ────────────────────────────────────────────────────────────────
 
+function RackChip({ rack, size = "sm" }: { rack: Rack; size?: "sm" | "md" }) {
+  const base = size === "md"
+    ? "inline-block rounded px-2 py-1 text-[11px] font-mono font-semibold leading-none text-white"
+    : "inline-block rounded px-1 py-0.5 text-[9px] font-mono font-medium leading-none text-white";
+  if (rack.auctionColor) {
+    return <span className={base} style={{ backgroundColor: rack.auctionColor }}>{rack.rackCode}</span>;
+  }
+  return <span className={`${base} bg-stone-400`}>{rack.rackCode}</span>;
+}
+
 function RackChips({ zoneRacks, max = MAX_CHIPS }: { zoneRacks: Rack[]; max?: number }) {
   if (zoneRacks.length === 0) return null;
   const visible = zoneRacks.slice(0, max);
   const overflow = zoneRacks.length - visible.length;
   return (
     <div className="mt-2 flex flex-wrap gap-1">
-      {visible.map((r) => (
-        <span
-          key={r.id}
-          className={`inline-block rounded px-1 py-0.5 text-[9px] font-mono font-medium leading-none text-white ${r.auctionColor ? "" : STAGE_BAR[r.status]}`}
-          style={r.auctionColor ? { backgroundColor: r.auctionColor } : undefined}
-        >
-          {r.rackCode}
-        </span>
-      ))}
+      {visible.map((r) => <RackChip key={r.id} rack={r} />)}
       {overflow > 0 && (
         <span className="inline-block rounded px-1 py-0.5 text-[9px] font-mono leading-none bg-stone-200 text-stone-500">
           +{overflow}
@@ -67,17 +69,37 @@ function ZoneCell({
 
   // ── Fixed utility zones (H, B, C) ─────────────────────────────────────────
   if (name === "H" || name === "B" || name === "C") {
+    if (tall) {
+      return (
+        <Link href={`/zones/${zone.id}`} className="h-full rounded-lg border border-stone-200 bg-stone-100 p-2.5 flex gap-2 hover:shadow-sm transition-all duration-150">
+          {/* Left: name, label, count */}
+          <div className="flex flex-col justify-between shrink-0">
+            <span className="text-sm font-bold leading-none text-stone-500">{name}</span>
+            <div>
+              <p className="text-[10px] text-stone-400 leading-tight">{FIXED_ZONE_LABELS[name]}</p>
+              {zoneRacks.length > 0 && (
+                <p className="text-2xl font-bold tabular-nums text-stone-600 mt-1">{zoneRacks.length}</p>
+              )}
+            </div>
+          </div>
+          {/* Right: column of chips */}
+          {zoneRacks.length > 0 && (
+            <div className="flex flex-col gap-1 flex-1 items-end justify-start overflow-hidden">
+              {zoneRacks.slice(0, 20).map((r) => <RackChip key={r.id} rack={r} size="md" />)}
+              {zoneRacks.length > 20 && (
+                <span className="text-[10px] text-stone-400">+{zoneRacks.length - 20}</span>
+              )}
+            </div>
+          )}
+        </Link>
+      );
+    }
     return (
       <Link href={`/zones/${zone.id}`} className={`${base} border-stone-200 bg-stone-100`}>
-        <div className="flex items-start justify-between gap-1">
-          <span className="text-sm font-bold leading-none text-stone-500">{name}</span>
-          {tall && zoneRacks.length > 0 && (
-            <span className="text-sm font-bold tabular-nums text-stone-500">{zoneRacks.length}</span>
-          )}
-        </div>
+        <span className="text-sm font-bold leading-none text-stone-500">{name}</span>
         <div>
           <p className="text-[10px] text-stone-400 leading-tight">{FIXED_ZONE_LABELS[name]}</p>
-          <RackChips zoneRacks={zoneRacks} max={tall ? 20 : MAX_CHIPS} />
+          <RackChips zoneRacks={zoneRacks} />
         </div>
       </Link>
     );

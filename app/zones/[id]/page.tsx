@@ -550,6 +550,9 @@ export default function ZoneDetailPage() {
                   <div className="px-4 pt-3 pb-2 space-y-1.5">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-1.5 min-w-0">
+                        {rack.auctionColor && (
+                          <span className="h-2.5 w-2.5 rounded-full shrink-0 ring-1 ring-stone-200" style={{ backgroundColor: rack.auctionColor }} />
+                        )}
                         <p className="font-mono text-sm font-bold text-stone-900 truncate">{rack.rackCode}</p>
                         {stuck && <span className="rounded-md bg-red-50 px-1.5 py-0.5 text-[10px] text-red-400 shrink-0">delayed</span>}
                         {rack.priority === "high" && !stuck && <span className="rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 shrink-0">high</span>}

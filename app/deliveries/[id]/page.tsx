@@ -838,6 +838,9 @@ export default function DeliveryDetailPage() {
                   className="cursor-pointer rounded-xl border border-stone-200 bg-white px-4 py-3 shadow-sm hover:shadow-md hover:-translate-y-px transition-all duration-150">
                   <div className="flex items-center justify-between gap-3 mb-2">
                     <div className="flex items-center gap-2 min-w-0">
+                      {rack.auctionColor && (
+                        <span className="h-2.5 w-2.5 rounded-full shrink-0 ring-1 ring-stone-200" style={{ backgroundColor: rack.auctionColor }} />
+                      )}
                       <span className="font-mono text-sm font-bold text-stone-900">{rack.rackCode}</span>
                       {rack.holdReason && (
                         <span className="rounded-md bg-blue-100 px-1.5 py-0.5 text-[11px] font-medium text-blue-700">HOLD</span>
