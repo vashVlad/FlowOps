@@ -27,6 +27,7 @@ export interface RackRow {
   delivery_id: string;
   hold_reason: string | null;
   hold_started_at: string | null;
+  auction_color: string | null;
   is_archived: boolean;
   created_at: string;
   updated_at: string;
@@ -101,6 +102,7 @@ export function toRack(row: RackRow): Rack {
     deliveryId:     row.delivery_id,
     holdReason:     row.hold_reason     ?? undefined,
     holdStartedAt:  row.hold_started_at ?? undefined,
+    auctionColor:   row.auction_color   ?? undefined,
     isArchived:     row.is_archived,
     createdAt:      row.created_at,
     updatedAt:      row.updated_at,
@@ -397,13 +399,15 @@ export async function createRack(input: {
   rackCode?: string;
   holdReason?: string;
   holdStartedAt?: string;
+  auctionColor?: string;
 }): Promise<Rack> {
   const insertData: Record<string, unknown> = {
     consigner_name:  input.consignerName,
     zone_id:         input.zoneId        ?? null,
-    delivery_id:     input.deliveryId ?? null,
+    delivery_id:     input.deliveryId    ?? null,
     hold_reason:     input.holdReason    ?? null,
     hold_started_at: input.holdStartedAt ?? null,
+    auction_color:   input.auctionColor  ?? null,
   };
   if (input.status)           insertData.status    = input.status;
   if (input.priority)         insertData.priority  = input.priority;
@@ -425,6 +429,7 @@ export async function updateRack(rackId: string, patch: UpdateRackInput): Promis
   if (patch.deliveryId    !== undefined) update.delivery_id     = patch.deliveryId;
   if ("holdReason"    in patch)          update.hold_reason     = patch.holdReason     ?? null;
   if ("holdStartedAt" in patch)          update.hold_started_at = patch.holdStartedAt  ?? null;
+  if ("auctionColor"  in patch)          update.auction_color   = patch.auctionColor   ?? null;
 
   const { data, error } = await supabase
     .from("racks")
@@ -546,6 +551,15 @@ export async function updateZone(
     .single();
   if (error) throw error;
   return toZone(data as ZoneRow);
+}
+
+export async function assignMissingLottingColors(color: string): Promise<void> {
+  const { error } = await supabase
+    .from("racks")
+    .update({ auction_color: color })
+    .eq("status", "lotting")
+    .is("auction_color", null);
+  if (error) throw error;
 }
 
 export async function archiveCompletedRacks(): Promise<number> {

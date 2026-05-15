@@ -21,6 +21,7 @@ export interface Rack {
   notes?: string;
   holdReason?: string;     // set when rack is on hold
   holdStartedAt?: string;  // ISO 8601 — when hold was placed
+  auctionColor?: string;   // hex color — auction run identifier
   isArchived: boolean;
   createdAt: string;       // ISO 8601
   updatedAt: string;       // ISO 8601
@@ -35,6 +36,7 @@ export interface CreateRackInput {
   rackCode?: string; // optional manual override; auto-generated if omitted
   holdReason?: string;
   holdStartedAt?: string;
+  auctionColor?: string;
 }
 
 export interface UpdateRackInput {
@@ -43,6 +45,7 @@ export interface UpdateRackInput {
   deliveryId?: string;
   holdReason?: string | null;
   holdStartedAt?: string | null;
+  auctionColor?: string | null;
 }
 
 // ── History ──────────────────────────────────────────────────────────────────

@@ -13,6 +13,7 @@ import {
   advanceRackStatus as dbAdvance,
   moveRackToZone as dbMoveToZone,
   archiveCompletedRacks as dbArchiveCompleted,
+  assignMissingLottingColors as dbAssignLottingColors,
 } from "@/supabase/queries";
 
 interface RacksStore {
@@ -57,6 +58,15 @@ export const useRacksStore = create<RacksStore>()((set, get) => ({
         fetchAllRackEvents(),
       ]);
       set({ racks, history, loading: false });
+
+      // One-time: assign blue to any lotting rack that has no auction color
+      const needsColor = racks.some((r) => r.status === "lotting" && !r.auctionColor);
+      if (needsColor) {
+        await dbAssignLottingColors("#3b82f6");
+        // Refresh to get updated colors
+        const updated = await fetchRacks();
+        set({ racks: updated });
+      }
     } catch (e) {
       set({ loading: false, error: logMutationError("hydrate:racks", e) });
     }

@@ -237,8 +237,9 @@ function RacksContent() {
   const [filter, setFilter]                     = useState<RackFilter>("all");
   const [showForm, setShowForm]                 = useState(!!(preselectedDelivery || preselectedZone));
   const [rackCodeInput, setRackCodeInput]       = useState("");
-  const [initialStatus, setInitialStatus]       = useState<"unpacking_sorting" | "sorted">("unpacking_sorting");
+  const [initialStatus, setInitialStatus]       = useState<RackStatus>("unpacking_sorting");
   const [sortedPriority, setSortedPriority]     = useState<Priority>("normal");
+  const [auctionColor, setAuctionColor]         = useState("");
   const [isHeldAtCreation, setIsHeldAtCreation] = useState(false);
   const [zoneId, setZoneId]                     = useState(preselectedZone);
   const [deliveryId, setDeliveryId]             = useState(preselectedDelivery);
@@ -272,10 +273,11 @@ function RacksContent() {
       rackCode:      rackCodeInput.trim() || undefined,
       holdReason:    isHeldAtCreation ? "On Hold" : undefined,
       holdStartedAt: isHeldAtCreation ? now : undefined,
+      auctionColor:  auctionColor || undefined,
     });
     if (!result.ok) { setFormError(result.error); return; }
     setRackCodeInput(""); setInitialStatus("unpacking_sorting"); setSortedPriority("normal");
-    setIsHeldAtCreation(false); setZoneId(preselectedZone);
+    setAuctionColor(""); setIsHeldAtCreation(false); setZoneId(preselectedZone);
     setDeliveryId(preselectedDelivery); setConsignerInput("");
     setShowForm(false);
     addToast(`${result.data.rackCode} added`);
@@ -329,23 +331,23 @@ function RacksContent() {
           {/* Status at creation */}
           <div className="space-y-1.5">
             <p className="text-xs font-medium text-stone-600">Initial status</p>
-            <div className="flex gap-2">
-              {(["unpacking_sorting", "sorted"] as const).map((s) => (
+            <div className="grid grid-cols-2 gap-2">
+              {(["unpacking_sorting", "sorted", "lotting", "ready"] as const).map((s) => (
                 <button key={s} type="button"
                   onClick={() => setInitialStatus(s)}
-                  className={`flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${
+                  className={`rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${
                     initialStatus === s
                       ? "border-orange-400 bg-orange-50 text-orange-700"
                       : "border-stone-200 bg-white text-stone-500 hover:border-stone-300"
                   }`}>
-                  {s === "unpacking_sorting" ? "Unpacking & Sorting" : "Sorted"}
+                  {s === "unpacking_sorting" ? "Unpacking & Sorting" : s.charAt(0).toUpperCase() + s.slice(1)}
                 </button>
               ))}
             </div>
           </div>
 
           {/* Delivery — only when unpacking_sorting */}
-          {initialStatus !== "sorted" && (
+          {initialStatus === "unpacking_sorting" && (
             <Select value={deliveryId} onChange={(e) => setDeliveryId(e.target.value)}>
               <option value="">Select a delivery</option>
               {activeDeliveries.map((d) => (
@@ -366,9 +368,47 @@ function RacksContent() {
             })}
           </Select>
 
-          {/* Priority — only when sorted */}
-          {initialStatus === "sorted" && (
+          {/* Priority — only when not unpacking_sorting */}
+          {initialStatus !== "unpacking_sorting" && (
             <PriorityPicker value={sortedPriority} onChange={setSortedPriority} />
+          )}
+
+          {/* Auction color — only when not unpacking_sorting */}
+          {initialStatus !== "unpacking_sorting" && (
+            <div className="space-y-1.5">
+              <p className="text-xs font-medium text-stone-600">Auction color</p>
+              <div className="flex items-center gap-2">
+                {[
+                  { hex: "#ef4444", label: "Red"    },
+                  { hex: "#eab308", label: "Yellow" },
+                  { hex: "#22c55e", label: "Green"  },
+                  { hex: "#3b82f6", label: "Blue"   },
+                  { hex: "#1c1917", label: "Black"  },
+                ].map(({ hex, label }) => (
+                  <button
+                    key={hex}
+                    type="button"
+                    title={label}
+                    onClick={() => setAuctionColor(auctionColor === hex ? "" : hex)}
+                    className={`h-6 w-6 rounded-full transition-all ${
+                      auctionColor === hex
+                        ? "ring-2 ring-offset-2 ring-stone-400 scale-110"
+                        : "opacity-70 hover:opacity-100"
+                    }`}
+                    style={{ backgroundColor: hex }}
+                  />
+                ))}
+                {auctionColor && (
+                  <button
+                    type="button"
+                    onClick={() => setAuctionColor("")}
+                    className="text-xs text-stone-400 hover:text-stone-600 transition-colors ml-1"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
           )}
 
           {/* Hold checkbox */}
