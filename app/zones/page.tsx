@@ -9,40 +9,31 @@ import { FIXED_ZONE_LABELS } from "@/lib/zones";
 import { LoadingCards } from "@/components/LoadingCards";
 import ErrorBanner from "@/components/ErrorBanner";
 import PageHeader from "@/components/ui/PageHeader";
-import { STAGE_BAR, STAGE_LABEL, DELIVERY_STATUS_BADGE, DELIVERY_STATUS_LABEL } from "@/lib/tokens";
-import type { Zone, Delivery, Rack, RackStatus } from "@/types";
+import { STAGE_BAR, DELIVERY_STATUS_BADGE, DELIVERY_STATUS_LABEL } from "@/lib/tokens";
+import type { Zone, Delivery, Rack } from "@/types";
 
 const inputCls =
   "w-full rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500";
 
-const STAGE_ORDER: RackStatus[] = [
-  "unpacking_sorting", "sorted", "lotting", "ready", "pickup", "completed",
-];
+const MAX_CHIPS = 6;
 
-// ── Rack stage bar ────────────────────────────────────────────────────────────
+// ── Rack chips ────────────────────────────────────────────────────────────────
 
-function RackStageBar({ zoneRacks, muted = false }: { zoneRacks: Rack[]; muted?: boolean }) {
+function RackChips({ zoneRacks }: { zoneRacks: Rack[] }) {
   if (zoneRacks.length === 0) return null;
-  const total = zoneRacks.length;
+  const visible = zoneRacks.slice(0, MAX_CHIPS);
+  const overflow = zoneRacks.length - visible.length;
   return (
-    <div className="mt-2 space-y-1">
-      <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-black/10">
-        {STAGE_ORDER.map((status) => {
-          const count = zoneRacks.filter((r) => r.status === status).length;
-          if (count === 0) return null;
-          return (
-            <div
-              key={status}
-              className={`h-full ${STAGE_BAR[status]}`}
-              style={{ width: `${(count / total) * 100}%` }}
-              title={`${STAGE_LABEL[status]}: ${count}`}
-            />
-          );
-        })}
-      </div>
-      <p className={`text-[9px] leading-none ${muted ? "text-current opacity-50" : "text-stone-400"}`}>
-        {total} rack{total !== 1 ? "s" : ""}
-      </p>
+    <div className="mt-2 flex flex-wrap gap-1">
+      {visible.map((r) => (
+        <span key={r.id} className="inline-flex items-center gap-0.5">
+          <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${STAGE_BAR[r.status]}`} />
+          <span className="text-[9px] font-mono text-stone-500 leading-none">{r.rackCode}</span>
+        </span>
+      ))}
+      {overflow > 0 && (
+        <span className="text-[9px] text-stone-400">+{overflow}</span>
+      )}
     </div>
   );
 }
@@ -76,7 +67,7 @@ function ZoneCell({
         <span className="text-sm font-bold leading-none text-stone-500">{name}</span>
         <div>
           <p className="text-[10px] text-stone-400 leading-tight">{FIXED_ZONE_LABELS[name]}</p>
-          <RackStageBar zoneRacks={zoneRacks} />
+          <RackChips zoneRacks={zoneRacks} />
         </div>
       </Link>
     );
@@ -92,7 +83,7 @@ function ZoneCell({
         </div>
         <div>
           <p className="text-[10px] text-violet-500 leading-tight">Pick-Up</p>
-          <RackStageBar zoneRacks={zoneRacks} muted />
+          <RackChips zoneRacks={zoneRacks} />
         </div>
       </Link>
     );
@@ -115,7 +106,7 @@ function ZoneCell({
             </p>
           )}
           <p className="text-[10px] text-sky-600 leading-tight line-clamp-1">{assignedDelivery.consignerName}</p>
-          <RackStageBar zoneRacks={zoneRacks} muted />
+          <RackChips zoneRacks={zoneRacks} />
         </div>
       </Link>
     );
@@ -138,7 +129,7 @@ function ZoneCell({
             </p>
           )}
           <p className="text-[10px] text-emerald-600 leading-tight line-clamp-1">{assignedDelivery.consignerName}</p>
-          <RackStageBar zoneRacks={zoneRacks} muted />
+          <RackChips zoneRacks={zoneRacks} />
         </div>
       </Link>
     );

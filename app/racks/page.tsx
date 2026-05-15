@@ -250,13 +250,10 @@ function RacksContent() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const isSorted = initialStatus === "sorted";
-    let consignerName: string;
+    let consignerName = "";
     let resolvedDeliveryId: string | undefined;
 
-    if (isSorted) {
-      if (!consignerInput.trim()) return setFormError("Consigner name required.");
-      consignerName = consignerInput.trim();
-    } else {
+    if (!isSorted) {
       if (!deliveryId) return setFormError("Select a delivery.");
       const selectedDelivery = activeDeliveries.find((d) => d.id === deliveryId);
       if (!selectedDelivery) return setFormError("Select a delivery.");
@@ -328,33 +325,6 @@ function RacksContent() {
           <p className="text-sm font-semibold text-stone-900">New rack</p>
           <input type="text" placeholder="Rack ID (optional — auto-generated if blank)" value={rackCodeInput}
             onChange={(e) => { setRackCodeInput(e.target.value); setFormError(""); }} className={inputCls} autoFocus />
-          {initialStatus === "sorted" ? (
-            <input
-              type="text"
-              placeholder="Consigner name"
-              value={consignerInput}
-              onChange={(e) => { setConsignerInput(e.target.value); setFormError(""); }}
-              className={inputCls}
-            />
-          ) : (
-            <Select value={deliveryId} onChange={(e) => setDeliveryId(e.target.value)}>
-              <option value="">Select a delivery</option>
-              {activeDeliveries.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.consignerName}{d.consignerJNumber ? ` · ${d.consignerJNumber}` : ""}
-                </option>
-              ))}
-            </Select>
-          )}
-          <Select value={zoneId} onChange={(e) => setZoneId(e.target.value)}>
-            <option value="">No zone assigned</option>
-            {zones.map((z) => {
-              const { count, status } = getZoneOccupancy(z.id, racks, zones);
-              const cap  = z.capacity ? ` (${count}/${z.capacity}${status === "full" ? " FULL" : ""})` : ` (${count})`;
-              const desc = z.label ? ` — ${z.label}` : "";
-              return <option key={z.id} value={z.id}>{z.name}{desc}{cap}</option>;
-            })}
-          </Select>
 
           {/* Status at creation */}
           <div className="space-y-1.5">
@@ -374,7 +344,29 @@ function RacksContent() {
             </div>
           </div>
 
-          {/* Priority — only shown when starting at Sorted */}
+          {/* Delivery — only when unpacking_sorting */}
+          {initialStatus !== "sorted" && (
+            <Select value={deliveryId} onChange={(e) => setDeliveryId(e.target.value)}>
+              <option value="">Select a delivery</option>
+              {activeDeliveries.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.consignerName}{d.consignerJNumber ? ` · ${d.consignerJNumber}` : ""}
+                </option>
+              ))}
+            </Select>
+          )}
+
+          <Select value={zoneId} onChange={(e) => setZoneId(e.target.value)}>
+            <option value="">No zone assigned</option>
+            {zones.map((z) => {
+              const { count, status } = getZoneOccupancy(z.id, racks, zones);
+              const cap  = z.capacity ? ` (${count}/${z.capacity}${status === "full" ? " FULL" : ""})` : ` (${count})`;
+              const desc = z.label ? ` — ${z.label}` : "";
+              return <option key={z.id} value={z.id}>{z.name}{desc}{cap}</option>;
+            })}
+          </Select>
+
+          {/* Priority — only when sorted */}
           {initialStatus === "sorted" && (
             <PriorityPicker value={sortedPriority} onChange={setSortedPriority} />
           )}
