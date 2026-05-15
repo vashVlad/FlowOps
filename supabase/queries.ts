@@ -56,6 +56,9 @@ export interface ZoneRow {
   label: string | null;
   capacity: number | null;
   delivery_id: string | null;
+  reserved: boolean;
+  auction_color: string | null;
+  auction_date: string | null;
   created_at: string;
 }
 
@@ -126,12 +129,15 @@ export function toDelivery(row: DeliveryRow): Delivery {
 
 export function toZone(row: ZoneRow): Zone {
   return {
-    id:         row.id,
-    name:       row.name,
-    label:      row.label       ?? undefined,
-    capacity:   row.capacity    ?? undefined,
-    deliveryId: row.delivery_id ?? undefined,
-    createdAt:  row.created_at,
+    id:           row.id,
+    name:         row.name,
+    label:        row.label         ?? undefined,
+    capacity:     row.capacity      ?? undefined,
+    deliveryId:   row.delivery_id   ?? undefined,
+    reserved:     row.reserved      ?? false,
+    auctionColor: row.auction_color ?? undefined,
+    auctionDate:  row.auction_date  ?? undefined,
+    createdAt:    row.created_at,
   };
 }
 
@@ -515,12 +521,22 @@ export async function setDeliveryStatus(
 
 export async function updateZone(
   id: string,
-  patch: { label?: string; capacity?: number; deliveryId?: string | null }
+  patch: {
+    label?: string;
+    capacity?: number;
+    deliveryId?: string | null;
+    reserved?: boolean;
+    auctionColor?: string | null;
+    auctionDate?: string | null;
+  }
 ): Promise<Zone> {
   const update: Record<string, unknown> = {};
-  if ("label"      in patch) update.label       = patch.label      ?? null;
-  if ("capacity"   in patch) update.capacity    = patch.capacity   ?? null;
-  if ("deliveryId" in patch) update.delivery_id = patch.deliveryId ?? null;
+  if ("label"        in patch) update.label         = patch.label         ?? null;
+  if ("capacity"     in patch) update.capacity      = patch.capacity      ?? null;
+  if ("deliveryId"   in patch) update.delivery_id   = patch.deliveryId    ?? null;
+  if ("reserved"     in patch) update.reserved      = patch.reserved;
+  if ("auctionColor" in patch) update.auction_color = patch.auctionColor  ?? null;
+  if ("auctionDate"  in patch) update.auction_date  = patch.auctionDate   ?? null;
   const { data, error } = await supabase
     .from("zones")
     .update(update)

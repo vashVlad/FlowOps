@@ -9,6 +9,7 @@ import {
   setDeliveryStatus,
   deleteDelivery as dbDelete,
 } from "@/supabase/queries";
+import { useZonesStore } from "@/store/zones";
 
 interface DeliveriesStore {
   deliveries: Delivery[];
@@ -78,6 +79,17 @@ export const useDeliveriesStore = create<DeliveriesStore>()((set) => ({
           };
         }),
       }));
+
+      // When delivery completes, release all zones assigned to it
+      if (status === "complete") {
+        const { zones, updateZone } = useZonesStore.getState();
+        const assigned = zones.filter((z) => z.deliveryId === id);
+        for (const zone of assigned) {
+          // Best-effort — clear deliveryId and label so zone shows as empty
+          await updateZone(zone.id, { deliveryId: null, label: undefined });
+        }
+      }
+
       return ok(undefined);
     } catch (e) {
       const message = logMutationError("setStatus:delivery", e);

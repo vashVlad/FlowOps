@@ -16,7 +16,6 @@ import {
   PICKUP_OVERLOADED,
 } from "@/lib/timeTracking";
 import type { StagePressure, StageVelocity } from "@/lib/timeTracking";
-import { formatDuration } from "@/lib/utils";
 import { formatBusinessDuration } from "@/lib/timeTracking";
 import { calculateBusinessDuration } from "@/lib/businessTime";
 import {
@@ -24,7 +23,6 @@ import {
   STAGE_BAR,
   STAGE_SHORT_LABEL,
   KPI_ACCENT,
-  OCCUPANCY_STYLE,
 } from "@/lib/tokens";
 import { FIXED_ZONE_LABELS } from "@/lib/zones";
 import PageHeader from "@/components/ui/PageHeader";
@@ -33,10 +31,6 @@ import { buildIntakeForecast, type ForecastItem } from "@/lib/consigners";
 import { useConnectionStore } from "@/store/connection";
 import type { Rack, Zone, Delivery } from "@/types";
 
-const STAGE_HREF: Partial<Record<string, string>> = { lotting: "/lotting" };
-function stageHref(status: string): string {
-  return STAGE_HREF[status] ?? "/racks";
-}
 
 function businessDaysUntil(dateStr: string): number {
   const now = new Date();
@@ -395,8 +389,8 @@ function ZoneMap({ zones, racks, deliveries }: { zones: Zone[]; racks: Rack[]; d
     const z = byName.get(name);
     if (z) return <ZoneCell key={z.id} zone={z} count={occupancy.get(z.id) ?? 0} assignedDelivery={deliveries.find((d) => d.id === z.deliveryId)} />;
     return (
-      <div key={name} className="rounded-lg border border-dashed border-stone-200 p-2 opacity-40">
-        <span className="text-xs font-bold text-stone-400 leading-none">{name}</span>
+      <div key={name} className="rounded-lg border border-dashed border-stone-200 p-2 opacity-30">
+        <span className="text-xs font-bold text-stone-300 leading-none">{name}</span>
       </div>
     );
   }
@@ -407,14 +401,7 @@ function ZoneMap({ zones, racks, deliveries }: { zones: Zone[]; racks: Rack[]; d
 
   return (
     <Card className="space-y-3">
-      <div className="flex items-center justify-between">
-        <SectionLabel>Warehouse Floor</SectionLabel>
-        <div className="flex items-center gap-3 text-[10px] text-stone-400">
-          <span className="flex items-center gap-1"><span className={`h-1.5 w-1.5 rounded-full ${OCCUPANCY_STYLE.ok.dot}`} />ok</span>
-          <span className="flex items-center gap-1"><span className={`h-1.5 w-1.5 rounded-full ${OCCUPANCY_STYLE.near.dot}`} />near</span>
-          <span className="flex items-center gap-1"><span className={`h-1.5 w-1.5 rounded-full ${OCCUPANCY_STYLE.full.dot}`} />full</span>
-        </div>
-      </div>
+      <SectionLabel>Warehouse Floor</SectionLabel>
 
       {hasGallery && (
         <div>
@@ -450,32 +437,123 @@ function ZoneMap({ zones, racks, deliveries }: { zones: Zone[]; racks: Rack[]; d
 }
 
 function ZoneCell({ zone, count, assignedDelivery }: { zone: Zone; count: number; assignedDelivery?: Delivery }) {
-  const cap   = zone.capacity;
-  const pct   = cap ? Math.min(count / cap, 1) : 0;
-  const level = !cap ? "none" : pct >= 0.9 ? "full" : pct >= 0.7 ? "near" : "ok";
-  const s     = OCCUPANCY_STYLE[level];
-  const fixedLabel = FIXED_ZONE_LABELS[zone.name];
-  const identity   = fixedLabel
-    ? fixedLabel
-    : assignedDelivery
-    ? (assignedDelivery.consignerJNumber ?? assignedDelivery.consignerName)
-    : "Empty";
+  const name = zone.name;
+  const cell = "rounded-lg border p-2 min-h-[48px] flex flex-col justify-between hover:shadow-sm hover:-translate-y-px transition-all duration-150";
 
-  return (
-    <Link
-      href={`/zones/${zone.id}`}
-      className={`rounded-lg border p-2 hover:shadow-sm hover:-translate-y-px transition-all duration-150 ${s.border} ${s.bg}`}
-    >
-      <div className="flex items-start justify-between gap-1">
-        <span className={`text-xs font-bold leading-none ${s.name}`}>{zone.name}</span>
-        <span className="text-xs font-semibold text-stone-700 leading-none">{count}</span>
-      </div>
-      <p className="text-[9px] text-stone-400 mt-1 leading-tight line-clamp-1 font-mono">{identity}</p>
-      {cap && (
-        <div className="mt-1.5 h-1 w-full rounded-full bg-white/70 overflow-hidden">
-          <div className={`h-full rounded-full transition-all ${s.bar}`} style={{ width: `${pct * 100}%` }} />
+  const colorDot = zone.auctionColor ? (
+    <span className="h-2.5 w-2.5 rounded-full shrink-0 ring-1 ring-white/60"
+      style={{ backgroundColor: zone.auctionColor }} />
+  ) : null;
+
+  // ── Fixed utility zones (H, B, C) ─────────────────────────────────────────
+  if (name === "H" || name === "B" || name === "C") {
+    return (
+      <Link href={`/zones/${zone.id}`} className={`${cell} border-stone-200 bg-stone-100 hover:translate-y-0`}>
+        <span className="text-xs font-bold leading-none text-stone-500">{name}</span>
+        <p className="text-[9px] text-stone-400 leading-tight line-clamp-1">{FIXED_ZONE_LABELS[name]}</p>
+      </Link>
+    );
+  }
+
+  // ── PU (Pick-Up) ───────────────────────────────────────────────────────────
+  if (name === "PU") {
+    return (
+      <Link href={`/zones/${zone.id}`} className={`${cell} border-violet-200 bg-violet-50`}>
+        <div className="flex items-start justify-between gap-1">
+          <span className="text-xs font-bold leading-none text-violet-700">{name}</span>
+          {colorDot}
         </div>
-      )}
+        <p className="text-[9px] text-violet-400 leading-tight">Pick-Up</p>
+      </Link>
+    );
+  }
+
+  // ── Arrived ────────────────────────────────────────────────────────────────
+  if (assignedDelivery?.status === "arrived") {
+    return (
+      <Link href={`/zones/${zone.id}`} className={`${cell} border-red-200 bg-red-50`}>
+        <div className="flex items-start justify-between gap-1">
+          <span className="text-xs font-bold leading-none text-red-700">{name}</span>
+          {colorDot}
+        </div>
+        <p className="text-[9px] text-red-500 leading-tight line-clamp-1 font-mono">
+          {assignedDelivery.consignerJNumber ?? assignedDelivery.consignerName}
+        </p>
+      </Link>
+    );
+  }
+
+  // ── Processing ─────────────────────────────────────────────────────────────
+  if (assignedDelivery?.status === "processing") {
+    return (
+      <Link href={`/zones/${zone.id}`} className={`${cell} border-emerald-200 bg-emerald-50`}>
+        <div className="flex items-start justify-between gap-1">
+          <span className="text-xs font-bold leading-none text-emerald-700">{name}</span>
+          {colorDot}
+        </div>
+        <p className="text-[9px] text-emerald-600 leading-tight line-clamp-1 font-mono">
+          {assignedDelivery.consignerJNumber ?? assignedDelivery.consignerName}
+        </p>
+      </Link>
+    );
+  }
+
+  // ── Scheduled ──────────────────────────────────────────────────────────────
+  if (assignedDelivery?.status === "scheduled") {
+    return (
+      <Link href={`/zones/${zone.id}`} className={`${cell} border-blue-200 bg-blue-50`}>
+        <div className="flex items-start justify-between gap-1">
+          <span className="text-xs font-bold leading-none text-blue-700">{name}</span>
+          {colorDot}
+        </div>
+        <div>
+          <p className="text-[9px] text-blue-600 leading-tight line-clamp-1 font-mono">
+            {assignedDelivery.consignerJNumber ?? assignedDelivery.consignerName}
+          </p>
+          <p className="text-[9px] text-blue-400 leading-tight">
+            {new Date(assignedDelivery.scheduledDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+          </p>
+        </div>
+      </Link>
+    );
+  }
+
+  // ── Reserved ───────────────────────────────────────────────────────────────
+  if (zone.reserved) {
+    return (
+      <Link href={`/zones/${zone.id}`} className={`${cell} border-amber-200 bg-amber-50`}>
+        <div className="flex items-start justify-between gap-1">
+          <span className="text-xs font-bold leading-none text-amber-700">{name}</span>
+          {colorDot}
+        </div>
+        <p className="text-[9px] text-amber-500 leading-tight">Reserved</p>
+      </Link>
+    );
+  }
+
+  // ── Auction (color set, no delivery) ─────────────────────────────────────
+  if (zone.auctionColor) {
+    const auctionDate = zone.auctionDate ?? assignedDelivery?.auctionDate;
+    return (
+      <Link href={`/zones/${zone.id}`} className={`${cell} border-stone-200 bg-stone-50`}>
+        <div className="flex items-start justify-between gap-1">
+          <span className="text-xs font-bold leading-none text-stone-700">{name}</span>
+          {colorDot}
+        </div>
+        {auctionDate && (
+          <p className="text-[9px] text-stone-400 leading-tight font-mono">
+            {new Date(auctionDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+          </p>
+        )}
+      </Link>
+    );
+  }
+
+  // ── Empty ──────────────────────────────────────────────────────────────────
+  return (
+    <Link href={`/zones/${zone.id}`}
+      className={`${cell} border-dashed border-stone-200 bg-stone-50 opacity-50 hover:opacity-75 hover:translate-y-0`}>
+      <span className="text-xs font-bold text-stone-400 leading-none">{name}</span>
     </Link>
   );
 }

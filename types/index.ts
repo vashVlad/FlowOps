@@ -92,10 +92,13 @@ export interface UpdateDeliveryInput {
 
 export interface Zone {
   id: string;
-  name: string;         // short floor code: "A1", "B2", "OVF"
-  label?: string;       // human description or assigned consigner J-number
-  capacity?: number;    // max racks before warning; undefined = unlimited
-  deliveryId?: string;  // delivery currently assigned to this zone
+  name: string;          // short floor code: "A1", "B2", "OVF"
+  label?: string;        // human description or assigned consigner J-number
+  capacity?: number;     // max racks before warning; undefined = unlimited
+  deliveryId?: string;   // delivery currently assigned to this zone
+  reserved:      boolean; // true = zone is held but no delivery assigned yet
+  auctionColor?: string;  // hex color — when set, shows a color dot on the cell
+  auctionDate?:  string;  // YYYY-MM-DD — shown on auction cells without a linked delivery
   createdAt: string;
 }
 

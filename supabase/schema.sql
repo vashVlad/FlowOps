@@ -42,11 +42,14 @@ $$;
 -- ════════════════════════════════════════════════════════════════════════════
 
 CREATE TABLE IF NOT EXISTS zones (
-  id         uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  name       text        NOT NULL UNIQUE,
-  label      text,                                -- "Receiving dock", "Lotting tables"
-  capacity   integer     CHECK (capacity IS NULL OR capacity > 0),
-  created_at timestamptz NOT NULL DEFAULT NOW()
+  id            uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  name          text        NOT NULL UNIQUE,
+  label         text,                                -- "Receiving dock", "Lotting tables"
+  capacity      integer     CHECK (capacity IS NULL OR capacity > 0),
+  reserved      boolean     NOT NULL DEFAULT false, -- true = zone held but not yet assigned to a delivery
+  auction_color text,                              -- hex color; when set, shows a color dot on the cell
+  auction_date  text,                              -- YYYY-MM-DD; shown on auction cells without a linked delivery
+  created_at    timestamptz NOT NULL DEFAULT NOW()
 );
 
 COMMENT ON TABLE  zones          IS 'Physical warehouse floor areas.';
