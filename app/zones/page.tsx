@@ -26,13 +26,17 @@ function RackChips({ zoneRacks }: { zoneRacks: Rack[] }) {
   return (
     <div className="mt-2 flex flex-wrap gap-1">
       {visible.map((r) => (
-        <span key={r.id} className="inline-flex items-center gap-0.5">
-          <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${STAGE_BAR[r.status]}`} />
-          <span className="text-[9px] font-mono text-stone-500 leading-none">{r.rackCode}</span>
+        <span
+          key={r.id}
+          className={`inline-block rounded px-1 py-0.5 text-[9px] font-mono font-medium leading-none text-white ${STAGE_BAR[r.status]}`}
+        >
+          {r.rackCode}
         </span>
       ))}
       {overflow > 0 && (
-        <span className="text-[9px] text-stone-400">+{overflow}</span>
+        <span className="inline-block rounded px-1 py-0.5 text-[9px] font-mono leading-none bg-stone-200 text-stone-500">
+          +{overflow}
+        </span>
       )}
     </div>
   );
