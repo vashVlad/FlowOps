@@ -25,6 +25,7 @@ import {
 } from "@/lib/timeTracking";
 import { PIPELINE_STAGES, NEXT_STAGE_LABEL, STAGE_LABEL } from "@/lib/tokens";
 import { getPrevStatus } from "@/lib/racks";
+import AuctionColorPicker from "@/components/ui/AuctionColorPicker";
 import { useToastStore } from "@/store/toast";
 import { useIsSupervisor } from "@/store/auth";
 import type { Priority } from "@/types";
@@ -42,11 +43,12 @@ export default function RackDetailPage() {
   const { deliveries } = useDeliveriesStore();
   const { zones }      = useZonesStore();
 
-  const [editOpen,       setEditOpen]       = useState(false);
-  const [editRackCode,   setEditRackCode]   = useState("");
-  const [editPriority,   setEditPriority]   = useState<Priority>("normal");
-  const [editDeliveryId, setEditDeliveryId] = useState("");
-  const [editError,      setEditError]      = useState("");
+  const [editOpen,         setEditOpen]         = useState(false);
+  const [editRackCode,     setEditRackCode]     = useState("");
+  const [editPriority,     setEditPriority]     = useState<Priority>("normal");
+  const [editDeliveryId,   setEditDeliveryId]   = useState("");
+  const [editAuctionColor, setEditAuctionColor] = useState("");
+  const [editError,        setEditError]        = useState("");
   const [deleteConfirm,  setDeleteConfirm]  = useState(false);
 
   // Hold form state
@@ -118,6 +120,7 @@ export default function RackDetailPage() {
     setEditRackCode(rack!.rackCode);
     setEditPriority(rack!.priority);
     setEditDeliveryId(rack!.deliveryId);
+    setEditAuctionColor(rack!.auctionColor ?? "");
     setEditError("");
     setEditOpen(true);
   }
@@ -127,9 +130,10 @@ export default function RackDetailPage() {
     if (!editRackCode.trim()) return setEditError("Rack ID required.");
     setEditError("");
     const result = await updateRack(rack!.id, {
-      rackCode:   editRackCode.trim(),
-      priority:   editPriority,
-      deliveryId: editDeliveryId,
+      rackCode:     editRackCode.trim(),
+      priority:     editPriority,
+      deliveryId:   editDeliveryId,
+      auctionColor: editAuctionColor || null,
     });
     if (!result.ok) { setEditError(result.error); return; }
     setEditOpen(false);
@@ -194,6 +198,10 @@ export default function RackDetailPage() {
                   ))}
                 </select>
                 <PriorityPicker value={editPriority} onChange={setEditPriority} />
+                <div className="space-y-1.5">
+                  <p className="text-xs font-medium text-stone-600">Auction color</p>
+                  <AuctionColorPicker value={editAuctionColor} onChange={setEditAuctionColor} />
+                </div>
                 {editError && <p className="text-xs text-red-500">{editError}</p>}
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex gap-2">
@@ -232,6 +240,10 @@ export default function RackDetailPage() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
+                  {rack.auctionColor && (
+                    <span className="h-3.5 w-3.5 rounded-full shrink-0 ring-1 ring-stone-200"
+                      style={{ backgroundColor: rack.auctionColor }} />
+                  )}
                   <h1 className="text-xl font-bold text-stone-900 tracking-tight">{rack.rackCode}</h1>
                   <StatusBadge status={rack.status} />
                   {isHeld ? (

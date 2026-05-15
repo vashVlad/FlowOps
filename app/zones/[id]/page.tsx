@@ -13,6 +13,7 @@ import { StageStrip } from "@/app/racks/page";
 import { timeAgo } from "@/lib/utils";
 import { formatBusinessDuration } from "@/lib/timeTracking";
 import { getZoneOccupancy, FIXED_ZONE_LABELS } from "@/lib/zones";
+import AuctionColorPicker from "@/components/ui/AuctionColorPicker";
 import { isRackNeedsAttention, getTimeInCurrentStatus, WAITING_STAGES } from "@/lib/timeTracking";
 import { OCCUPANCY_STYLE } from "@/lib/tokens";
 import { OperationalAlerts, type AlertItem } from "@/components/OperationalAlerts";
@@ -281,23 +282,8 @@ export default function ZoneDetailPage() {
                     </span>
                   </label>
                   <div className="space-y-1.5">
-                    <p className="text-xs font-medium text-stone-600">
-                      Auction color <span className="text-stone-400 font-normal">— shows a color dot on the cell</span>
-                    </p>
-                    <div className="flex items-center gap-3">
-                      <input type="color" value={editAuctionColor || "#ef4444"}
-                        onChange={(e) => setEditAuctionColor(e.target.value)}
-                        className="h-8 w-14 cursor-pointer rounded border border-stone-200" />
-                      {editAuctionColor ? (
-                        <>
-                          <span className="text-[11px] text-stone-400 font-mono">{editAuctionColor}</span>
-                          <button type="button" onClick={() => setEditAuctionColor("")}
-                            className="text-[11px] text-stone-400 hover:text-red-500 transition-colors">Clear</button>
-                        </>
-                      ) : (
-                        <span className="text-[11px] text-stone-400">None set</span>
-                      )}
-                    </div>
+                    <p className="text-xs font-medium text-stone-600">Auction color</p>
+                    <AuctionColorPicker value={editAuctionColor} onChange={setEditAuctionColor} />
                   </div>
                 </>
               )}
@@ -424,12 +410,9 @@ export default function ZoneDetailPage() {
                   {purposeMode === "auction" && (
                     <div className="rounded-xl border border-stone-200 bg-stone-50 p-4 space-y-3">
                       <p className="text-xs font-medium text-stone-700">Set auction zone</p>
-                      <div className="flex items-center gap-3">
-                        <label className="text-xs text-stone-600 shrink-0">Color</label>
-                        <input type="color" value={purposeAuctionColor}
-                          onChange={(e) => setPurposeAuctionColor(e.target.value)}
-                          className="h-8 w-14 cursor-pointer rounded border border-stone-200" />
-                        <span className="text-[11px] text-stone-400 font-mono">{purposeAuctionColor}</span>
+                      <div className="space-y-1.5">
+                        <p className="text-xs text-stone-600">Color</p>
+                        <AuctionColorPicker value={purposeAuctionColor} onChange={setPurposeAuctionColor} />
                       </div>
                       <div className="space-y-1">
                         <label className="text-xs text-stone-600">Auction date <span className="text-stone-400">(optional)</span></label>

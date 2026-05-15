@@ -25,19 +25,19 @@ import {
   NEXT_STAGE_LABEL,
   STAGE_BADGE,
   STAGE_LABEL,
+  AUCTION_COLORS,
 } from "@/lib/tokens";
 import type { Priority, RackStatus, Rack, Delivery, Zone } from "@/types";
 
 const inputCls =
   "w-full rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500";
 
-type RackFilter = "all" | "needs_attention" | "held" | "high" | RackStatus;
+type RackFilter = "all" | "needs_attention" | "held" | RackStatus;
 
 const FILTER_OPTIONS: { key: RackFilter; label: string }[] = [
   { key: "all",               label: "All"                  },
   { key: "needs_attention",   label: "Needs Attention"      },
   { key: "held",              label: "Held"                 },
-  { key: "high",              label: "High"                 },
   { key: "unpacking_sorting", label: "Unpacking & Sorting"  },
   { key: "sorted",            label: "Sorted"               },
   { key: "lotting",           label: "Lotting"              },
@@ -114,6 +114,10 @@ function RackCard({
       {/* TOP — ID · urgency · age */}
       <div className="px-4 pt-2.5 pb-1 flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+          {rack.auctionColor && (
+            <span className="h-3 w-3 rounded-full shrink-0 ring-1 ring-stone-200"
+              style={{ backgroundColor: rack.auctionColor }} />
+          )}
           <span className="font-mono text-base font-bold text-stone-900 tracking-tight">
             {rack.rackCode}
           </span>
@@ -235,6 +239,7 @@ function RacksContent() {
 
   const [query, setQuery]                       = useState("");
   const [filter, setFilter]                     = useState<RackFilter>("all");
+  const [colorFilter, setColorFilter]           = useState("");
   const [showForm, setShowForm]                 = useState(!!(preselectedDelivery || preselectedZone));
   const [rackCodeInput, setRackCodeInput]       = useState("");
   const [initialStatus, setInitialStatus]       = useState<RackStatus>("unpacking_sorting");
@@ -299,9 +304,9 @@ function RacksContent() {
       (r.holdReason ?? "").toLowerCase().includes(q)
     )) return false;
 
+    if (colorFilter && r.auctionColor !== colorFilter) return false;
     if (filter === "needs_attention") return attention && !isHeld;
     if (filter === "held")            return isHeld;
-    if (filter === "high")            return r.priority === "high";
     if (filter !== "all")             return r.status === filter;
     return true;
   });
@@ -442,6 +447,22 @@ function RacksContent() {
             {label}
           </button>
         ))}
+        {/* Color filters */}
+        <div className="flex items-center gap-1.5 ml-1 pl-2 border-l border-stone-200">
+          {AUCTION_COLORS.map(({ hex, label }) => (
+            <button
+              key={hex}
+              title={label}
+              onClick={() => setColorFilter(colorFilter === hex ? "" : hex)}
+              className={`h-5 w-5 rounded-full transition-all ${
+                colorFilter === hex
+                  ? "ring-2 ring-offset-1 ring-stone-400 scale-110"
+                  : "opacity-50 hover:opacity-100"
+              }`}
+              style={{ backgroundColor: hex }}
+            />
+          ))}
+        </div>
         </div>
       </div>
 

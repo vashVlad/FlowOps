@@ -124,6 +124,16 @@ export const DELIVERY_NEXT_BTN: Record<DeliveryStatus, string> = {
   complete:   "",
 };
 
+// ── Auction colors ────────────────────────────────────────────────────────────
+
+export const AUCTION_COLORS: { hex: string; label: string }[] = [
+  { hex: "#ef4444", label: "Red"    },
+  { hex: "#eab308", label: "Yellow" },
+  { hex: "#22c55e", label: "Green"  },
+  { hex: "#3b82f6", label: "Blue"   },
+  { hex: "#1c1917", label: "Black"  },
+];
+
 // ── Notification types ────────────────────────────────────────────────────────
 
 export const NOTIFICATION_DOT: Record<string, string> = {
