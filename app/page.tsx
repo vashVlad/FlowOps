@@ -144,6 +144,12 @@ export default function Dashboard() {
           : "Live warehouse overview · live"}
         action={
           <div className="flex items-center gap-2">
+            {sortingZone && inSortingRoom > 0 && (
+              <Link href={`/zones/${sortingZone.id}`} className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 border border-sky-200 px-3 py-1 text-xs font-medium text-sky-700 hover:opacity-80 transition-opacity">
+                <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
+                {inSortingRoom} in sorting
+              </Link>
+            )}
             {heldCount > 0 && (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 border border-blue-200 px-3 py-1 text-xs font-medium text-blue-700">
                 <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
@@ -191,7 +197,6 @@ export default function Dashboard() {
               <KpiCard label="In pipeline"       value={inPipeline}       href="/racks"      accent="stone"  />
               <KpiCard label="In lotting"        value={inLotting}        href="/lotting"    accent="amber"  />
               <KpiCard label="Ready for pickup"  value={readyForPickup}   href="/racks"      accent="violet" />
-              {sortingZone && <KpiCard label="Sorting room" value={inSortingRoom} href={`/zones/${sortingZone.id}`} accent="sky" />}
             </div>
 
             <AnalyticsStrip

@@ -291,6 +291,7 @@ export default function ZoneDetailPage() {
               <div className="flex gap-2">
                 <button type="submit" className="rounded-lg bg-orange-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-700 transition-colors">Save</button>
                 <button type="button" onClick={() => setEditing(false)} className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm font-medium text-stone-600 hover:bg-stone-50 transition-colors">Cancel</button>
+                <button type="button" onClick={() => { setEditLabel(""); setEditCapacity(""); setEditDeliveryId(""); setEditReserved(false); setEditAuctionColor(""); setEditError(""); }} className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm font-medium text-stone-400 hover:bg-stone-50 transition-colors">Clear</button>
               </div>
             </form>
           ) : (

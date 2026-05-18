@@ -15,6 +15,7 @@ import ErrorBanner from "@/components/ErrorBanner";
 import PageHeader from "@/components/ui/PageHeader";
 import PriorityPicker from "@/components/ui/PriorityPicker";
 import { useToastStore } from "@/store/toast";
+import { usePrintQueueStore } from "@/store/printQueue";
 import { timeAgo } from "@/lib/utils";
 import { formatBusinessDuration } from "@/lib/timeTracking";
 import { getZoneOccupancy } from "@/lib/zones";
@@ -250,6 +251,8 @@ function RacksContent() {
   const [deliveryId, setDeliveryId]             = useState(preselectedDelivery);
   const [consignerInput, setConsignerInput]     = useState("");
   const [formError, setFormError]               = useState("");
+  const [addToQueue, setAddToQueue]             = useState(true);
+  const addToQueueFn = usePrintQueueStore((s) => s.add);
 
   const activeDeliveries = deliveries.filter((d) => d.status !== "complete");
 
@@ -288,6 +291,7 @@ function RacksContent() {
       auctionColor:  auctionColor || undefined,
     });
     if (!result.ok) { setFormError(result.error); return; }
+    if (addToQueue) addToQueueFn(result.data.id);
     setRackCodeInput(""); setInitialStatus("unpacking_sorting"); setSortedPriority("normal");
     setAuctionColor(""); setIsHeldAtCreation(false); setZoneId(preselectedZone);
     setDeliveryId(preselectedDelivery); setConsignerInput("");
@@ -436,6 +440,14 @@ function RacksContent() {
               onChange={(e) => setIsHeldAtCreation(e.target.checked)}
               className="h-4 w-4 rounded border-stone-300 accent-orange-600 cursor-pointer" />
             <span className="text-sm text-stone-600">Place on hold</span>
+          </label>
+
+          {/* Print queue checkbox */}
+          <label className="flex items-center gap-2.5 cursor-pointer select-none">
+            <input type="checkbox" checked={addToQueue}
+              onChange={(e) => setAddToQueue(e.target.checked)}
+              className="h-4 w-4 rounded border-stone-300 accent-orange-600 cursor-pointer" />
+            <span className="text-sm text-stone-600">Add to print queue</span>
           </label>
 
           {formError && <p className="text-xs text-red-500">{formError}</p>}

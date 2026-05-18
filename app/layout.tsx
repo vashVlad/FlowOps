@@ -8,6 +8,7 @@ import StoreHydrator from "@/components/StoreHydrator";
 import StuckMonitor from "@/components/StuckMonitor";
 import KeyboardShortcuts from "@/components/KeyboardShortcuts";
 import Toaster from "@/components/Toaster";
+import PrintQueueBadge from "@/components/PrintQueueBadge";
 
 const geist = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 
@@ -44,6 +45,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </main>
           <BottomNav />
           <Toaster />
+          <PrintQueueBadge />
         </AuthGuard>
       </body>
     </html>

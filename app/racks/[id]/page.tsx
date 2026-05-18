@@ -28,6 +28,7 @@ import { getPrevStatus } from "@/lib/racks";
 import AuctionColorPicker from "@/components/ui/AuctionColorPicker";
 import { useToastStore } from "@/store/toast";
 import { useIsSupervisor } from "@/store/auth";
+import { usePrintQueueStore } from "@/store/printQueue";
 import type { Priority } from "@/types";
 
 const inputCls = "w-full rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500";
@@ -38,6 +39,7 @@ export default function RackDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { racks, history, advanceStatus, revertStatus, advanceToSorted, moveToZone, updateRack, deleteRack, setHold, clearHold } = useRacksStore();
+  const { add: queueAdd, remove: queueRemove, has: queueHas } = usePrintQueueStore();
   const { notes, addNote, deleteNote } = useNotesStore();
   const addToast = useToastStore((s) => s.add);
   const { deliveries } = useDeliveriesStore();
@@ -93,6 +95,7 @@ export default function RackDetailPage() {
     );
   }
 
+  const inQueue          = queueHas(rack.id);
   const rackHistory      = history.filter((e) => e.rackId === rack.id).slice().reverse();
   const delivery         = deliveries.find((d) => d.id === rack.deliveryId);
   const needsAttention   = isRackNeedsAttention(rack, history);
@@ -213,6 +216,10 @@ export default function RackDetailPage() {
                       className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm font-medium text-stone-600 hover:bg-stone-50 transition-colors">
                       Cancel
                     </button>
+                    <button type="button" onClick={() => { setEditRackCode(""); setEditPriority("normal"); setEditAuctionColor(""); setEditError(""); }}
+                      className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm font-medium text-stone-400 hover:bg-stone-50 transition-colors">
+                      Clear
+                    </button>
                   </div>
                   {deleteConfirm ? (
                     <div className="flex items-center gap-2">
@@ -268,6 +275,16 @@ export default function RackDetailPage() {
                 )}
               </div>
               <div className="flex items-center gap-2 flex-wrap justify-end">
+                <button
+                  onClick={() => inQueue ? queueRemove(rack.id) : queueAdd(rack.id)}
+                  className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+                    inQueue
+                      ? "border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-100"
+                      : "border-stone-200 text-stone-600 hover:bg-stone-50"
+                  }`}
+                >
+                  {inQueue ? "In queue" : "Queue label"}
+                </button>
                 <Link
                   href={`/racks/${rack.id}/label`}
                   className="rounded-lg border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-600 hover:bg-stone-50 transition-colors"

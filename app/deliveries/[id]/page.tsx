@@ -27,6 +27,7 @@ import {
   DELIVERY_STATUS_LABEL,
 } from "@/lib/tokens";
 import { useToastStore } from "@/store/toast";
+import { usePrintQueueStore } from "@/store/printQueue";
 import type { DeliveryStatus, Priority } from "@/types";
 
 const NEXT_STATUS: Record<DeliveryStatus, DeliveryStatus | null> = {
@@ -78,10 +79,12 @@ export default function DeliveryDetailPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Add rack ──────────────────────────────────────────────────────────────
-  const [addOpen, setAddOpen]         = useState(false);
-  const [addRackCode, setAddRackCode] = useState("");
+  const [addOpen, setAddOpen]             = useState(false);
+  const [addRackCode, setAddRackCode]     = useState("");
   const [addRackZoneId, setAddRackZoneId] = useState("");
   const [addRackError, setAddRackError]   = useState("");
+  const [addRackToQueue, setAddRackToQueue] = useState(true);
+  const addToQueueFn = usePrintQueueStore((s) => s.add);
 
   // ── Delete confirmation ───────────────────────────────────────────────────
   const [deleteConfirm, setDeleteConfirm] = useState(false);
@@ -183,6 +186,7 @@ export default function DeliveryDetailPage() {
       setAddRackError(result.error);
       return;
     }
+    if (addRackToQueue) addToQueueFn(result.data.id);
     setAddRackCode("");
     setAddRackZoneId("");
     setAddRackError("");
@@ -417,6 +421,13 @@ export default function DeliveryDetailPage() {
                     className="rounded-lg border border-stone-200 px-4 py-2 text-xs font-medium text-stone-600 hover:bg-stone-50 transition-colors"
                   >
                     Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setEditName(""); setEditJNumber(""); }}
+                    className="rounded-lg border border-stone-200 px-4 py-2 text-xs font-medium text-stone-400 hover:bg-stone-50 transition-colors"
+                  >
+                    Clear
                   </button>
                 </div>
               </div>
@@ -811,6 +822,12 @@ export default function DeliveryDetailPage() {
                 ))}
               </Select>
               {addRackError && <p className="text-xs text-red-500">{addRackError}</p>}
+              <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                <input type="checkbox" checked={addRackToQueue}
+                  onChange={(e) => setAddRackToQueue(e.target.checked)}
+                  className="h-4 w-4 rounded border-stone-300 accent-orange-600 cursor-pointer" />
+                <span className="text-sm text-stone-600">Add to print queue</span>
+              </label>
               <button
                 onClick={handleAddRack}
                 className="w-full rounded-lg bg-orange-600 py-2 text-sm font-medium text-white hover:bg-orange-700 transition-colors"
