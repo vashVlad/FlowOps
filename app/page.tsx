@@ -17,7 +17,6 @@ import {
 } from "@/lib/timeTracking";
 import type { StagePressure, StageVelocity } from "@/lib/timeTracking";
 import { formatBusinessDuration } from "@/lib/timeTracking";
-import { calculateBusinessDuration } from "@/lib/businessTime";
 import {
   PIPELINE_STAGES,
   STAGE_BAR,
@@ -67,8 +66,6 @@ export default function Dashboard() {
   const inPipeline       = activeRacks.length;
   const inLotting        = racks.filter((r) => r.status === "lotting").length;
   const readyForPickup   = racks.filter((r) => r.status === "pickup").length;
-  const sortingZone      = zones.find((z) => z.name === "C");
-  const inSortingRoom    = sortingZone ? racks.filter((r) => r.zoneId === sortingZone.id).length : 0;
 
   // Held racks
   const heldRacks = activeRacks.filter((r) => !!r.holdReason);
@@ -80,30 +77,15 @@ export default function Dashboard() {
   ).length;
 
   const H24 = 24 * 60 * 60 * 1000;
-  const H48 = 48 * 60 * 60 * 1000;
   const now  = Date.now();
 
   const throughput24h = history.filter(
     (e) => e.to === "completed" && now - new Date(e.timestamp).getTime() < H24
   ).length;
-  const throughputYesterday = history.filter(
-    (e) => e.to === "completed" &&
-      now - new Date(e.timestamp).getTime() >= H24 &&
-      now - new Date(e.timestamp).getTime() < H48
-  ).length;
-  const throughputDelta = throughput24h - throughputYesterday;
 
   const stageEfficiency = inPipeline > 0
     ? Math.round((1 - needsAttentionCount / inPipeline) * 100)
     : 100;
-
-  const completedRacks = racks.filter((r) => r.status === "completed");
-  const avgDwellMs = completedRacks.length > 0
-    ? completedRacks.reduce(
-        (s, r) => s + calculateBusinessDuration(r.createdAt, r.updatedAt),
-        0
-      ) / completedRacks.length
-    : null;
 
   // ── Typed operational alerts ──────────────────────────────────────────────
   const pickupCount = racks.filter((r) => r.status === "pickup").length;
@@ -144,12 +126,6 @@ export default function Dashboard() {
           : "Live warehouse overview · live"}
         action={
           <div className="flex items-center gap-2">
-            {sortingZone && inSortingRoom > 0 && (
-              <Link href={`/zones/${sortingZone.id}`} className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 border border-sky-200 px-3 py-1 text-xs font-medium text-sky-700 hover:opacity-80 transition-opacity">
-                <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
-                {inSortingRoom} in sorting
-              </Link>
-            )}
             {heldCount > 0 && (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 border border-blue-200 px-3 py-1 text-xs font-medium text-blue-700">
                 <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
@@ -199,15 +175,9 @@ export default function Dashboard() {
               <KpiCard label="Ready for pickup"  value={readyForPickup}   href="/racks"      accent="violet" />
             </div>
 
-            <AnalyticsStrip
-              throughput={throughput24h}
-              throughputDelta={throughputDelta}
-              efficiency={stageEfficiency}
-              avgDwellMs={avgDwellMs}
-            />
+            <EfficiencyCard efficiency={stageEfficiency} />
 
             <DailyBriefing
-              throughput={throughput24h}
               heldCount={heldCount}
               needsAttentionCount={needsAttentionCount}
               readyForPickup={readyForPickup}
@@ -259,65 +229,35 @@ function KpiCard({
   );
 }
 
-// ── Analytics Strip ───────────────────────────────────────────────────────────
+// ── Efficiency Card ───────────────────────────────────────────────────────────
 
-function AnalyticsStrip({
-  throughput, throughputDelta, efficiency, avgDwellMs,
-}: {
-  throughput: number;
-  throughputDelta: number;
-  efficiency: number;
-  avgDwellMs: number | null;
-}) {
-  const effColor =
-    efficiency < 80 ? "text-red-600" :
-    efficiency < 90 ? "text-amber-600" :
-    "text-emerald-600";
-
-  const deltaLabel =
-    throughputDelta > 0 ? `+${throughputDelta} vs yesterday` :
-    throughputDelta < 0 ? `${throughputDelta} vs yesterday` :
-    "same as yesterday";
-  const deltaColor =
-    throughputDelta > 0 ? "text-emerald-600" :
-    throughputDelta < 0 ? "text-red-500" :
-    "text-stone-400";
+function EfficiencyCard({ efficiency }: { efficiency: number }) {
+  const isHigh   = efficiency >= 90;
+  const isMid    = efficiency >= 80;
+  const label    = isHigh ? "On target" : isMid ? "Moderate pressure" : "High pressure";
+  const numColor = isHigh ? "text-emerald-600" : isMid ? "text-amber-600" : "text-red-600";
+  const barColor = isHigh ? "bg-emerald-500"   : isMid ? "bg-amber-400"   : "bg-red-500";
+  const chipCls  = isHigh
+    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+    : isMid
+    ? "bg-amber-50 text-amber-700 border-amber-200"
+    : "bg-red-50 text-red-700 border-red-200";
 
   return (
-    <div className="grid grid-cols-2 gap-3">
-      <MetricTile
-        label="completed 24h"
-        value={String(throughput)}
-        sub={deltaLabel}
-        subColor={deltaColor}
-      />
-      <MetricTile
-        label="stage efficiency"
-        value={`${efficiency}%`}
-        valueColor={effColor}
-        sub={efficiency >= 90 ? "on target" : efficiency >= 80 ? "moderate" : "high pressure"}
-        subColor={effColor}
-      />
-      <MetricTile
-        label="avg dwell time"
-        value={avgDwellMs != null ? formatBusinessDuration(avgDwellMs) : "—"}
-      />
-    </div>
-  );
-}
-
-function MetricTile({
-  label, value, valueColor = "text-stone-900", sub, subColor = "text-stone-400",
-}: {
-  label: string; value: string; valueColor?: string; sub?: string; subColor?: string;
-}) {
-  return (
-    <Card padding="px-3 py-3">
-      <p className={`text-xl font-bold text-center tabular-nums ${valueColor}`}>{value}</p>
-      <p className="text-[11px] text-stone-400 mt-1 text-center leading-tight">{label}</p>
-      {sub && (
-        <p className={`text-[10px] text-center mt-1 leading-tight ${subColor}`}>{sub}</p>
-      )}
+    <Card padding="px-4 py-3.5">
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs font-medium text-stone-500 uppercase tracking-wide">Stage efficiency</p>
+        <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${chipCls}`}>
+          {label}
+        </span>
+      </div>
+      <p className={`text-3xl font-bold tabular-nums tracking-tight ${numColor}`}>{efficiency}%</p>
+      <div className="mt-2.5 h-1.5 w-full rounded-full bg-stone-100 overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+          style={{ width: `${efficiency}%` }}
+        />
+      </div>
     </Card>
   );
 }
@@ -743,9 +683,8 @@ function AlertsPanel({
 // ── Daily Briefing ────────────────────────────────────────────────────────────
 
 function DailyBriefing({
-  throughput, heldCount, needsAttentionCount, readyForPickup, inLotting,
+  heldCount, needsAttentionCount, readyForPickup, inLotting,
 }: {
-  throughput: number;
   heldCount: number;
   needsAttentionCount: number;
   readyForPickup: number;
@@ -762,13 +701,6 @@ function DailyBriefing({
         <span className="text-[11px] text-stone-400">{today}</span>
       </div>
       <div className="space-y-1.5">
-        <div className="flex items-center gap-2">
-          <span className="text-emerald-500 text-[11px] font-mono leading-none">↑</span>
-          <span className="text-xs text-stone-700">
-            <span className="font-semibold">{throughput}</span>
-            {" "}rack{throughput !== 1 ? "s" : ""} completed today
-          </span>
-        </div>
         {needsAttentionCount > 0 && (
           <div className="flex items-center gap-2">
             <span className="text-amber-500 text-[11px] font-mono leading-none">⚠</span>
