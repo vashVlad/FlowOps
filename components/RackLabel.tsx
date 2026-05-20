@@ -32,7 +32,11 @@ export function RackLabel({
         <p style={{ fontSize: "10px", letterSpacing: "0.2em", color: "#888", textTransform: "uppercase", marginBottom: "6px" }}>
           Rack ID
         </p>
-        <p style={{ fontSize: "48px", fontWeight: 900, color: "#fff", letterSpacing: "-1px", lineHeight: 1 }}>
+        <p style={{
+          fontSize: rack.rackCode.length <= 10 ? "48px" : rack.rackCode.length <= 14 ? "34px" : rack.rackCode.length <= 18 ? "26px" : "20px",
+          fontWeight: 900, color: "#fff", letterSpacing: "-1px", lineHeight: 1,
+          wordBreak: "break-all", overflowWrap: "anywhere",
+        }}>
           {rack.rackCode}
         </p>
       </div>
