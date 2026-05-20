@@ -70,7 +70,7 @@ export default function ReportsPage() {
 
   const isSupervisor  = useIsSupervisor();
   const roleLoading   = useAuthStore((s) => s.roleLoading);
-  const role          = useAuthStore((s) => s.role);
+  const role          = useAuthStore((s) => s.activeRole);
   const router        = useRouter();
   const [cycleConfirm, setCycleConfirm] = useState(false);
   const [cycleLoading, setCycleLoading] = useState(false);
@@ -91,10 +91,10 @@ export default function ReportsPage() {
   }
 
   useEffect(() => {
-    if (!roleLoading && role === "worker") router.replace("/");
+    if (!roleLoading && role !== "admin") router.replace("/");
   }, [role, roleLoading]);
 
-  if (roleLoading || role === "worker") return null;
+  if (roleLoading || role !== "admin") return null;
 
   return (
     <div className="space-y-8">

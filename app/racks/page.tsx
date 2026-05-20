@@ -29,6 +29,8 @@ import {
   AUCTION_COLORS,
 } from "@/lib/tokens";
 import type { Priority, RackStatus, Rack, Delivery, Zone } from "@/types";
+import { useActiveRole } from "@/store/auth";
+import { ROLE_RACK_STATUSES, canAdvanceRacks } from "@/lib/roles";
 
 const inputCls =
   "w-full rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500";
@@ -90,7 +92,7 @@ export function StageStrip({ status }: { status: RackStatus }) {
 // ── Rack card ─────────────────────────────────────────────────────────────────
 
 function RackCard({
-  rack, delivery, zone, needsAttention, timeInStage, noteCount, isMixed, onAdvance, onClick,
+  rack, delivery, zone, needsAttention, timeInStage, noteCount, isMixed, onAdvance, onClick, canAdvance = true,
 }: {
   rack: Rack;
   delivery?: Delivery;
@@ -101,6 +103,7 @@ function RackCard({
   isMixed: boolean;
   onAdvance: () => void;
   onClick: () => void;
+  canAdvance?: boolean;
 }) {
   const isCompleted = rack.status === "completed";
   const nextLabel   = NEXT_STAGE_LABEL[rack.status];
@@ -203,21 +206,23 @@ function RackCard({
       </div>
 
       {/* BOTTOM — primary action */}
-      <div className="px-4 pb-2.5">
-        <button
-          onClick={(e) => { e.stopPropagation(); onAdvance(); }}
-          disabled={isCompleted}
-          className={`w-full rounded-lg py-1 text-xs font-medium transition-colors ${
-            isCompleted
-              ? "bg-stone-50 text-stone-300 cursor-default border border-stone-100"
-              : isCritical
-              ? "bg-red-500 text-white hover:bg-red-600"
-              : "bg-orange-500 text-white hover:bg-orange-600"
-          }`}
-        >
-          {isCompleted ? "Completed" : `Move to ${nextLabel} →`}
-        </button>
-      </div>
+      {canAdvance && (
+        <div className="px-4 pb-2.5">
+          <button
+            onClick={(e) => { e.stopPropagation(); onAdvance(); }}
+            disabled={isCompleted}
+            className={`w-full rounded-lg py-1 text-xs font-medium transition-colors ${
+              isCompleted
+                ? "bg-stone-50 text-stone-300 cursor-default border border-stone-100"
+                : isCritical
+                ? "bg-red-500 text-white hover:bg-red-600"
+                : "bg-orange-500 text-white hover:bg-orange-600"
+            }`}
+          >
+            {isCompleted ? "Completed" : `Move to ${nextLabel} →`}
+          </button>
+        </div>
+      )}
     </li>
   );
 }
@@ -238,8 +243,17 @@ function RacksContent() {
   const { consigners: rackConsigners } = useRackConsignersStore();
   const addToast       = useToastStore((s) => s.add);
 
+  const activeRole        = useActiveRole();
+  const allowedStatuses   = activeRole ? ROLE_RACK_STATUSES[activeRole] : undefined;
+  const roleCanAdvance    = activeRole ? canAdvanceRacks(activeRole) : true;
+  const roleCanCreate     = activeRole === "admin" || activeRole === null;
+  // Roles with restricted status visibility get a locked default filter
+  const defaultFilter: RackFilter = allowedStatuses?.length === 1
+    ? allowedStatuses[0] as RackFilter
+    : "all";
+
   const [query, setQuery]                       = useState("");
-  const [filter, setFilter]                     = useState<RackFilter>("all");
+  const [filter, setFilter]                     = useState<RackFilter>(defaultFilter);
   const [colorFilter, setColorFilter]           = useState("");
   const [showForm, setShowForm]                 = useState(!!(preselectedDelivery || preselectedZone));
   const [rackCodeInput, setRackCodeInput]       = useState("");
@@ -301,6 +315,9 @@ function RacksContent() {
 
   const q = query.toLowerCase();
   const filtered = [...racks].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).filter((r) => {
+    // Role-based status restriction — only show statuses the role works with
+    if (allowedStatuses && !allowedStatuses.includes(r.status)) return false;
+
     const attention = isRackNeedsAttention(r, history);
     const isHeld    = !!r.holdReason;
     const zone      = r.zoneId     ? zones.find((z) => z.id === r.zoneId)          : undefined;
@@ -322,17 +339,26 @@ function RacksContent() {
     return true;
   });
 
+  // Filter options available to this role
+  const visibleFilterOptions = allowedStatuses
+    ? FILTER_OPTIONS.filter(
+        (o) => o.key === "all" || o.key === "needs_attention" || o.key === "held" || allowedStatuses.includes(o.key as RackStatus)
+      )
+    : FILTER_OPTIONS;
+
   return (
     <div className="space-y-4">
       <PageHeader
         title="Racks"
         action={
-          <button
-            onClick={() => setShowForm((v) => !v)}
-            className="rounded-lg bg-orange-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-700 transition-colors"
-          >
-            {showForm ? "Cancel" : "Add rack"}
-          </button>
+          roleCanCreate ? (
+            <button
+              onClick={() => setShowForm((v) => !v)}
+              className="rounded-lg bg-orange-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-700 transition-colors"
+            >
+              {showForm ? "Cancel" : "Add rack"}
+            </button>
+          ) : undefined
         }
       />
 
@@ -461,7 +487,7 @@ function RacksContent() {
       {/* Filter pills — horizontal scroll on mobile */}
       <div className="-mx-4 sm:mx-0 overflow-x-auto">
         <div className="flex gap-1.5 px-4 sm:px-0 pb-0.5">
-        {FILTER_OPTIONS.map(({ key, label }) => (
+        {visibleFilterOptions.map(({ key, label }) => (
           <button key={key} onClick={() => setFilter(key)}
             className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
               filter === key
@@ -529,6 +555,7 @@ function RacksContent() {
                 isMixed={isMixed}
                 onAdvance={() => advanceStatus(rack.id)}
                 onClick={() => router.push(`/racks/${rack.id}`)}
+                canAdvance={roleCanAdvance}
               />
             );
           })}

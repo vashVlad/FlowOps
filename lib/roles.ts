@@ -1,0 +1,105 @@
+// ── Role definitions — single source of truth ─────────────────────────────────
+
+export const ROLES = [
+  "admin",
+  "front_desk",
+  "unpacker",
+  "sorter",
+  "lotter",
+  "pickup",
+] as const;
+
+export type Role = (typeof ROLES)[number];
+
+export const ROLE_LABELS: Record<Role, string> = {
+  admin:      "Admin",
+  front_desk: "Front Desk",
+  unpacker:   "Unpacker",
+  sorter:     "Sorter",
+  lotter:     "Lotter",
+  pickup:     "Pickup",
+};
+
+// Where each role lands after login / when visiting "/"
+export const ROLE_HOME: Record<Role, string> = {
+  admin:      "/",
+  front_desk: "/front-desk",
+  unpacker:   "/unpack",
+  sorter:     "/racks",
+  lotter:     "/lotting",
+  pickup:     "/racks",
+};
+
+// Allowed route prefixes per role. "*" means unrestricted.
+export const ROLE_ROUTES: Record<Role, string[]> = {
+  admin:      ["*"],
+  front_desk: ["/front-desk", "/deliveries", "/consigners", "/search"],
+  unpacker:   ["/unpack", "/racks", "/search", "/labels"],
+  sorter:     ["/racks", "/search"],
+  lotter:     ["/lotting", "/racks", "/search"],
+  pickup:     ["/racks", "/search"],
+};
+
+// Desktop + mobile nav links per role
+export const ROLE_NAV: Record<Role, Array<{ href: string; label: string }>> = {
+  admin: [
+    { href: "/",            label: "Dashboard"  },
+    { href: "/deliveries",  label: "Deliveries" },
+    { href: "/consigners",  label: "Consigners" },
+    { href: "/racks",       label: "Racks"      },
+    { href: "/zones",       label: "Zones"      },
+    { href: "/lotting",     label: "Lotting"    },
+    { href: "/search",      label: "Search"     },
+    { href: "/reports",     label: "Reports"    },
+    { href: "/admin/users", label: "Users"      },
+  ],
+  front_desk: [
+    { href: "/front-desk",  label: "Home"       },
+    { href: "/deliveries",  label: "Deliveries" },
+    { href: "/consigners",  label: "Consigners" },
+    { href: "/search",      label: "Search"     },
+  ],
+  unpacker: [
+    { href: "/unpack",        label: "Home"        },
+    { href: "/racks",         label: "Racks"       },
+    { href: "/labels/queue",  label: "Print Queue" },
+    { href: "/search",        label: "Search"      },
+  ],
+  sorter: [
+    { href: "/racks",  label: "Racks"  },
+    { href: "/search", label: "Search" },
+  ],
+  lotter: [
+    { href: "/lotting", label: "Lotting" },
+    { href: "/racks",   label: "Racks"   },
+    { href: "/search",  label: "Search"  },
+  ],
+  pickup: [
+    { href: "/racks",  label: "Racks"  },
+    { href: "/search", label: "Search" },
+  ],
+};
+
+// Which rack statuses each role can see on the /racks page.
+// undefined = no restriction (admin sees all)
+export const ROLE_RACK_STATUSES: Record<Role, string[] | undefined> = {
+  admin:      undefined,
+  front_desk: undefined,
+  unpacker:   ["unpacking_sorting"],
+  sorter:     ["unpacking_sorting"],
+  lotter:     ["sorted", "lotting", "ready"],
+  pickup:     ["ready", "pickup"],
+};
+
+// Roles that cannot advance racks (view-only on rack cards)
+export const ADVANCE_RESTRICTED_ROLES = new Set<Role>(["front_desk", "unpacker"]);
+
+export function canAdvanceRacks(role: Role): boolean {
+  return !ADVANCE_RESTRICTED_ROLES.has(role);
+}
+
+export function isAllowedRoute(role: Role, pathname: string): boolean {
+  const allowed = ROLE_ROUTES[role];
+  if (allowed.includes("*")) return true;
+  return allowed.some((prefix) => pathname === prefix || pathname.startsWith(prefix + "/"));
+}
