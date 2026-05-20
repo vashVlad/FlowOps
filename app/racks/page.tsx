@@ -526,11 +526,25 @@ function RacksContent() {
       ) : filtered.length === 0 ? (
         <div className="rounded-xl border border-stone-200 bg-white px-5 py-6 shadow-sm text-center space-y-1">
           <p className="text-sm font-medium text-stone-700">
-            {racks.length === 0 ? "No racks in the system" : "No racks match your search"}
+            {racks.length === 0
+              ? "No racks in the system"
+              : activeRole === "sorter"
+              ? "Queue clear — all racks sorted"
+              : activeRole === "lotter"
+              ? "Nothing to lot right now"
+              : activeRole === "pickup"
+              ? "No racks ready for pickup"
+              : "No racks match your search"}
           </p>
           <p className="text-xs text-stone-400">
             {racks.length === 0
               ? "Create a delivery first, then add racks to begin tracking flow."
+              : activeRole === "sorter"
+              ? "Check back when new racks arrive from unpacking."
+              : activeRole === "lotter"
+              ? "Racks will appear here once they are marked as Sorted."
+              : activeRole === "pickup"
+              ? "Racks will appear here once they are marked as Ready."
               : "Try a different filter or clear the search."}
           </p>
         </div>

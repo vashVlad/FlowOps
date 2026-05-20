@@ -27,7 +27,8 @@ import { PIPELINE_STAGES, NEXT_STAGE_LABEL, STAGE_LABEL } from "@/lib/tokens";
 import { getPrevStatus } from "@/lib/racks";
 import AuctionColorPicker from "@/components/ui/AuctionColorPicker";
 import { useToastStore } from "@/store/toast";
-import { useIsSupervisor } from "@/store/auth";
+import { useIsSupervisor, useIsAdmin, useActiveRole } from "@/store/auth";
+import { canAdvanceRacks } from "@/lib/roles";
 import { usePrintQueueStore } from "@/store/printQueue";
 import type { Priority } from "@/types";
 
@@ -74,7 +75,10 @@ export default function RackDetailPage() {
   const [consignerJInput, setConsignerJInput] = useState("");
   const [consignerError,  setConsignerError]  = useState("");
 
-  const isSupervisor = useIsSupervisor();
+  const isSupervisor  = useIsSupervisor();
+  const isAdmin       = useIsAdmin();
+  const activeRole    = useActiveRole();
+  const roleCanAdvance = activeRole ? canAdvanceRacks(activeRole) : true;
 
   const rack = racks.find((r) => r.id === id);
 
@@ -328,7 +332,8 @@ export default function RackDetailPage() {
               )}
 
               <div className="flex gap-2">
-                {/* Primary: move forward */}
+                {/* Primary: move forward — hidden for view-only roles */}
+                {roleCanAdvance && (
                 <button
                   onClick={async () => {
                     if (rack.status === "unpacking_sorting") {
@@ -349,8 +354,10 @@ export default function RackDetailPage() {
                     ? "Completed"
                     : `Move to ${NEXT_STAGE_LABEL[rack.status] ?? "Next"} →`}
                 </button>
+                )}
 
                 {/* Hold toggle */}
+                {roleCanAdvance && (
                 <button
                   onClick={() => isHeld ? handleClearHold() : setHoldOpen((v) => !v)}
                   className={`rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
@@ -361,6 +368,7 @@ export default function RackDetailPage() {
                 >
                   {isHeld ? "Clear Hold" : "Hold"}
                 </button>
+                )}
 
                 {/* Note toggle */}
                 <button
@@ -504,8 +512,8 @@ export default function RackDetailPage() {
             </div>
             )}
 
-            {/* ── REVERT STATUS ───────────────────────────────────────────── */}
-            {getPrevStatus(rack.status) && (
+            {/* ── REVERT STATUS — admin only ──────────────────────────────── */}
+            {isAdmin && getPrevStatus(rack.status) && (
               <div className="border-t border-stone-100 pt-3">
                 {revertConfirm ? (
                   <div className="flex items-center gap-2 flex-wrap">
