@@ -17,6 +17,7 @@ import AuctionColorPicker from "@/components/ui/AuctionColorPicker";
 import { isRackNeedsAttention, getTimeInCurrentStatus, WAITING_STAGES } from "@/lib/timeTracking";
 import { OCCUPANCY_STYLE } from "@/lib/tokens";
 import { OperationalAlerts, type AlertItem } from "@/components/OperationalAlerts";
+import type { Rack } from "@/types";
 
 const inputCls =
   "w-full rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500";
@@ -50,11 +51,353 @@ const PURPOSES: { key: PurposeMode; label: string; description: string; border: 
   },
 ];
 
+// ── PU floor plan ─────────────────────────────────────────────────────────────
+
+// Human-readable label for each slot, shown as a badge on placed rack cards
+const CELL_LABEL: Record<string, string> = {
+  "r6-1": "R6·1", "r6-2": "R6·2", "r6-3": "R6·3", "r6-4": "R6·4",
+  "r5-1": "R5·1", "r5-2": "R5·2", "r5-3": "R5·3", "r5-4": "R5·4",
+  "r4-1": "R4·1", "r4-2": "R4·2", "r4-3": "R4·3", "r4-4": "R4·4",
+  "r3-1": "R3·1",
+  "r2-1": "R2·1", "r2-2": "R2·2", "r2-3": "R2·3", "r2-4": "R2·4",
+  "r1-1": "R1·1", "r1-2": "R1·2", "r1-3": "R1·3", "r1-4": "R1·4",
+  "r54-f": "R5–R4", "r21-f": "R2–R1",
+};
+
+function PUFloorPlan({
+  racks,
+  placedRacks,
+  draggingId,
+  searchQuery,
+  auctionEditId,
+  editColor,
+  editDate,
+  onDrop,
+  onClear,
+  onSearchChange,
+  onDragStart,
+  onDragEnd,
+  onAuctionEdit,
+  onAuctionColorChange,
+  onAuctionDateChange,
+  onAuctionSave,
+  onAuctionCancel,
+}: {
+  racks: Rack[];
+  placedRacks: Record<string, string>;
+  draggingId: string | null;
+  searchQuery: string;
+  auctionEditId: string | null;
+  editColor: string;
+  editDate: string;
+  onDrop: (cellId: string) => void;
+  onClear: (cellId: string) => void;
+  onSearchChange: (q: string) => void;
+  onDragStart: (rackId: string) => void;
+  onDragEnd: () => void;
+  onAuctionEdit: (rack: Rack) => void;
+  onAuctionColorChange: (color: string) => void;
+  onAuctionDateChange: (date: string) => void;
+  onAuctionSave: () => void;
+  onAuctionCancel: () => void;
+}) {
+  const [over, setOver] = useState<string | null>(null);
+
+  // cellId → Rack
+  const cellRack: Record<string, Rack | undefined> = {};
+  for (const [cellId, rackId] of Object.entries(placedRacks)) {
+    cellRack[cellId] = racks.find((r) => r.id === rackId);
+  }
+
+  // Reverse: rackId → cellId
+  const rackCell: Record<string, string> = {};
+  for (const [cellId, rackId] of Object.entries(placedRacks)) {
+    rackCell[rackId] = cellId;
+  }
+
+  const q = searchQuery.trim().toLowerCase();
+  function isMatch(r: Rack | undefined): boolean {
+    if (!q || !r) return false;
+    return r.rackCode.toLowerCase().includes(q) || r.consignerName.toLowerCase().includes(q);
+  }
+
+  function clearBtn(id: string) {
+    return (
+      <button
+        key={`x-${id}`}
+        onClick={(e) => { e.stopPropagation(); onClear(id); }}
+        className="absolute top-1 right-1 text-stone-300 hover:text-red-500 transition-colors"
+      >
+        <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round">
+          <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+    );
+  }
+
+  function slotCls(id: string, extra = "") {
+    const placed     = cellRack[id];
+    const isOver     = over === id && !!draggingId;
+    const matched    = isMatch(placed);
+    const isDragging = !!placed && draggingId === placed.id;
+    return `rounded-lg border self-start flex flex-col items-center justify-center relative overflow-hidden transition-all ${extra} ${
+      placed ? "cursor-grab active:cursor-grabbing" : ""
+    } ${
+      isDragging ? "opacity-40 border-violet-200 bg-violet-50" :
+      matched    ? "border-violet-500 bg-violet-100 ring-2 ring-violet-400 animate-pulse" :
+      isOver     ? "border-violet-400 bg-violet-100 ring-1 ring-violet-300" :
+      placed     ? "border-violet-300 bg-violet-100/60" :
+                   "border-dashed border-stone-300 bg-stone-50 hover:border-violet-300 hover:bg-violet-50/40"
+    }`;
+  }
+
+  function slotHandlers(id: string) {
+    return {
+      onDragOver:  (e: React.DragEvent) => { e.preventDefault(); setOver(id); },
+      onDragLeave: (e: React.DragEvent) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setOver(null); },
+      onDrop:      (e: React.DragEvent) => { e.preventDefault(); setOver(null); onDrop(id); },
+    };
+  }
+
+  function slotContent(id: string) {
+    const placed = cellRack[id];
+    if (!placed) return null;
+    const dateLabel = placed.auctionDate
+      ? new Date(placed.auctionDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })
+      : null;
+    return (
+      <>
+        <div className="flex flex-col items-center gap-0.5 px-1.5 w-full overflow-hidden">
+          <p className="text-[11px] font-mono font-bold text-violet-800 text-center leading-tight truncate w-full">{placed.rackCode}</p>
+          <p className="text-[9px] text-violet-500 text-center leading-tight truncate w-full">{placed.consignerName}</p>
+          {(placed.auctionColor || dateLabel) && (
+            <div className="flex items-center gap-1 mt-0.5">
+              {placed.auctionColor && (
+                <span className="h-2.5 w-2.5 rounded-full shrink-0 ring-1 ring-white/60" style={{ backgroundColor: placed.auctionColor }} />
+              )}
+              {dateLabel && <span className="text-[8px] text-violet-400 leading-none">{dateLabel}</span>}
+            </div>
+          )}
+        </div>
+        {clearBtn(id)}
+      </>
+    );
+  }
+
+  function slot(id: string, h: string) {
+    const placed = cellRack[id];
+    return (
+      <div
+        key={id}
+        className={slotCls(id, h)}
+        draggable={!!placed}
+        onDragStart={placed ? () => onDragStart(placed.id) : undefined}
+        onDragEnd={placed ? onDragEnd : undefined}
+        {...slotHandlers(id)}
+      >
+        {slotContent(id)}
+      </div>
+    );
+  }
+
+  function footerSlot(id: string) {
+    const placed = cellRack[id];
+    return (
+      <div
+        key={id}
+        className={slotCls(id, "col-span-2 h-16")}
+        draggable={!!placed}
+        onDragStart={placed ? () => onDragStart(placed.id) : undefined}
+        onDragEnd={placed ? onDragEnd : undefined}
+        {...slotHandlers(id)}
+      >
+        {slotContent(id)}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex gap-3 h-full min-h-0">
+
+      {/* ── LEFT PANEL: search + rack cards ───────────────────────────────── */}
+      <div className="w-80 shrink-0 flex flex-col gap-3 min-h-0 rounded-xl border border-stone-200 bg-white shadow-sm p-4">
+
+        {/* Search */}
+        <div className="relative shrink-0">
+          <svg viewBox="0 0 24 24" className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-stone-400" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Search rack…"
+            className="w-full rounded-lg border border-stone-200 bg-stone-50 pl-8 pr-7 py-1.5 text-xs text-stone-700 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent transition-shadow"
+          />
+          {searchQuery && (
+            <button onClick={() => onSearchChange("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-300 hover:text-stone-600 transition-colors">
+              <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          )}
+        </div>
+
+        <p className="text-[10px] font-medium uppercase tracking-wider text-stone-400 shrink-0">
+          {racks.length} rack{racks.length !== 1 ? "s" : ""} · drag to layout →
+        </p>
+
+        {/* Scrollable rack cards */}
+        <div className="flex-1 overflow-y-auto space-y-1.5 min-h-0 pr-0.5">
+          {racks.map((r) => {
+            const cell      = rackCell[r.id];
+            const matched   = isMatch(r);
+            const isEditing = auctionEditId === r.id;
+            const dateLabel = r.auctionDate
+              ? new Date(r.auctionDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })
+              : null;
+            return (
+              <div
+                key={r.id}
+                draggable={!isEditing}
+                onDragStart={!isEditing ? () => onDragStart(r.id) : undefined}
+                onDragEnd={!isEditing ? onDragEnd : undefined}
+                className={`select-none rounded-lg border transition-all ${
+                  isEditing ? "border-violet-400 bg-violet-50 cursor-default" :
+                  matched   ? "cursor-grab border-violet-500 bg-violet-50 ring-1 ring-violet-300 animate-pulse" :
+                  cell      ? "cursor-grab border-violet-300 bg-violet-50" :
+                              "cursor-grab border-stone-200 bg-white hover:border-violet-200 hover:bg-violet-50/40"
+                } ${draggingId === r.id ? "opacity-40" : ""}`}
+              >
+                {/* ── card top row ── */}
+                <div className="flex items-center gap-2 p-2.5">
+                  <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 text-stone-300 shrink-0" fill="currentColor" stroke="none">
+                    <circle cx="9"  cy="5"  r="1.3" /><circle cx="9"  cy="12" r="1.3" /><circle cx="9"  cy="19" r="1.3" />
+                    <circle cx="15" cy="5"  r="1.3" /><circle cx="15" cy="12" r="1.3" /><circle cx="15" cy="19" r="1.3" />
+                  </svg>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      {r.auctionColor && <span className="h-2 w-2 rounded-full shrink-0 ring-1 ring-stone-100" style={{ backgroundColor: r.auctionColor }} />}
+                      <p className={`font-mono text-xs font-bold truncate ${matched || cell ? "text-violet-800" : "text-stone-900"}`}>{r.rackCode}</p>
+                    </div>
+                    <p className="text-[10px] text-stone-400 truncate leading-tight mt-0.5">{r.consignerName}</p>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {cell ? (
+                      <span className="text-[9px] font-mono font-semibold text-violet-600 bg-violet-100 rounded px-1.5 py-0.5 leading-none">
+                        {CELL_LABEL[cell] ?? cell}
+                      </span>
+                    ) : (
+                      <StatusBadge status={r.status} />
+                    )}
+                    {/* auction edit toggle */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); isEditing ? onAuctionCancel() : onAuctionEdit(r); }}
+                      className={`p-1 rounded transition-colors ${isEditing ? "text-violet-500 bg-violet-100" : "text-stone-300 hover:text-violet-500"}`}
+                      title="Set auction color & date"
+                    >
+                      <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                {/* ── auction date strip ── */}
+                {!isEditing && dateLabel && (
+                  <div className="px-2.5 pb-2 -mt-1">
+                    <span className="text-[10px] text-stone-400">{dateLabel}</span>
+                  </div>
+                )}
+
+                {/* ── inline auction editor ── */}
+                {isEditing && (
+                  <div className="px-2.5 pb-2.5 space-y-2 border-t border-violet-200 pt-2.5 mt-0">
+                    <AuctionColorPicker value={editColor} onChange={onAuctionColorChange} />
+                    <input
+                      type="date"
+                      value={editDate}
+                      onChange={(e) => onAuctionDateChange(e.target.value)}
+                      className="w-full rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-xs text-stone-700 focus:outline-none focus:ring-2 focus:ring-violet-400 transition-shadow"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onAuctionSave(); }}
+                        className="flex-1 rounded-lg bg-violet-600 py-1.5 text-xs font-medium text-white hover:bg-violet-700 transition-colors"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onAuctionCancel(); }}
+                        className="rounded-lg border border-stone-200 px-3 py-1.5 text-xs text-stone-500 hover:bg-stone-50 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── RIGHT PANEL: floor plan ────────────────────────────────────────── */}
+      <div className="flex-1 min-w-0 flex flex-col rounded-xl border border-violet-100 bg-white shadow-sm overflow-hidden">
+        <div className="px-5 py-3 border-b border-stone-100 shrink-0 flex items-center justify-between">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-stone-400">Pick-Up Layout</p>
+          {draggingId && <p className="text-[10px] text-violet-500 animate-pulse">Drop onto a slot</p>}
+        </div>
+        <div className="flex-1 overflow-auto flex items-center justify-center p-5 min-h-0">
+          <div
+            className="w-fit"
+            style={{ display: "grid", gridTemplateColumns: "80px 44px 80px 80px 112px 80px 80px", gap: "10px" }}
+          >
+            {/* Column headers */}
+            <div className="text-center text-[10px] font-semibold text-stone-400">R6</div>
+            <div />
+            <div className="col-span-2 text-center text-[10px] font-semibold text-stone-400">R5 / R4</div>
+            <div className="text-center text-[10px] font-semibold text-stone-400">R3</div>
+            <div className="col-span-2 text-center text-[10px] font-semibold text-stone-400">R2 / R1</div>
+
+            {/* Row 1 — R3 is landscape: 112 px wide × h-20 tall */}
+            {slot("r6-1", "h-28")} <div />
+            {slot("r5-1", "h-28")} {slot("r4-1", "h-28")}
+            {slot("r3-1", "h-20")}
+            {slot("r2-1", "h-28")} {slot("r1-1", "h-28")}
+
+            {/* Rows 2–4 */}
+            {[2, 3, 4].flatMap((row) => [
+              slot(`r6-${row}`, "h-28"),
+              <div key={`gap-${row}`} />,
+              slot(`r5-${row}`, "h-28"),
+              slot(`r4-${row}`, "h-28"),
+              <div key={`r3e-${row}`} />,
+              slot(`r2-${row}`, "h-28"),
+              slot(`r1-${row}`, "h-28"),
+            ])}
+
+            {/* Footer */}
+            <div /> <div />
+            {footerSlot("r54-f")}
+            <div />
+            {footerSlot("r21-f")}
+          </div>
+        </div>
+      </div>
+
+    </div>
+  );
+}
+
+// ── Zone detail page ───────────────────────────────────────────────────────────
+
 export default function ZoneDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { zones, updateZone } = useZonesStore();
-  const { racks, history, advanceStatus } = useRacksStore();
+  const { racks, history, advanceStatus, updateRack } = useRacksStore();
   const { deliveries, addDelivery } = useDeliveriesStore();
 
   // ── Edit form state ────────────────────────────────────────────────────────
@@ -65,6 +408,48 @@ export default function ZoneDetailPage() {
   const [editReserved, setEditReserved]         = useState(false);
   const [editAuctionColor, setEditAuctionColor] = useState("");
   const [editError, setEditError]               = useState("");
+
+  // ── PU floor plan drag + search state ────────────────────────────────────
+  const [draggingId,    setDraggingId]    = useState<string | null>(null);
+  const [puSearch,      setPuSearch]      = useState("");
+  const [auctionEditId, setAuctionEditId] = useState<string | null>(null);
+  const [editColor,     setEditColor]     = useState("");
+  const [editDate,      setEditDate]      = useState("");
+
+  // Derived from store — cellId → rackId (source of truth is rack.puPosition in DB)
+  const placedRacks = Object.fromEntries(
+    racks
+      .filter((r) => r.zoneId === id && r.puPosition)
+      .map((r) => [r.puPosition!, r.id])
+  );
+
+  async function handleCellDrop(cellId: string) {
+    if (!draggingId) return;
+    // Evict whoever was previously in this cell
+    const evicted = racks.find((r) => r.zoneId === id && r.puPosition === cellId && r.id !== draggingId);
+    if (evicted) await updateRack(evicted.id, { puPosition: null });
+    await updateRack(draggingId, { puPosition: cellId });
+  }
+
+  async function handleCellClear(cellId: string) {
+    const rack = racks.find((r) => r.zoneId === id && r.puPosition === cellId);
+    if (rack) await updateRack(rack.id, { puPosition: null });
+  }
+
+  function openAuctionEdit(rack: { id: string; auctionColor?: string; auctionDate?: string }) {
+    setAuctionEditId(rack.id);
+    setEditColor(rack.auctionColor ?? "");
+    setEditDate(rack.auctionDate ?? "");
+  }
+
+  async function handleAuctionSave() {
+    if (!auctionEditId) return;
+    await updateRack(auctionEditId, {
+      auctionColor: editColor || null,
+      auctionDate:  editDate  || null,
+    });
+    setAuctionEditId(null);
+  }
 
   // ── Purpose picker state ───────────────────────────────────────────────────
   const [purposeMode, setPurposeMode]               = useState<PurposeMode | null>(null);
@@ -228,6 +613,67 @@ export default function ZoneDetailPage() {
     const result = await updateZone(zone!.id, patch);
     if (!result.ok) return;
     setEditing(false);
+  }
+
+  // ── PU: full-screen two-panel layout ─────────────────────────────────────
+  if (zone.name === "PU") {
+    return (
+      <div className="flex flex-col gap-3" style={{ height: "calc(100dvh - 84px)" }}>
+        {/* top bar */}
+        <div className="flex items-center gap-3 shrink-0 flex-wrap">
+          <Link href="/zones" className="text-sm text-stone-400 hover:text-stone-700 transition-colors">← Zones</Link>
+          <span className="text-stone-300 select-none">·</span>
+          <h1 className="text-sm font-bold text-violet-700">Pick-Up</h1>
+          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+            healthLevel === "critical" ? "bg-orange-100 text-orange-600" :
+            healthLevel === "warn"     ? "bg-amber-100 text-amber-600"   :
+            "bg-emerald-100 text-emerald-600"
+          }`}>
+            <span className={`h-1.5 w-1.5 rounded-full ${
+              healthLevel === "critical" ? "bg-orange-500 animate-pulse" :
+              healthLevel === "warn"     ? "bg-amber-400" : "bg-emerald-400"
+            }`} />
+            {count} rack{count !== 1 ? "s" : ""} · {healthLabel}
+          </span>
+
+          {/* ── Zone auction color + date ── */}
+          <div className="ml-auto flex items-center gap-2">
+            <span className="text-[10px] font-medium uppercase tracking-wider text-stone-400">Auction</span>
+            <AuctionColorPicker
+              value={zone.auctionColor ?? ""}
+              onChange={(hex) => updateZone(zone.id, { auctionColor: hex || null })}
+            />
+            <input
+              type="date"
+              defaultValue={zone.auctionDate ?? ""}
+              onBlur={(e) => updateZone(zone.id, { auctionDate: e.target.value || null })}
+              className="rounded-lg border border-stone-200 bg-white px-2 py-1 text-xs text-stone-600 focus:outline-none focus:ring-2 focus:ring-violet-400 transition-shadow"
+            />
+          </div>
+        </div>
+        <div className="flex-1 min-h-0">
+          <PUFloorPlan
+            racks={zoneRacks}
+            placedRacks={placedRacks}
+            draggingId={draggingId}
+            searchQuery={puSearch}
+            auctionEditId={auctionEditId}
+            editColor={editColor}
+            editDate={editDate}
+            onDrop={handleCellDrop}
+            onClear={handleCellClear}
+            onSearchChange={setPuSearch}
+            onDragStart={setDraggingId}
+            onDragEnd={() => setDraggingId(null)}
+            onAuctionEdit={openAuctionEdit}
+            onAuctionColorChange={setEditColor}
+            onAuctionDateChange={setEditDate}
+            onAuctionSave={handleAuctionSave}
+            onAuctionCancel={() => setAuctionEditId(null)}
+          />
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -516,8 +962,8 @@ export default function ZoneDetailPage() {
 
       <OperationalAlerts alerts={zoneAlerts} />
 
-      {/* ── Rack list ──────────────────────────────────────────────────────── */}
-      <div>
+      {/* ── Rack list — hidden for PU (layout handles placement) ──────────── */}
+      {zone.name !== "PU" && <div>
         <div className="mb-3 flex items-center justify-between gap-3">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-stone-400">
             Racks in {zone.name} ({count})
@@ -542,12 +988,32 @@ export default function ZoneDetailPage() {
         ) : (
           <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
             {zoneRacks.map((rack) => {
-              const isWaiting = WAITING_STAGES.has(rack.status);
-              const stuck     = !isWaiting && isRackNeedsAttention(rack, history);
-              const delivery  = deliveries.find((d) => d.id === rack.deliveryId);
+              const isWaiting  = WAITING_STAGES.has(rack.status);
+              const stuck      = !isWaiting && isRackNeedsAttention(rack, history);
+              const delivery   = deliveries.find((d) => d.id === rack.deliveryId);
+              const isPU       = zone.name === "PU";
+              const placedCell = isPU
+                ? Object.entries(placedRacks).find(([, rid]) => rid === rack.id)?.[0]
+                : undefined;
+              const sq = puSearch.trim().toLowerCase();
+              const searchMatch = isPU && sq && (
+                rack.rackCode.toLowerCase().includes(sq) ||
+                rack.consignerName.toLowerCase().includes(sq)
+              );
+
               return (
-                <li key={rack.id} onClick={() => router.push(`/racks/${rack.id}`)}
-                  className="cursor-pointer rounded-xl border border-stone-200 bg-white shadow-sm hover:shadow-md hover:-translate-y-px transition-all duration-150 overflow-hidden">
+                <li
+                  key={rack.id}
+                  draggable={isPU}
+                  onDragStart={() => setDraggingId(rack.id)}
+                  onDragEnd={() => setDraggingId(null)}
+                  onClick={() => router.push(`/racks/${rack.id}`)}
+                  className={`cursor-pointer rounded-xl border shadow-sm hover:shadow-md hover:-translate-y-px transition-all duration-150 overflow-hidden ${
+                    searchMatch ? "border-violet-400 bg-violet-50 ring-2 ring-violet-300" :
+                    placedCell  ? "border-violet-300 bg-violet-50" :
+                                  "border-stone-200 bg-white"
+                  } ${draggingId === rack.id ? "opacity-50" : ""}`}
+                >
                   <div className="px-4 pt-3 pb-2 space-y-1.5">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-1.5 min-w-0">
@@ -557,6 +1023,11 @@ export default function ZoneDetailPage() {
                         <p className="font-mono text-sm font-bold text-stone-900 truncate">{rack.rackCode}</p>
                         {stuck && <span className="rounded-md bg-red-50 px-1.5 py-0.5 text-[10px] text-red-400 shrink-0">delayed</span>}
                         {rack.priority === "high" && !stuck && <span className="rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 shrink-0">high</span>}
+                        {placedCell && (
+                          <span className="rounded-md bg-violet-100 px-1.5 py-0.5 text-[10px] font-medium text-violet-600 shrink-0 font-mono">
+                            {CELL_LABEL[placedCell] ?? placedCell}
+                          </span>
+                        )}
                       </div>
                       <span className="text-[11px] text-stone-400 shrink-0">{timeAgo(rack.updatedAt)}</span>
                     </div>
@@ -584,7 +1055,7 @@ export default function ZoneDetailPage() {
             })}
           </ul>
         )}
-      </div>
+      </div>}
     </div>
   );
 }

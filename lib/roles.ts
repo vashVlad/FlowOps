@@ -37,7 +37,7 @@ export const ROLE_ROUTES: Record<Role, string[]> = {
   unpacker:   ["/unpack", "/racks", "/search", "/labels"],
   sorter:     ["/racks", "/search"],
   lotter:     ["/lotting", "/racks", "/search"],
-  pickup:     ["/racks", "/search"],
+  pickup:     ["/racks", "/zones", "/search"],
 };
 
 // Desktop + mobile nav links per role
@@ -76,6 +76,7 @@ export const ROLE_NAV: Record<Role, Array<{ href: string; label: string }>> = {
   ],
   pickup: [
     { href: "/racks",  label: "Racks"  },
+    { href: "/zones",  label: "Zones"  },
     { href: "/search", label: "Search" },
   ],
 };

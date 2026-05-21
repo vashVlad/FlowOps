@@ -28,6 +28,8 @@ export interface RackRow {
   hold_reason: string | null;
   hold_started_at: string | null;
   auction_color: string | null;
+  auction_date: string | null;
+  pu_position: string | null;
   is_archived: boolean;
   created_at: string;
   updated_at: string;
@@ -103,6 +105,8 @@ export function toRack(row: RackRow): Rack {
     holdReason:     row.hold_reason     ?? undefined,
     holdStartedAt:  row.hold_started_at ?? undefined,
     auctionColor:   row.auction_color   ?? undefined,
+    auctionDate:    row.auction_date    ?? undefined,
+    puPosition:     row.pu_position     ?? undefined,
     isArchived:     row.is_archived,
     createdAt:      row.created_at,
     updatedAt:      row.updated_at,
@@ -430,6 +434,8 @@ export async function updateRack(rackId: string, patch: UpdateRackInput): Promis
   if ("holdReason"    in patch)          update.hold_reason     = patch.holdReason     ?? null;
   if ("holdStartedAt" in patch)          update.hold_started_at = patch.holdStartedAt  ?? null;
   if ("auctionColor"  in patch)          update.auction_color   = patch.auctionColor   ?? null;
+  if ("auctionDate"   in patch)          update.auction_date    = patch.auctionDate    ?? null;
+  if ("puPosition"   in patch)          update.pu_position     = patch.puPosition     ?? null;
 
   const { data, error } = await supabase
     .from("racks")

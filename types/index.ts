@@ -22,6 +22,8 @@ export interface Rack {
   holdReason?: string;     // set when rack is on hold
   holdStartedAt?: string;  // ISO 8601 — when hold was placed
   auctionColor?: string;   // hex color — auction run identifier
+  auctionDate?: string;    // YYYY-MM-DD — auction date for this rack
+  puPosition?: string;     // slot id within the PU floor plan (e.g. "r3-2")
   isArchived: boolean;
   createdAt: string;       // ISO 8601
   updatedAt: string;       // ISO 8601
@@ -46,6 +48,8 @@ export interface UpdateRackInput {
   holdReason?: string | null;
   holdStartedAt?: string | null;
   auctionColor?: string | null;
+  auctionDate?: string | null;
+  puPosition?: string | null;
 }
 
 // ── History ──────────────────────────────────────────────────────────────────

@@ -129,6 +129,7 @@ export const DELIVERY_NEXT_BTN: Record<DeliveryStatus, string> = {
 
 export const AUCTION_COLORS: { hex: string; label: string }[] = [
   { hex: "#ef4444", label: "Red"    },
+  { hex: "#f97316", label: "Orange" },
   { hex: "#eab308", label: "Yellow" },
   { hex: "#22c55e", label: "Green"  },
   { hex: "#3b82f6", label: "Blue"   },
