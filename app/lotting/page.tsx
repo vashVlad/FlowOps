@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useRacksStore } from "@/store/racks";
 import { useDeliveriesStore } from "@/store/deliveries";
-import StatusBadge from "@/components/StatusBadge";
 import { LoadingCards } from "@/components/LoadingCards";
 import PageHeader from "@/components/ui/PageHeader";
 import { formatBusinessDuration } from "@/lib/timeTracking";
@@ -134,7 +133,7 @@ export default function LottingPage() {
                             ) : null}
                           </div>
                           <p className="text-xs text-stone-400 mt-0.5">{rack.consignerName}</p>
-                          <div className="mt-1 flex items-center gap-3">
+                          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5">
                             <span className="text-xs text-stone-400">
                               {STAGE_LABEL["sorted"]} {formatBusinessDuration(waitMs)}
                             </span>
@@ -149,21 +148,18 @@ export default function LottingPage() {
                             )}
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <StatusBadge status={rack.status} />
-                          <button
-                            onClick={async (e) => {
-                              e.stopPropagation();
-                              const result = await advanceStatus(rack.id);
-                              if (result.ok) addToast(`${rack.rackCode} moved to lotting`);
-                            }}
-                            className={`rounded-lg px-3 py-1.5 text-xs font-medium text-white transition-colors ${
-                              isCritical ? "bg-red-500 hover:bg-red-600" : "bg-orange-500 hover:bg-orange-600"
-                            }`}
-                          >
-                            Start lotting
-                          </button>
-                        </div>
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            const result = await advanceStatus(rack.id);
+                            if (result.ok) addToast(`${rack.rackCode} moved to lotting`);
+                          }}
+                          className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium text-white transition-colors ${
+                            isCritical ? "bg-red-500 hover:bg-red-600" : "bg-orange-500 hover:bg-orange-600"
+                          }`}
+                        >
+                          Start lotting
+                        </button>
                       </div>
                     </li>
                   );
@@ -216,7 +212,7 @@ export default function LottingPage() {
                             ) : null}
                           </div>
                           <p className="text-xs text-stone-400 mt-0.5">{rack.consignerName}</p>
-                          <div className="mt-1 flex items-center gap-3">
+                          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5">
                             <span className={`text-xs font-medium ${needsAttention ? "text-amber-600" : "text-stone-400"}`}>
                               In lotting {formatBusinessDuration(waitMs)}
                             </span>
@@ -231,21 +227,18 @@ export default function LottingPage() {
                             )}
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <StatusBadge status={rack.status} />
-                          <button
-                            onClick={async (e) => {
-                              e.stopPropagation();
-                              const result = await advanceStatus(rack.id);
-                              if (result.ok) addToast(`${rack.rackCode} moved to ready`);
-                            }}
-                            className={`rounded-lg px-3 py-1.5 text-xs font-medium text-white transition-colors ${
-                              isCritical ? "bg-red-500 hover:bg-red-600" : "bg-orange-500 hover:bg-orange-600"
-                            }`}
-                          >
-                            Mark ready
-                          </button>
-                        </div>
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            const result = await advanceStatus(rack.id);
+                            if (result.ok) addToast(`${rack.rackCode} moved to ready`);
+                          }}
+                          className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium text-white transition-colors ${
+                            isCritical ? "bg-red-500 hover:bg-red-600" : "bg-orange-500 hover:bg-orange-600"
+                          }`}
+                        >
+                          Mark ready
+                        </button>
                       </div>
                     </li>
                   );
