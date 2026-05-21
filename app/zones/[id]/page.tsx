@@ -169,7 +169,6 @@ function PUFloorPlan({
       <>
         <div className="flex flex-col items-center gap-0.5 px-1.5 w-full overflow-hidden">
           <p className="text-[11px] font-mono font-bold text-violet-800 text-center leading-tight truncate w-full">{placed.rackCode}</p>
-          <p className="text-[9px] text-violet-500 text-center leading-tight truncate w-full">{placed.consignerName}</p>
           {(placed.auctionColor || dateLabel) && (
             <div className="flex items-center gap-1 mt-0.5">
               {placed.auctionColor && (
