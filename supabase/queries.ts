@@ -40,7 +40,6 @@ export interface DeliveryRow {
   delivery_code: string;
   consigner_name: string;
   consigner_j_number: string | null;
-  expected_rack_count: number;
   type: DeliveryType;
   status: DeliveryStatus;
   scheduled_date: string;
@@ -120,7 +119,6 @@ export function toDelivery(row: DeliveryRow): Delivery {
     deliveryCode:      row.delivery_code,
     consignerName:     row.consigner_name,
     consignerJNumber:  row.consigner_j_number ?? undefined,
-    expectedRackCount: row.expected_rack_count,
     type:              row.type,
     status:            row.status,
     scheduledDate:     row.scheduled_date,
@@ -486,7 +484,6 @@ export async function createDelivery(input: {
     .insert({
       consigner_name:      input.consignerName,
       consigner_j_number:  input.consignerJNumber?.trim() || null,
-      expected_rack_count: 0,
       type:                input.type,
       status:              isWalkin ? "arrived" : "scheduled",
       scheduled_date:      input.scheduledDate,

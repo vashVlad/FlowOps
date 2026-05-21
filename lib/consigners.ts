@@ -108,7 +108,6 @@ export function buildIntakeForecast(
   const base = new Date();
   base.setHours(0, 0, 0, 0);
   const next7d = new Date(base.getTime() + 7 * 86_400_000);
-  const next3d = new Date(base.getTime() + 3 * 86_400_000);
 
   const scheduledSoon = deliveries.filter((d) => {
     if (d.status !== "scheduled") return false;
@@ -118,18 +117,9 @@ export function buildIntakeForecast(
 
   if (scheduledSoon.length === 0) return items;
 
-  const expectedTotal  = scheduledSoon.reduce((s, d) => s + d.expectedRackCount, 0);
-  const activeRacks    = racks.filter((r) => r.status !== "completed").length;
   const currentLotting = racks.filter((r) => r.status === "lotting").length;
 
-  // High intake week
-  if (expectedTotal >= 15) {
-    items.push({
-      severity: "warning",
-      message:  `${expectedTotal} racks expected this week`,
-      detail:   `${scheduledSoon.length} scheduled deliveries · ${activeRacks} already active`,
-    });
-  } else if (scheduledSoon.length >= 2 && expectedTotal >= 6) {
+  if (scheduledSoon.length >= 2) {
     items.push({
       severity: "info",
       message:  `${scheduledSoon.length} deliveries scheduled this week`,
@@ -137,24 +127,12 @@ export function buildIntakeForecast(
     });
   }
 
-  // Large single delivery incoming ≤ 3 days
-  const bigSoon = scheduledSoon.filter(
-    (d) => d.expectedRackCount >= 10 && new Date(d.scheduledDate + "T00:00:00") <= next3d
-  );
-  for (const d of bigSoon) {
-    items.push({
-      severity: "warning",
-      message:  `Large delivery — ${d.consignerName} · ${d.expectedRackCount} racks`,
-      detail:   `Arriving ${formatDate(d.scheduledDate)} · plan receiving capacity`,
-    });
-  }
-
-  // Lotting may compound
-  if (currentLotting >= 8 && expectedTotal >= 5) {
+  // Lotting may compound with more deliveries incoming
+  if (currentLotting >= 8) {
     items.push({
       severity: "warning",
       message:  "Lotting load may increase this week",
-      detail:   `${currentLotting} in lotting now · ~${expectedTotal} more racks inbound`,
+      detail:   `${currentLotting} in lotting now · ${scheduledSoon.length} deliver${scheduledSoon.length === 1 ? "y" : "ies"} incoming`,
     });
   }
 

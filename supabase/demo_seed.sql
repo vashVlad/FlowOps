@@ -53,53 +53,47 @@ DELETE FROM racks
 -- ── Deliveries (DEL-0004 to DEL-0011) ────────────────────────────────────────
 
 INSERT INTO deliveries
-  (id, delivery_code, consigner_name, expected_rack_count, type, status,
-   scheduled_date, arrived_at, completed_at, notes, created_at, updated_at)
+  (id, delivery_code, consigner_name, type, status,
+   scheduled_date, arrived_at, completed_at, created_at, updated_at)
 VALUES
   ('22222222-0000-0000-0000-000000000004',
-   'DEL-0004', 'Hargrove Estate', 10, 'scheduled', 'processing',
+   'DEL-0004', 'Hargrove Estate', 'scheduled', 'processing',
    CURRENT_DATE - 12, NOW() - INTERVAL '10 days', NULL,
-   'Large house clearance — mixed antiques and furniture',
    NOW() - INTERVAL '12 days', NOW() - INTERVAL '10 days'),
 
   ('22222222-0000-0000-0000-000000000005',
-   'DEL-0005', 'Whitmore Antiques', 16, 'scheduled', 'processing',
+   'DEL-0005', 'Whitmore Antiques', 'scheduled', 'processing',
    CURRENT_DATE - 30, NOW() - INTERVAL '28 days', NULL,
-   'Quarterly auction batch — coordinating pickup schedule with buyer',
    NOW() - INTERVAL '32 days', NOW() - INTERVAL '28 days'),
 
   ('22222222-0000-0000-0000-000000000006',
-   'DEL-0006', 'Pemberton & Co.', 6, 'scheduled', 'processing',
+   'DEL-0006', 'Pemberton & Co.', 'scheduled', 'processing',
    CURRENT_DATE - 8, NOW() - INTERVAL '7 days', NULL,
-   'Mixed furniture and collectibles',
    NOW() - INTERVAL '9 days', NOW() - INTERVAL '7 days'),
 
   ('22222222-0000-0000-0000-000000000007',
-   'DEL-0007', 'Crown Walk-in', 0, 'walkin', 'processing',
-   CURRENT_DATE - 2, NOW() - INTERVAL '2 days', NULL, NULL,
+   'DEL-0007', 'Crown Walk-in', 'walkin', 'processing',
+   CURRENT_DATE - 2, NOW() - INTERVAL '2 days', NULL,
    NOW() - INTERVAL '2 days', NOW() - INTERVAL '2 days'),
 
   ('22222222-0000-0000-0000-000000000008',
-   'DEL-0008', 'Blackwood Furniture', 4, 'walkin', 'complete',
+   'DEL-0008', 'Blackwood Furniture', 'walkin', 'complete',
    CURRENT_DATE - 14, NOW() - INTERVAL '14 days', NOW() - INTERVAL '10 days',
-   NULL, NOW() - INTERVAL '14 days', NOW() - INTERVAL '10 days'),
+   NOW() - INTERVAL '14 days', NOW() - INTERVAL '10 days'),
 
   ('22222222-0000-0000-0000-000000000009',
-   'DEL-0009', 'Fernwood Estates', 5, 'scheduled', 'processing',
+   'DEL-0009', 'Fernwood Estates', 'scheduled', 'processing',
    CURRENT_DATE - 11, NOW() - INTERVAL '9 days', NULL,
-   'Large estate — complex mixed categories requiring extra cataloguing time',
    NOW() - INTERVAL '11 days', NOW() - INTERVAL '9 days'),
 
   ('22222222-0000-0000-0000-000000000010',
-   'DEL-0010', 'Sterling Collections', 4, 'scheduled', 'arrived',
+   'DEL-0010', 'Sterling Collections', 'scheduled', 'arrived',
    CURRENT_DATE, NOW() - INTERVAL '3 hours', NULL,
-   'Pre-sorted by category on arrival — fast-track sorting expected',
    NOW() - INTERVAL '1 day', NOW() - INTERVAL '3 hours'),
 
   ('22222222-0000-0000-0000-000000000011',
-   'DEL-0011', 'Caldwell House', 10, 'scheduled', 'scheduled',
+   'DEL-0011', 'Caldwell House', 'scheduled', 'scheduled',
    CURRENT_DATE + 5, NULL, NULL,
-   'Large Victorian house — request extra sorting staff on intake day',
    NOW() - INTERVAL '3 days', NOW() - INTERVAL '3 days')
 
 ON CONFLICT (id) DO NOTHING;

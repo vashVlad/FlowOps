@@ -33,33 +33,30 @@ ON CONFLICT (id) DO NOTHING;
 -- ── Deliveries ────────────────────────────────────────────────────────────────
 
 INSERT INTO deliveries
-  (id, delivery_code, consigner_name, expected_rack_count, type, status,
-   scheduled_date, arrived_at, notes, created_at, updated_at)
+  (id, delivery_code, consigner_name, type, status,
+   scheduled_date, arrived_at, created_at, updated_at)
 VALUES
   (
     '22222222-2222-2222-2222-222222222201',
-    'DEL-0001', 'Martin & Sons', 4, 'scheduled', 'processing',
+    'DEL-0001', 'Martin & Sons', 'scheduled', 'processing',
     CURRENT_DATE - 1,
     NOW() - INTERVAL '4 hours',
-    NULL,
     NOW() - INTERVAL '2 days',
     NOW() - INTERVAL '4 hours'
   ),
   (
     '22222222-2222-2222-2222-222222222202',
-    'DEL-0002', 'Greenfield Estate', 3, 'walkin', 'processing',
+    'DEL-0002', 'Greenfield Estate', 'walkin', 'processing',
     CURRENT_DATE - 8,
     NOW() - INTERVAL '8 days',
-    NULL,
     NOW() - INTERVAL '8 days',
     NOW() - INTERVAL '8 days'
   ),
   (
     '22222222-2222-2222-2222-222222222203',
-    'DEL-0003', 'Harlow Antiques', 3, 'scheduled', 'scheduled',
+    'DEL-0003', 'Harlow Antiques', 'scheduled', 'scheduled',
     CURRENT_DATE + INTERVAL '2 days',
     NULL,
-    'Large furniture items — confirm unloading bay availability',
     NOW() - INTERVAL '48 hours',
     NOW() - INTERVAL '48 hours'
   )

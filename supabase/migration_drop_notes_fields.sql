@@ -15,5 +15,6 @@ FROM deliveries
 WHERE notes IS NOT NULL AND trim(notes) <> '';
 
 -- 3. Drop columns
-ALTER TABLE racks     DROP COLUMN IF EXISTS notes;
+ALTER TABLE racks      DROP COLUMN IF EXISTS notes;
 ALTER TABLE deliveries DROP COLUMN IF EXISTS notes;
+ALTER TABLE deliveries DROP COLUMN IF EXISTS expected_rack_count;

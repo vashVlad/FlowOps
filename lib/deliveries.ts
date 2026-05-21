@@ -3,8 +3,7 @@ import { formatDate } from "@/lib/utils";
 
 /**
  * Estimates the rack count for a new delivery based on historical actuals
- * for the same consigner. Uses linked rack counts, not expectedRackCount,
- * because expectedRackCount is often 0 for walk-ins.
+ * for the same consigner, using linked rack counts from completed deliveries.
  *
  * Returns null when there is no history or the average rounds to zero.
  */

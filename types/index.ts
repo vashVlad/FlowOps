@@ -18,7 +18,6 @@ export interface Rack {
   priority: Priority;
   zoneId?: string;         // physical location on the warehouse floor
   deliveryId: string;
-  notes?: string;
   holdReason?: string;     // set when rack is on hold
   holdStartedAt?: string;  // ISO 8601 — when hold was placed
   auctionColor?: string;   // hex color — auction run identifier
@@ -76,7 +75,6 @@ export interface Delivery {
   deliveryCode: string;
   consignerName: string;
   consignerJNumber?: string; // optional warehouse J-Number
-  expectedRackCount: number; // 0 = unknown (common for walk-ins)
   type: DeliveryType;
   status: DeliveryStatus;
   scheduledDate: string; // YYYY-MM-DD (today for walk-ins)

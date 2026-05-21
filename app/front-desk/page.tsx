@@ -40,7 +40,6 @@ function DeliveryRow({ delivery }: { delivery: Delivery }) {
         </div>
         <p className="text-xs text-stone-400 mt-0.5">
           {delivery.deliveryCode} · {timeLabel}
-          {delivery.expectedRackCount > 0 && ` · ${delivery.expectedRackCount} racks expected`}
         </p>
       </div>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-stone-300 shrink-0">

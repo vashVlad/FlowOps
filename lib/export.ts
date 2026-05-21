@@ -78,7 +78,7 @@ export function exportDeliveries(
   const headers = [
     "Delivery Code", "Consigner", "J-Number", "Type", "Status",
     "Date", "Completed At", "Auction Date",
-    "Expected Racks", "Linked Racks", "Done Racks", "Progress %",
+    "Linked Racks", "Done Racks", "Progress %",
     "Donation %", "Trash %", "Sellable %",
   ];
 
@@ -101,7 +101,6 @@ export function exportDeliveries(
       d.arrivedAt ? isoToLocal(d.arrivedAt) : d.scheduledDate,
       isoToLocal(d.completedAt),
       d.auctionDate ?? "",
-      d.expectedRackCount || "",
       linked.length,
       done.length,
       total > 0 ? `${pct}%` : "",
