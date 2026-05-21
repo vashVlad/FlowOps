@@ -4,6 +4,7 @@ import { ok, err, logMutationError, type MutationResult } from "@/lib/store";
 import { STATUS_ORDER, getNextStatus, getPrevStatus } from "@/lib/racks";
 import { useDeliveriesStore } from "@/store/deliveries";
 import { useZonesStore } from "@/store/zones";
+import { useAuthStore } from "@/store/auth";
 import {
   fetchRacks,
   fetchAllRackEvents,
@@ -143,11 +144,12 @@ export const useRacksStore = create<RacksStore>()((set, get) => ({
     // DB write succeeded — safe to update local state
     const ts = new Date().toISOString();
     const event: HistoryEvent = {
-      id: crypto.randomUUID(),
-      rackId: id,
-      from: rack.status,
-      to: next,
-      timestamp: ts,
+      id:          crypto.randomUUID(),
+      rackId:      id,
+      from:        rack.status,
+      to:          next,
+      timestamp:   ts,
+      performedBy: useAuthStore.getState().user?.email ?? undefined,
     };
     const updatedRacks = racks.map((r) =>
       r.id === id ? { ...r, status: next, updatedAt: ts } : r
@@ -205,11 +207,12 @@ export const useRacksStore = create<RacksStore>()((set, get) => ({
 
     const ts = new Date().toISOString();
     const event: HistoryEvent = {
-      id: crypto.randomUUID(),
-      rackId: id,
-      from: rack.status,
-      to: prev,
-      timestamp: ts,
+      id:          crypto.randomUUID(),
+      rackId:      id,
+      from:        rack.status,
+      to:          prev,
+      timestamp:   ts,
+      performedBy: useAuthStore.getState().user?.email ?? undefined,
     };
     set({
       history: [...history, event],
@@ -275,11 +278,12 @@ export const useRacksStore = create<RacksStore>()((set, get) => ({
 
     const ts = new Date().toISOString();
     const event: HistoryEvent = {
-      id: crypto.randomUUID(),
-      rackId: id,
-      from: rack.status,
-      to: "sorted",
-      timestamp: ts,
+      id:          crypto.randomUUID(),
+      rackId:      id,
+      from:        rack.status,
+      to:          "sorted",
+      timestamp:   ts,
+      performedBy: useAuthStore.getState().user?.email ?? undefined,
     };
     set({
       history: [...history, event],

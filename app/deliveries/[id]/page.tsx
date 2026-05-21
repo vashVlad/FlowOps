@@ -44,25 +44,6 @@ const PREV_STATUS: Record<DeliveryStatus, DeliveryStatus | null> = {
   complete:   "processing",
 };
 
-function formatAuctionDate(dateStr: string): string {
-  const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-}
-
-function businessDaysUntil(dateStr: string): number {
-  const now    = new Date();
-  now.setHours(0, 0, 0, 0);
-  const target = new Date(dateStr + "T00:00:00");
-  if (target < now) return -1;
-  let days = 0;
-  const cur = new Date(now);
-  while (cur <= target) {
-    const day = cur.getDay();
-    if (day !== 0 && day !== 6) days++;
-    cur.setDate(cur.getDate() + 1);
-  }
-  return days;
-}
 
 export default function DeliveryDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -103,9 +84,6 @@ export default function DeliveryDetailPage() {
   // ── Revert confirm ────────────────────────────────────────────────────────
   const [revertConfirm, setRevertConfirm] = useState(false);
 
-  // ── Auction date ──────────────────────────────────────────────────────────
-  const [auctionEditing, setAuctionEditing] = useState(false);
-  const [auctionValue, setAuctionValue]     = useState("");
 
   // ── Notes ─────────────────────────────────────────────────────────────────
   const [noteInput, setNoteInput] = useState("");
@@ -130,9 +108,9 @@ export default function DeliveryDetailPage() {
   if (!delivery) {
     return (
       <div className="space-y-4">
-        <Link href="/deliveries" className="inline-flex items-center gap-1.5 text-sm text-stone-400 hover:text-stone-700 transition-colors">
+        <button onClick={() => router.back()} className="inline-flex items-center gap-1.5 text-sm text-stone-400 hover:text-stone-700 transition-colors">
           ← Deliveries
-        </Link>
+        </button>
         <div className="rounded-xl border border-stone-200 bg-white px-5 py-6 shadow-sm text-center space-y-1">
           <p className="text-sm font-medium text-stone-700">Delivery not found</p>
           <p className="text-xs text-stone-400">It may have been removed or the link is incorrect.</p>
@@ -165,11 +143,7 @@ export default function DeliveryDetailPage() {
 
   const inputCls = "w-full rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500";
 
-  const auctionDays   = delivery.auctionDate ? businessDaysUntil(delivery.auctionDate) : null;
-  const auctionUrgent = auctionDays !== null && auctionDays <= 3;
-  const auctionPast   = auctionDays !== null && auctionDays < 0;
-
-  const donationPct  = delivery.donationPercent ?? 0;
+const donationPct  = delivery.donationPercent ?? 0;
   const trashPct     = delivery.trashPercent    ?? 0;
   const sellablePct  = Math.max(0, 100 - donationPct - trashPct);
   const hasOutcome   = delivery.donationPercent != null || delivery.trashPercent != null;
@@ -262,9 +236,9 @@ export default function DeliveryDetailPage() {
 
   return (
     <div className="space-y-4">
-      <Link href="/deliveries" className="inline-flex items-center gap-1.5 text-sm text-stone-400 hover:text-stone-700 transition-colors">
+      <button onClick={() => router.back()} className="inline-flex items-center gap-1.5 text-sm text-stone-400 hover:text-stone-700 transition-colors">
         ← Deliveries
-      </Link>
+      </button>
 
       <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[1fr_380px] lg:items-start">
 
@@ -495,64 +469,6 @@ export default function DeliveryDetailPage() {
                   </div>
                 );
               })()}
-              {/* Auction date */}
-              <div>
-                <dt className="text-[11px] font-medium uppercase tracking-wide text-stone-400 mb-1">Auction Date</dt>
-                <dd className="flex items-center gap-1.5">
-                  {auctionEditing ? (
-                    <div className="flex gap-1.5 items-center">
-                      <input
-                        type="date"
-                        value={auctionValue}
-                        onChange={(e) => setAuctionValue(e.target.value)}
-                        className="rounded border border-stone-200 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500"
-                        autoFocus
-                      />
-                      <button
-                        onClick={async () => {
-                          const result = await updateDelivery(delivery.id, { auctionDate: auctionValue || null });
-                          if (result.ok) { setAuctionEditing(false); addToast("Auction date saved"); }
-                        }}
-                        className="text-xs font-medium text-orange-600 hover:text-orange-700 transition-colors"
-                      >
-                        Save
-                      </button>
-                      <button onClick={() => setAuctionEditing(false)} className="text-xs text-stone-400 hover:text-stone-600 transition-colors">
-                        Cancel
-                      </button>
-                    </div>
-                  ) : delivery.auctionDate ? (
-                    <>
-                      <span className={`text-sm font-medium ${
-                        auctionPast ? "text-red-600" : auctionUrgent ? "text-amber-700" : "text-stone-700"
-                      }`}>
-                        {formatAuctionDate(delivery.auctionDate)}
-                      </span>
-                      {auctionPast && (
-                        <span className="rounded-md bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-600">past</span>
-                      )}
-                      {!auctionPast && auctionUrgent && auctionDays !== null && (
-                        <span className="rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
-                          {auctionDays === 1 ? "tomorrow" : `${auctionDays}d`}
-                        </span>
-                      )}
-                      <button
-                        onClick={() => { setAuctionValue(delivery.auctionDate ?? ""); setAuctionEditing(true); }}
-                        className="text-[10px] text-stone-300 hover:text-stone-600 transition-colors ml-1"
-                      >
-                        Edit
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      onClick={() => { setAuctionValue(""); setAuctionEditing(true); }}
-                      className="text-xs text-stone-400 hover:text-orange-600 transition-colors"
-                    >
-                      Set date
-                    </button>
-                  )}
-                </dd>
-              </div>
             </dl>
 
             {/* ── OUTCOME ───────────────────────────────────────────────────── */}

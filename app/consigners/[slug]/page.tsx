@@ -60,9 +60,9 @@ export default function ConsignerDetailPage() {
   if (!profile) {
     return (
       <div className="space-y-4">
-        <Link href="/consigners" className="inline-flex items-center gap-1.5 text-sm text-stone-400 hover:text-stone-700 transition-colors">
+        <button onClick={() => router.back()} className="inline-flex items-center gap-1.5 text-sm text-stone-400 hover:text-stone-700 transition-colors">
           ← Consigners
-        </Link>
+        </button>
         <div className="rounded-xl border border-stone-200 bg-white px-5 py-8 shadow-sm text-center space-y-1">
           <p className="text-sm font-medium text-stone-700">Consigner not found</p>
           <p className="text-xs text-stone-400">No deliveries found for this consigner name.</p>
@@ -161,12 +161,6 @@ export default function ConsignerDetailPage() {
                     {profile.activeRacks > 0 && (
                       <span className="text-orange-600 font-normal text-xs ml-1">({profile.activeRacks} active)</span>
                     )}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-[11px] font-medium uppercase tracking-wide text-stone-400 mb-1">Avg racks</dt>
-                  <dd className="text-sm font-medium text-stone-800">
-                    {profile.avgRacksPerDelivery > 0 ? `${profile.avgRacksPerDelivery}/delivery` : "—"}
                   </dd>
                 </div>
                 <div>

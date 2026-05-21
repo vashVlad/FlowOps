@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useRacksStore } from "@/store/racks";
 import { useDeliveriesStore } from "@/store/deliveries";
@@ -9,7 +9,8 @@ import { usePrintQueueStore } from "@/store/printQueue";
 import { RackLabel } from "@/components/RackLabel";
 
 export default function RackLabelPage() {
-  const { id } = useParams<{ id: string }>();
+  const { id }    = useParams<{ id: string }>();
+  const router    = useRouter();
   const { racks }      = useRacksStore();
   const { deliveries } = useDeliveriesStore();
   const { has, add, remove } = usePrintQueueStore();
@@ -28,7 +29,7 @@ export default function RackLabelPage() {
     return (
       <div className="p-8 text-center space-y-2">
         <p className="text-sm font-medium text-stone-700">Rack not found</p>
-        <Link href="/racks" className="text-xs text-orange-600 hover:underline">← Back to racks</Link>
+        <button onClick={() => router.back()} className="text-xs text-orange-600 hover:underline">← Back to racks</button>
       </div>
     );
   }
@@ -42,12 +43,12 @@ export default function RackLabelPage() {
       `}</style>
 
       <div className="no-print flex items-center gap-3 mb-8 flex-wrap">
-        <Link
-          href={`/racks/${id}`}
+        <button
+          onClick={() => router.back()}
           className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm font-medium text-stone-600 hover:bg-stone-50 transition-colors"
         >
           ← Back
-        </Link>
+        </button>
         <button
           onClick={() => window.print()}
           className="rounded-lg bg-orange-600 px-5 py-2 text-sm font-medium text-white hover:bg-orange-700 transition-colors"

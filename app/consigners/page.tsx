@@ -31,7 +31,7 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
 function sortProfiles(profiles: ConsignerProfile[], sort: SortKey): ConsignerProfile[] {
   return [...profiles].sort((a, b) => {
     switch (sort) {
-      case "active":  return (b.activeDeliveries - a.activeDeliveries) || (b.totalDeliveries - a.totalDeliveries);
+      case "active":  return (b.processingDeliveries - a.processingDeliveries) || (b.totalDeliveries - a.totalDeliveries);
       case "racks":   return b.totalRacks - a.totalRacks;
       case "newest":  return b.lastDeliveryDate.localeCompare(a.lastDeliveryDate);
       case "name":    return a.name.localeCompare(b.name);
@@ -40,7 +40,7 @@ function sortProfiles(profiles: ConsignerProfile[], sort: SortKey): ConsignerPro
 }
 
 function ConsignerCard({ profile }: { profile: ConsignerProfile }) {
-  const isActive = profile.activeDeliveries > 0;
+  const isActive = profile.processingDeliveries > 0;
   return (
     <Link
       href={`/consigners/${encodeURIComponent(profile.name)}`}
@@ -69,22 +69,16 @@ function ConsignerCard({ profile }: { profile: ConsignerProfile }) {
         <span>
           <span className="font-semibold text-stone-800">{profile.totalDeliveries}</span>{" "}
           {profile.totalDeliveries === 1 ? "delivery" : "deliveries"}
-          {profile.activeDeliveries > 0 && (
-            <span className="text-orange-600 ml-1">· {profile.activeDeliveries} active</span>
-          )}
         </span>
-        <span>
-          <span className="font-semibold text-stone-800">{profile.totalRacks}</span> racks
-          {profile.activeRacks > 0 && (
-            <span className="text-orange-600 ml-1">· {profile.activeRacks} active</span>
-          )}
-        </span>
+        {profile.activeRacks > 0 && (
+          <span>
+            <span className="font-semibold text-stone-800">{profile.activeRacks}</span>{" "}
+            active {profile.activeRacks === 1 ? "rack" : "racks"}
+          </span>
+        )}
       </div>
 
       <div className="mt-1.5 flex items-center gap-4 text-xs text-stone-400">
-        {profile.avgRacksPerDelivery > 0 && (
-          <span>avg {profile.avgRacksPerDelivery} racks/delivery</span>
-        )}
         {profile.avgProcessingDays !== null && (
           <span>avg {profile.avgProcessingDays}d to complete</span>
         )}
@@ -133,7 +127,7 @@ export default function ConsignersPage() {
   }, [profiles, query, sort]);
 
   const isLoading = dLoading || rLoading;
-  const activeCount = profiles.filter((p) => p.activeDeliveries > 0).length;
+  const activeCount = profiles.filter((p) => p.processingDeliveries > 0).length;
 
   return (
     <div className="space-y-4">

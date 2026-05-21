@@ -467,9 +467,9 @@ export default function ZoneDetailPage() {
   if (!zone) {
     return (
       <div className="space-y-4">
-        <Link href="/zones" className="inline-flex items-center gap-1.5 text-sm text-stone-400 hover:text-stone-700 transition-colors">
+        <button onClick={() => router.back()} className="inline-flex items-center gap-1.5 text-sm text-stone-400 hover:text-stone-700 transition-colors">
           ← Zones
-        </Link>
+        </button>
         <div className="rounded-xl border border-stone-200 bg-white px-5 py-6 shadow-sm text-center space-y-1">
           <p className="text-sm font-medium text-stone-700">Zone not found</p>
           <p className="text-xs text-stone-400">It may have been removed or the link is incorrect.</p>
@@ -621,7 +621,7 @@ export default function ZoneDetailPage() {
       <div className="flex flex-col gap-3" style={{ height: "calc(100dvh - 84px)" }}>
         {/* top bar */}
         <div className="flex items-center gap-3 shrink-0 flex-wrap">
-          <Link href="/zones" className="text-sm text-stone-400 hover:text-stone-700 transition-colors">← Zones</Link>
+          <button onClick={() => router.back()} className="text-sm text-stone-400 hover:text-stone-700 transition-colors">← Zones</button>
           <span className="text-stone-300 select-none">·</span>
           <h1 className="text-sm font-bold text-violet-700">Pick-Up</h1>
           <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${
@@ -678,9 +678,9 @@ export default function ZoneDetailPage() {
 
   return (
     <div className="space-y-5">
-      <Link href="/zones" className="inline-flex items-center gap-1.5 text-sm text-stone-400 hover:text-stone-700 transition-colors">
+      <button onClick={() => router.back()} className="inline-flex items-center gap-1.5 text-sm text-stone-400 hover:text-stone-700 transition-colors">
         ← Zones
-      </Link>
+      </button>
 
       {/* ── Main card ──────────────────────────────────────────────────────── */}
       <div className="rounded-xl border border-stone-200 bg-white shadow-sm overflow-hidden">

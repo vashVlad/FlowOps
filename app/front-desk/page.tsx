@@ -11,6 +11,9 @@ import DeliveryStatusBadge from "@/components/DeliveryStatusBadge";
 import { today } from "@/lib/utils";
 import type { Delivery } from "@/types";
 
+const inputCls =
+  "w-full rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500";
+
 // ── Delivery timeline card ─────────────────────────────────────────────────────
 
 function DeliveryRow({ delivery }: { delivery: Delivery }) {
@@ -34,11 +37,6 @@ function DeliveryRow({ delivery }: { delivery: Delivery }) {
         <div className="flex items-center gap-2 flex-wrap">
           <p className="text-sm font-semibold text-stone-900 truncate">{delivery.consignerName}</p>
           <DeliveryStatusBadge status={delivery.status} />
-          {delivery.auctionDate && (
-            <span className="text-[10px] font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
-              Auction {new Date(delivery.auctionDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-            </span>
-          )}
         </div>
         <p className="text-xs text-stone-400 mt-0.5">
           {delivery.deliveryCode} · {timeLabel}
@@ -117,11 +115,53 @@ function ConsignerLookup() {
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function FrontDeskPage() {
-  const deliveries = useDeliveriesStore((s) => s.deliveries);
-  const racks      = useRacksStore((s) => s.racks);
-  const router     = useRouter();
+  const { deliveries, addDelivery } = useDeliveriesStore();
+  const racks  = useRacksStore((s) => s.racks);
+  const router = useRouter();
 
   const todayStr = today();
+
+  // ── Inline form state ────────────────────────────────────────────────────────
+  type FormMode = "walkin" | "scheduled" | null;
+  const [formMode,       setFormMode]       = useState<FormMode>(null);
+  const [consignerName,  setConsignerName]  = useState("");
+  const [jNumber,        setJNumber]        = useState("");
+  const [scheduledDate,  setScheduledDate]  = useState(today());
+  const [formError,      setFormError]      = useState("");
+  const [submitting,     setSubmitting]     = useState(false);
+
+  function openForm(mode: FormMode) {
+    setFormMode(mode);
+    setConsignerName(""); setJNumber(""); setScheduledDate(today()); setFormError("");
+  }
+
+  async function handleWalkIn(e: React.FormEvent) {
+    e.preventDefault();
+    if (!consignerName.trim()) return setFormError("Consigner name required.");
+    setSubmitting(true);
+    const result = await addDelivery({
+      type: "walkin",
+      consignerName: consignerName.trim(),
+      consignerJNumber: jNumber.trim() || undefined,
+    });
+    setSubmitting(false);
+    if (!result.ok) return setFormError("Failed to create delivery.");
+    router.push(`/deliveries/${result.data.id}`);
+  }
+
+  async function handleScheduled(e: React.FormEvent) {
+    e.preventDefault();
+    if (!consignerName.trim()) return setFormError("Consigner name required.");
+    setSubmitting(true);
+    await addDelivery({
+      type: "scheduled",
+      consignerName: consignerName.trim(),
+      consignerJNumber: jNumber.trim() || undefined,
+      scheduledDate,
+    });
+    setSubmitting(false);
+    openForm(null);
+  }
 
   // Today's active deliveries — scheduled for today or currently processing/arrived
   const todayDeliveries = deliveries
@@ -145,14 +185,6 @@ export default function FrontDeskPage() {
   const processingCount = deliveries.filter((d) => d.status === "processing").length;
   const scheduledToday  = deliveries.filter((d) => d.status === "scheduled" && d.scheduledDate === todayStr).length;
 
-  function startWalkIn() {
-    router.push("/deliveries?new=walkin");
-  }
-
-  function scheduleDelivery() {
-    router.push("/deliveries?new=scheduled");
-  }
-
   return (
     <>
       <PageHeader
@@ -160,40 +192,87 @@ export default function FrontDeskPage() {
         subtitle={new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
       />
 
-      {/* Quick actions */}
-      <div className="grid grid-cols-2 gap-3 mt-4">
-        <button
-          onClick={startWalkIn}
-          className="flex flex-col items-start gap-2 rounded-xl bg-orange-600 px-4 py-4 text-white hover:bg-orange-700 transition-colors"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 opacity-80">
-            <rect x="1" y="3" width="15" height="13" rx="1" />
-            <path d="M16 8h4l3 5v4h-7V8z" />
-            <circle cx="5.5" cy="18.5" r="2.5" />
-            <circle cx="18.5" cy="18.5" r="2.5" />
-          </svg>
-          <div>
-            <p className="text-sm font-semibold">Walk-in</p>
-            <p className="text-xs opacity-70">Truck just arrived</p>
-          </div>
-        </button>
+      {/* Quick actions / inline forms */}
+      {formMode === null ? (
+        <div className="grid grid-cols-2 gap-3 mt-4">
+          <button
+            onClick={() => openForm("walkin")}
+            className="flex flex-col items-start gap-2 rounded-xl bg-orange-600 px-4 py-4 text-white hover:bg-orange-700 transition-colors"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 opacity-80">
+              <rect x="1" y="3" width="15" height="13" rx="1" />
+              <path d="M16 8h4l3 5v4h-7V8z" />
+              <circle cx="5.5" cy="18.5" r="2.5" />
+              <circle cx="18.5" cy="18.5" r="2.5" />
+            </svg>
+            <div>
+              <p className="text-sm font-semibold">Walk-in</p>
+              <p className="text-xs opacity-70">Truck just arrived</p>
+            </div>
+          </button>
 
-        <button
-          onClick={scheduleDelivery}
-          className="flex flex-col items-start gap-2 rounded-xl bg-white border border-stone-200 px-4 py-4 text-stone-900 hover:bg-stone-50 transition-colors"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-stone-400">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-            <line x1="16" y1="2" x2="16" y2="6" />
-            <line x1="8" y1="2" x2="8" y2="6" />
-            <line x1="3" y1="10" x2="21" y2="10" />
-          </svg>
-          <div>
-            <p className="text-sm font-semibold">Schedule delivery</p>
-            <p className="text-xs text-stone-400">Book future appointment</p>
+          <button
+            onClick={() => openForm("scheduled")}
+            className="flex flex-col items-start gap-2 rounded-xl bg-white border border-stone-200 px-4 py-4 text-stone-900 hover:bg-stone-50 transition-colors"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-stone-400">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+            <div>
+              <p className="text-sm font-semibold">Schedule delivery</p>
+              <p className="text-xs text-stone-400">Book future appointment</p>
+            </div>
+          </button>
+        </div>
+      ) : (
+        <div className="mt-4 rounded-xl border border-stone-200 bg-white p-5 shadow-sm space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-stone-900">
+              {formMode === "walkin" ? "Walk-in arrival" : "Schedule delivery"}
+            </p>
+            <button onClick={() => openForm(null)} className="text-xs text-stone-400 hover:text-stone-700 transition-colors">
+              Cancel
+            </button>
           </div>
-        </button>
-      </div>
+
+          <form onSubmit={formMode === "walkin" ? handleWalkIn : handleScheduled} className="space-y-3">
+            <input
+              type="text"
+              placeholder="Consigner name"
+              value={consignerName}
+              onChange={(e) => setConsignerName(e.target.value)}
+              className={inputCls}
+              autoFocus
+            />
+            <input
+              type="text"
+              placeholder="J-Number (optional)"
+              value={jNumber}
+              onChange={(e) => setJNumber(e.target.value)}
+              className={inputCls}
+            />
+            {formMode === "scheduled" && (
+              <input
+                type="date"
+                value={scheduledDate}
+                onChange={(e) => setScheduledDate(e.target.value)}
+                className={inputCls}
+              />
+            )}
+            {formError && <p className="text-xs text-red-500">{formError}</p>}
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full rounded-lg bg-orange-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-orange-700 disabled:opacity-50 transition-colors"
+            >
+              {submitting ? "Saving…" : formMode === "walkin" ? "Create walk-in →" : "Schedule delivery"}
+            </button>
+          </form>
+        </div>
+      )}
 
       {/* Consigner lookup */}
       <div className="mt-4">

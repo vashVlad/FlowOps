@@ -10,9 +10,9 @@ export interface ConsignerProfile {
   deliveryIds: string[];
   totalDeliveries: number;
   activeDeliveries: number;
+  processingDeliveries: number; // arrived or processing only
   totalRacks: number;
   activeRacks: number;
-  avgRacksPerDelivery: number;
   lastDeliveryDate: string;       // YYYY-MM-DD
   avgProcessingDays: number | null; // calendar days avg for completed deliveries
   qualityTags: QualityTag[];
@@ -47,11 +47,10 @@ export function buildConsignerProfiles(
     const deliverySet = new Set(deliveryIds);
     const linkedRacks = racks.filter((r) => deliverySet.has(r.deliveryId));
 
-    const activeDeliveries = ds.filter((d) => d.status !== "complete").length;
+    const activeDeliveries      = ds.filter((d) => d.status !== "complete").length;
+    const processingDeliveries  = ds.filter((d) => d.status === "arrived" || d.status === "processing").length;
     const totalRacks       = linkedRacks.length;
     const activeRacks      = linkedRacks.filter((r) => r.status !== "completed").length;
-    const avgRacksPerDelivery = ds.length > 0 ? Math.round(totalRacks / ds.length) : 0;
-
     // Avg calendar days from creation to completion for completed deliveries
     const completed = ds.filter((d) => d.status === "complete" && d.completedAt);
     let avgProcessingDays: number | null = null;
@@ -68,8 +67,6 @@ export function buildConsignerProfiles(
 
     // Quality tags
     const tags: QualityTag[] = [];
-    if (avgRacksPerDelivery >= 8)
-      tags.push({ label: "High volume", color: "blue" });
     const heldRacks = linkedRacks.filter((r) => r.holdReason);
     if (heldRacks.length >= 2)
       tags.push({ label: "Frequently held", color: "amber" });
@@ -82,9 +79,9 @@ export function buildConsignerProfiles(
       deliveryIds,
       totalDeliveries:      ds.length,
       activeDeliveries,
+      processingDeliveries,
       totalRacks,
       activeRacks,
-      avgRacksPerDelivery,
       lastDeliveryDate:     mostRecent.scheduledDate,
       avgProcessingDays,
       qualityTags:          tags,

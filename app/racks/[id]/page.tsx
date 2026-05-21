@@ -60,6 +60,8 @@ export default function RackDetailPage() {
 
   // Revert confirm
   const [revertConfirm, setRevertConfirm] = useState(false);
+  // Auction color popover
+  const [colorOpen, setColorOpen]         = useState(false);
 
   // Priority picker for unpacking_sorting → sorted advance
   const [showPriorityPick,  setShowPriorityPick]  = useState(false);
@@ -88,9 +90,9 @@ export default function RackDetailPage() {
   if (!rack) {
     return (
       <div className="space-y-4">
-        <Link href="/racks" className="inline-flex items-center gap-1.5 text-sm text-stone-400 hover:text-stone-700 transition-colors">
+        <button onClick={() => router.back()} className="inline-flex items-center gap-1.5 text-sm text-stone-400 hover:text-stone-700 transition-colors">
           ← Racks
-        </Link>
+        </button>
         <div className="rounded-xl border border-stone-200 bg-white px-5 py-8 shadow-sm text-center space-y-1">
           <p className="text-sm font-medium text-stone-700">Rack not found</p>
           <p className="text-xs text-stone-400">It may have been removed or the link is incorrect.</p>
@@ -204,11 +206,6 @@ export default function RackDetailPage() {
                     </option>
                   ))}
                 </select>
-                <PriorityPicker value={editPriority} onChange={setEditPriority} />
-                <div className="space-y-1.5">
-                  <p className="text-xs font-medium text-stone-600">Auction color</p>
-                  <AuctionColorPicker value={editAuctionColor} onChange={setEditAuctionColor} />
-                </div>
                 {editError && <p className="text-xs text-red-500">{editError}</p>}
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex gap-2">
@@ -251,10 +248,31 @@ export default function RackDetailPage() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  {rack.auctionColor && (
-                    <span className="h-3.5 w-3.5 rounded-full shrink-0 ring-1 ring-stone-200"
-                      style={{ backgroundColor: rack.auctionColor }} />
-                  )}
+                  {/* Clickable auction color dot / picker */}
+                  <div className="relative shrink-0">
+                    <button
+                      onClick={() => setColorOpen((v) => !v)}
+                      className={`h-4 w-4 rounded-full ring-1 transition-all hover:scale-110 ${
+                        rack.auctionColor ? "ring-stone-200" : "ring-dashed ring-stone-300 bg-stone-100"
+                      }`}
+                      style={rack.auctionColor ? { backgroundColor: rack.auctionColor } : undefined}
+                      title="Set auction color"
+                    />
+                    {colorOpen && (
+                      <>
+                        <div className="fixed inset-0 z-30" onClick={() => setColorOpen(false)} />
+                        <div className="absolute left-0 top-full mt-1.5 z-40 rounded-xl border border-stone-200 bg-white p-3 shadow-lg">
+                          <AuctionColorPicker
+                            value={rack.auctionColor ?? ""}
+                            onChange={async (hex) => {
+                              const result = await updateRack(rack.id, { auctionColor: hex || null });
+                              if (result.ok) { setColorOpen(false); addToast(hex ? "Color set" : "Color cleared", "info"); }
+                            }}
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
                   <h1 className="text-xl font-bold text-stone-900 tracking-tight">{rack.rackCode}</h1>
                   <StatusBadge status={rack.status} />
                   {isHeld ? (
@@ -274,6 +292,7 @@ export default function RackDetailPage() {
                   ) : null}
                 </div>
                 <p className="mt-1 text-sm text-stone-400">{rack.consignerName}</p>
+                <p className="mt-0.5 text-[11px] text-stone-300">{timeAgo(rack.createdAt)}</p>
                 {delivery?.consignerJNumber && (
                   <p className="mt-0.5 text-xs text-stone-400 font-mono">{delivery.consignerJNumber}</p>
                 )}
@@ -311,8 +330,15 @@ export default function RackDetailPage() {
               {/* Priority picker — shown when advancing unpacking_sorting → sorted */}
               {showPriorityPick && (
                 <div className="rounded-lg border border-orange-200 bg-orange-50 p-3.5 space-y-2.5">
-                  <p className="text-xs font-semibold text-stone-700">Set priority before marking Sorted</p>
-                  <PriorityPicker value={pendingPriority} onChange={setPendingPriority} />
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={pendingPriority === "high"}
+                      onChange={(e) => setPendingPriority(e.target.checked ? "high" : "normal")}
+                      className="h-4 w-4 rounded border-stone-300 accent-orange-500 cursor-pointer"
+                    />
+                    <span className="text-sm font-medium text-stone-700">High priority</span>
+                  </label>
                   <div className="flex gap-2">
                     <button
                       onClick={async () => {
@@ -332,6 +358,38 @@ export default function RackDetailPage() {
               )}
 
               <div className="flex gap-2">
+                {/* Revert — left of advance button, admin only */}
+                {isAdmin && getPrevStatus(rack.status) && roleCanAdvance && (
+                  revertConfirm ? (
+                    <>
+                      <button
+                        onClick={async () => {
+                          const prev = getPrevStatus(rack.status);
+                          const result = await revertStatus(rack.id);
+                          if (result.ok) { setRevertConfirm(false); addToast(`Moved back to ${STAGE_LABEL[prev!]}`); }
+                        }}
+                        className="rounded-lg bg-stone-100 px-3 py-3 text-xs font-medium text-stone-700 hover:bg-stone-200 transition-colors"
+                      >
+                        ← Confirm
+                      </button>
+                      <button
+                        onClick={() => setRevertConfirm(false)}
+                        className="rounded-lg border border-stone-200 px-2.5 py-3 text-xs text-stone-400 hover:text-stone-600 transition-colors"
+                      >
+                        ✕
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => setRevertConfirm(true)}
+                      className="rounded-lg border border-stone-200 px-3 py-3 text-xs font-medium text-stone-500 hover:bg-stone-50 transition-colors"
+                      title={`Move back to ${STAGE_LABEL[getPrevStatus(rack.status)!]}`}
+                    >
+                      ←
+                    </button>
+                  )
+                )}
+
                 {/* Primary: move forward — hidden for view-only roles */}
                 {roleCanAdvance && (
                 <button
@@ -383,6 +441,56 @@ export default function RackDetailPage() {
                 </button>
               </div>
 
+              {/* Zone quick-pick */}
+              <div className="flex gap-1.5 pt-1">
+                {(["C", "B", "H"] as const).map((name) => {
+                  const z = zones.find((z) => z.name === name);
+                  if (!z) return null;
+                  const isActive = rack.zoneId === z.id;
+                  const label = name === "C" ? "Sorting" : name === "B" ? "Lotting" : "Hallway";
+                  return (
+                    <button
+                      key={name}
+                      onClick={async () => {
+                        const result = await moveToZone(rack.id, isActive ? undefined : z.id);
+                        if (result.ok) addToast(isActive ? "Zone cleared" : `Moved to ${name}`, "info");
+                      }}
+                      className={`flex-1 rounded-lg border py-1.5 text-xs font-medium transition-colors text-center ${
+                        isActive
+                          ? "bg-orange-600 border-orange-600 text-white"
+                          : "border-stone-200 text-stone-600 hover:border-orange-400 hover:text-orange-600"
+                      }`}
+                    >
+                      <span className="font-bold">{name}</span>
+                      <span className="ml-1 opacity-70">{label}</span>
+                    </button>
+                  );
+                })}
+                <select
+                  value={["C","B","H"].some(n => zones.find(z => z.name === n)?.id === rack.zoneId) ? "" : (rack.zoneId ?? "")}
+                  onChange={async (e) => {
+                    const result = await moveToZone(rack.id, e.target.value || undefined);
+                    if (result.ok) addToast(e.target.value ? "Zone updated" : "Zone cleared", "info");
+                  }}
+                  className="flex-1 rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-xs text-stone-600 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-colors"
+                >
+                  <option value="">
+                    {rack.zoneId && !["C","B","H"].some(n => zones.find(z => z.name === n)?.id === rack.zoneId)
+                      ? zones.find(z => z.id === rack.zoneId)?.name ?? "Other zone"
+                      : "Other zone…"}
+                  </option>
+                  <option value="">— Clear zone —</option>
+                  {zones.filter((z) => !["C","B","H"].includes(z.name)).map((z) => {
+                    const { count, status } = getZoneOccupancy(z.id, racks, zones, rack.id);
+                    return (
+                      <option key={z.id} value={z.id}>
+                        {z.name}{z.label ? ` — ${z.label}` : ""} ({count}{status === "full" ? " FULL" : ""})
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+
               {/* Inline note input */}
               {noteOpen && (
                 <div className="flex gap-2">
@@ -410,58 +518,7 @@ export default function RackDetailPage() {
               {noteError && <p className="text-xs text-red-500">{noteError}</p>}
             </div>
 
-            {/* Metadata */}
-            <dl className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4 border-t border-stone-100 pt-4">
-              <div>
-                <dt className="text-[11px] font-medium uppercase tracking-wide text-stone-400 mb-1">Priority</dt>
-                <dd className={`text-sm font-semibold ${rack.priority === "high" ? "text-amber-600" : "text-stone-700"}`}>
-                  {rack.priority}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-[11px] font-medium uppercase tracking-wide text-stone-400 mb-1">Created</dt>
-                <dd className="text-sm font-medium text-stone-700">{timeAgo(rack.createdAt)}</dd>
-              </div>
-              <div>
-                <dt className="text-[11px] font-medium uppercase tracking-wide text-stone-400 mb-1">Last update</dt>
-                <dd className="text-sm font-medium text-stone-700">{timeAgo(rack.updatedAt)}</dd>
-              </div>
-              {delivery && (
-                <div>
-                  <dt className="text-[11px] font-medium uppercase tracking-wide text-stone-400 mb-1">Delivery</dt>
-                  <dd>
-                    <Link href={`/deliveries/${delivery.id}`} className="text-sm font-medium text-orange-600 hover:underline transition-colors">
-                      {delivery.consignerJNumber ?? delivery.deliveryCode}
-                    </Link>
-                  </dd>
-                </div>
-              )}
-            </dl>
 
-            {/* Zone selector */}
-            <div className="border-t border-stone-100 pt-4 space-y-2">
-              <label htmlFor="zone-select" className="text-[11px] font-medium uppercase tracking-wide text-stone-400">
-                Zone assignment
-              </label>
-              <CustomSelect
-                id="zone-select"
-                value={rack.zoneId ?? ""}
-                onChange={async (v) => {
-                  const result = await moveToZone(rack.id, v || undefined);
-                  if (result.ok) addToast(v ? "Zone updated" : "Zone cleared", "info");
-                }}
-                options={zoneOptions}
-                label="Zone"
-              />
-              {currentZoneOccupancy?.status === "full" && (
-                <p className="text-xs text-orange-600">Zone at capacity. Consider moving to overflow.</p>
-              )}
-              {currentZoneOccupancy?.status === "near" && (
-                <p className="text-xs text-amber-600">
-                  Near capacity — {currentZoneOccupancy.capacity! - currentZoneOccupancy.count} spot{currentZoneOccupancy.capacity! - currentZoneOccupancy.count !== 1 ? "s" : ""} remaining.
-                </p>
-              )}
-            </div>
 
             {/* ── HOLD STATE ──────────────────────────────────────────────── */}
             {(isHeld || holdOpen) && (
@@ -512,39 +569,6 @@ export default function RackDetailPage() {
             </div>
             )}
 
-            {/* ── REVERT STATUS — admin only ──────────────────────────────── */}
-            {isAdmin && getPrevStatus(rack.status) && (
-              <div className="border-t border-stone-100 pt-3">
-                {revertConfirm ? (
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs text-stone-400">Move back to {STAGE_LABEL[getPrevStatus(rack.status)!]}?</span>
-                    <button
-                      onClick={async () => {
-                        const prev = getPrevStatus(rack.status);
-                        const result = await revertStatus(rack.id);
-                        if (result.ok) { setRevertConfirm(false); addToast(`Moved back to ${STAGE_LABEL[prev!]}`); }
-                      }}
-                      className="rounded-md bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-600 hover:bg-stone-200 transition-colors"
-                    >
-                      Yes, revert
-                    </button>
-                    <button
-                      onClick={() => setRevertConfirm(false)}
-                      className="text-xs text-stone-400 hover:text-stone-600 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setRevertConfirm(true)}
-                    className="text-xs text-stone-400 hover:text-stone-600 transition-colors"
-                  >
-                    ← Move back to {STAGE_LABEL[getPrevStatus(rack.status)!]}
-                  </button>
-                )}
-              </div>
-            )}
 
             {/* ── CONSIGNERS ───────────────────────────────────────────────── */}
             <div className="border-t border-stone-100 pt-4 space-y-3">
@@ -742,6 +766,11 @@ export default function RackDetailPage() {
                       <span className="text-stone-300 mx-2">→</span>
                       <span className="font-medium">{STAGE_LABEL[event.to]}</span>
                     </p>
+                    {event.performedBy && (
+                      <p className="text-[11px] text-stone-400 mt-0.5">
+                        {event.performedBy.split("@")[0]}
+                      </p>
+                    )}
                   </div>
                   <span className="text-[11px] text-stone-300 tabular-nums shrink-0">{formatTime(event.timestamp)}</span>
                 </div>

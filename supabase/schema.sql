@@ -140,7 +140,7 @@ CREATE TABLE IF NOT EXISTS rack_events (
                           CHECK (from_status IN ('unpacking_sorting', 'sorted', 'lotting', 'ready', 'pickup', 'completed')),
   to_status   text        NOT NULL
                           CHECK (to_status   IN ('unpacking_sorting', 'sorted', 'lotting', 'ready', 'pickup', 'completed')),
-  -- user_id uuid REFERENCES auth.users(id)  -- uncomment when auth is added
+  performed_by text,
   created_at  timestamptz NOT NULL DEFAULT NOW()
 );
 
@@ -207,9 +207,9 @@ BEGIN
   SET status = p_to_status
   WHERE id = p_rack_id;
 
-  -- Insert immutable event record
-  INSERT INTO rack_events (rack_id, from_status, to_status)
-  VALUES (p_rack_id, v_from_status, p_to_status);
+  -- Insert immutable event record with the authenticated user
+  INSERT INTO rack_events (rack_id, from_status, to_status, performed_by)
+  VALUES (p_rack_id, v_from_status, p_to_status, auth.jwt() ->> 'email');
 END;
 $$;
 

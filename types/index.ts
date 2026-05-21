@@ -59,7 +59,8 @@ export interface HistoryEvent {
   rackId: string;
   from: RackStatus;
   to: RackStatus;
-  timestamp: string; // ISO 8601
+  timestamp: string;    // ISO 8601
+  performedBy?: string; // email of the user who triggered the transition
 }
 
 // ── Delivery ─────────────────────────────────────────────────────────────────

@@ -70,6 +70,7 @@ export interface RackEventRow {
   rack_id: string;
   from_status: RackStatus;
   to_status: RackStatus;
+  performed_by: string | null;
   created_at: string;
 }
 
@@ -149,11 +150,12 @@ export function toZone(row: ZoneRow): Zone {
 
 export function toHistoryEvent(row: RackEventRow): HistoryEvent {
   return {
-    id:        row.id,
-    rackId:    row.rack_id,
-    from:      row.from_status,
-    to:        row.to_status,
-    timestamp: row.created_at,
+    id:          row.id,
+    rackId:      row.rack_id,
+    from:        row.from_status,
+    to:          row.to_status,
+    timestamp:   row.created_at,
+    performedBy: row.performed_by ?? undefined,
   };
 }
 

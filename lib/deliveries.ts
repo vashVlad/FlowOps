@@ -37,7 +37,6 @@ export function estimateRackCount(
 export interface ConsignerSummary {
   canonicalName: string;  // correctly-spelled name from most recent past delivery
   deliveryCount: number;
-  avgRackCount: number;   // 0 = all past deliveries had no linked racks
   lastDeliveryDate: string; // formatted display string e.g. "Apr 27"
 }
 
@@ -58,17 +57,9 @@ export function getConsignerSummary(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 
-  const counts = past.map(
-    (d) => racks.filter((r) => r.deliveryId === d.id).length
-  );
-  const avgRackCount = Math.round(
-    counts.reduce((a, b) => a + b, 0) / counts.length
-  );
-
   return {
     canonicalName: sorted[0].consignerName,
     deliveryCount: past.length,
-    avgRackCount,
     lastDeliveryDate: formatDate(sorted[0].scheduledDate),
   };
 }

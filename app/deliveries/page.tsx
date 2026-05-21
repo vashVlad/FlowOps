@@ -18,8 +18,6 @@ import {
   DELIVERY_STATUS_BORDER,
   DELIVERY_NEXT_LABEL,
   DELIVERY_NEXT_BTN,
-  PIPELINE_STAGES,
-  STAGE_BAR,
 } from "@/lib/tokens";
 import type { DeliveryStatus } from "@/types";
 
@@ -43,25 +41,6 @@ const STATUS_SORT: Record<DeliveryStatus, number> = {
 
 type FormMode = "walkin" | "scheduled";
 
-function formatAuctionDate(dateStr: string): string {
-  const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
-
-function businessDaysUntil(dateStr: string): number {
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  const target = new Date(dateStr + "T00:00:00");
-  if (target < now) return -1;
-  let days = 0;
-  const cur = new Date(now);
-  while (cur <= target) {
-    const day = cur.getDay();
-    if (day !== 0 && day !== 6) days++;
-    cur.setDate(cur.getDate() + 1);
-  }
-  return days;
-}
 
 const LAST_VISITED_KEY = "flowops:lastVisitedDelivery";
 
@@ -85,14 +64,13 @@ export default function DeliveriesPage() {
   const [jNumber, setJNumber]             = useState("");
   const [error, setError]                 = useState("");
   const [scheduledDate, setScheduledDate] = useState(today());
-  const [auctionDate, setAuctionDate]     = useState("");
 
   const estimate = estimateRackCount(consignerName, deliveries, racks);
   const summary  = getConsignerSummary(consignerName, deliveries, racks);
 
   function resetForm() {
     setConsignerName(""); setJNumber(""); setError("");
-    setScheduledDate(today()); setAuctionDate("");
+    setScheduledDate(today());
   }
 
   async function handleWalkinSubmit(e: React.FormEvent) {
@@ -103,7 +81,6 @@ export default function DeliveriesPage() {
       type: "walkin",
       consignerName: consignerName.trim(),
       consignerJNumber: jNumber.trim() || undefined,
-      auctionDate: auctionDate || undefined,
     });
     if (!result.ok) return;
     const id = result.data.id;
@@ -122,18 +99,18 @@ export default function DeliveriesPage() {
       consignerName: consignerName.trim(),
       consignerJNumber: jNumber.trim() || undefined,
       scheduledDate,
-      auctionDate: auctionDate || undefined,
     });
     resetForm(); setShowForm(false);
   }
 
-  type DeliveryFilter = "all" | "active" | "done";
+  type DeliveryFilter = "all" | "arrived" | "processing" | "done";
   const [deliveryFilter, setDeliveryFilter] = useState<DeliveryFilter>("all");
 
   const sorted = [...deliveries]
     .filter((d) => {
-      if (deliveryFilter === "active") return d.status !== "complete";
-      if (deliveryFilter === "done")   return d.status === "complete";
+      if (deliveryFilter === "arrived")    return d.status === "arrived";
+      if (deliveryFilter === "processing") return d.status === "processing";
+      if (deliveryFilter === "done")       return d.status === "complete";
       return true;
     })
     .sort((a, b) => {
@@ -200,11 +177,6 @@ export default function DeliveriesPage() {
               </div>
               <input type="text" placeholder="J-Number (optional, e.g. J-10294)" value={jNumber}
                 onChange={(e) => setJNumber(e.target.value)} className={inputCls} />
-              <div className="space-y-1">
-                <label className="text-xs text-stone-400">Auction date (optional)</label>
-                <input type="date" value={auctionDate}
-                  onChange={(e) => setAuctionDate(e.target.value)} className={inputCls} />
-              </div>
               {error && <p className="text-xs text-red-500">{error}</p>}
               <button type="submit"
                 className="w-full rounded-lg bg-orange-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-orange-700 transition-colors sm:w-auto">
@@ -225,11 +197,6 @@ export default function DeliveriesPage() {
                 onChange={(e) => setJNumber(e.target.value)} className={inputCls} />
               <input type="date" value={scheduledDate}
                 onChange={(e) => setScheduledDate(e.target.value)} className={inputCls} />
-              <div className="space-y-1">
-                <label className="text-xs text-stone-400">Auction date (optional)</label>
-                <input type="date" value={auctionDate}
-                  onChange={(e) => setAuctionDate(e.target.value)} className={inputCls} />
-              </div>
               {error && <p className="text-xs text-red-500">{error}</p>}
               <button type="submit"
                 className="rounded-lg bg-orange-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-orange-700 transition-colors">
@@ -245,7 +212,7 @@ export default function DeliveriesPage() {
       {/* Status filter pills */}
       {!showForm && (
         <div className="flex gap-1.5">
-          {(["all", "active", "done"] as const).map((f) => (
+          {(["all", "arrived", "processing", "done"] as const).map((f) => (
             <button
               key={f}
               onClick={() => setDeliveryFilter(f)}
@@ -255,7 +222,7 @@ export default function DeliveriesPage() {
                   : "bg-stone-100 text-stone-500 hover:bg-stone-200"
               }`}
             >
-              {f === "all" ? "All" : f === "active" ? "Active" : "Done"}
+              {f === "done" ? "Done" : f.charAt(0).toUpperCase() + f.slice(1)}
             </button>
           ))}
         </div>
@@ -273,15 +240,9 @@ export default function DeliveriesPage() {
       ) : (
         <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           {sorted.map((delivery) => {
-            const linked     = racks.filter((r) => r.deliveryId === delivery.id);
-            const done       = linked.filter((r) => r.status === "pickup" || r.status === "completed");
-            const total      = linked.length;
-            const pct        = total > 0 ? Math.round((done.length / total) * 100) : 0;
             const nextStatus = NEXT_STATUS[delivery.status];
             const zone       = zones.find((z) => z.deliveryId === delivery.id);
             const noteCount  = notes.filter((n) => n.deliveryId === delivery.id).length;
-            const auctionDays = delivery.auctionDate ? businessDaysUntil(delivery.auctionDate) : null;
-            const auctionUrgent = auctionDays !== null && auctionDays >= 0 && auctionDays <= 3;
             const isPinned   = delivery.id === lastVisited;
 
             return (
@@ -318,17 +279,6 @@ export default function DeliveriesPage() {
                       {delivery.arrivedAt ? `Arrived ${timeAgo(delivery.arrivedAt)}` : `Scheduled ${formatDate(delivery.scheduledDate)}`}
                       {zone && <><span className="mx-1">·</span><span className="font-medium text-stone-500">{zone.name}</span></>}
                     </p>
-                    {delivery.auctionDate && (
-                      <p className={`mt-0.5 text-xs font-medium ${
-                        auctionDays !== null && auctionDays < 0 ? "text-red-500" :
-                        auctionUrgent ? "text-amber-600" : "text-stone-400"
-                      }`}>
-                        Auction: {formatAuctionDate(delivery.auctionDate)}
-                        {auctionUrgent && auctionDays !== null && (
-                          <span className="ml-1">· {auctionDays === 0 ? "today" : auctionDays === 1 ? "tomorrow" : `${auctionDays}d`}</span>
-                        )}
-                      </p>
-                    )}
                   </div>
 
                   {nextStatus && (
@@ -343,23 +293,6 @@ export default function DeliveriesPage() {
                   )}
                 </div>
 
-                {linked.length > 0 && (
-                  <div className="mt-3 space-y-1">
-                    <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-stone-100">
-                      {PIPELINE_STAGES.map(({ status }) => {
-                        const count = linked.filter((r) => r.status === status).length;
-                        if (count === 0 || total === 0) return null;
-                        return (
-                          <div key={status} className={`h-full ${STAGE_BAR[status]}`}
-                            style={{ width: `${(count / total) * 100}%` }} title={`${status}: ${count}`} />
-                        );
-                      })}
-                    </div>
-                    <p className="text-xs text-stone-400">
-                      {done.length} done{total > 0 && ` (${pct}%)`} · {linked.length} total
-                    </p>
-                  </div>
-                )}
               </li>
             );
           })}
@@ -385,7 +318,6 @@ function ConsignerCard({
         <p className="text-sm font-medium text-stone-900">{summary.canonicalName}</p>
         <p className="text-xs text-stone-400">
           {summary.deliveryCount} past {summary.deliveryCount === 1 ? "delivery" : "deliveries"}
-          {summary.avgRackCount > 0 && ` · avg ${summary.avgRackCount} racks`}
           {" · "}last {summary.lastDeliveryDate}
         </p>
       </div>

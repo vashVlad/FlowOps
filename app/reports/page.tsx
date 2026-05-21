@@ -8,12 +8,10 @@ import { useZonesStore } from "@/store/zones";
 import {
   exportRacks,
   exportDeliveries,
-  exportStuckRacks,
   exportStageDurations,
 } from "@/lib/export";
-import { isRackNeedsAttention } from "@/lib/timeTracking";
 import PageHeader from "@/components/ui/PageHeader";
-import { useAuthStore, useIsSupervisor } from "@/store/auth";
+import { useAuthStore } from "@/store/auth";
 
 interface ReportCard {
   title:       string;
@@ -63,12 +61,10 @@ export default function ReportsPage() {
   const { deliveries }                        = useDeliveriesStore();
   const { zones }                             = useZonesStore();
 
-  const stuckCount       = racks.filter((r) => isRackNeedsAttention(r, history)).length;
   const activeRacks      = racks.filter((r) => r.status !== "completed").length;
   const activeDeliveries = deliveries.filter((d) => d.status !== "complete").length;
   const completedRacks   = racks.filter((r) => r.status === "completed").length;
 
-  const isSupervisor  = useIsSupervisor();
   const roleLoading   = useAuthStore((s) => s.roleLoading);
   const role          = useAuthStore((s) => s.activeRole);
   const router        = useRouter();
@@ -100,22 +96,6 @@ export default function ReportsPage() {
     <div className="space-y-8">
 
       <PageHeader title="Reports" subtitle="Download operational data as CSV" />
-
-      {/* Alert section — stuck racks first if any */}
-      {stuckCount > 0 && (
-        <div>
-          <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-stone-400">Alerts</h2>
-          <ExportCard
-            title="Stuck Racks"
-            description="Racks that have exceeded their stage time threshold."
-            detail="Columns: rack code, consigner, status, priority, zone, delivery, time in stage, threshold, over by"
-            onExport={() => exportStuckRacks(racks, zones, deliveries, history)}
-            count={stuckCount}
-            countLabel={stuckCount === 1 ? "stuck" : "stuck"}
-            urgent
-          />
-        </div>
-      )}
 
       {/* Operational exports */}
       <div>
@@ -177,17 +157,13 @@ export default function ReportsPage() {
                   Run this at the end of each weekly auction cycle.
                 </p>
               </div>
-              {!cycleConfirm && isSupervisor && (
+              {!cycleConfirm && (
                 <button
                   onClick={() => { setCycleConfirm(true); setCycleResult(null); }}
-                  disabled={completedRacks === 0}
-                  className="shrink-0 rounded-lg border border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="shrink-0 rounded-lg border border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50 transition-colors"
                 >
                   Close cycle
                 </button>
-              )}
-              {!isSupervisor && !cycleConfirm && (
-                <span className="text-xs text-stone-400">Supervisor access required</span>
               )}
             </div>
 

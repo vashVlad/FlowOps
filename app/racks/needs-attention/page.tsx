@@ -47,12 +47,12 @@ export default function NeedsAttentionPage() {
             : "All racks are within time limits"
         }
         action={
-          <Link
-            href="/racks"
+          <button
+            onClick={() => router.back()}
             className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm font-medium text-stone-600 hover:bg-stone-50 transition-colors"
           >
             ← All racks
-          </Link>
+          </button>
         }
       />
 
