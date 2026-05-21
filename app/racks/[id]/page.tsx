@@ -207,7 +207,7 @@ export default function RackDetailPage() {
                   ))}
                 </select>
                 {editError && <p className="text-xs text-red-500">{editError}</p>}
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2">
                   <div className="flex gap-2">
                     <button type="submit"
                       className="rounded-lg bg-orange-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-700 transition-colors">
@@ -224,7 +224,6 @@ export default function RackDetailPage() {
                   </div>
                   {deleteConfirm ? (
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-stone-400">Delete this rack?</span>
                       <button type="button" onClick={handleDelete}
                         className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-600 transition-colors">
                         Yes, delete
@@ -246,7 +245,7 @@ export default function RackDetailPage() {
 
             {/* Header */}
             <div className="flex items-start justify-between gap-4">
-              <div>
+              <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   {/* Clickable auction color dot / picker */}
                   <div className="relative shrink-0">
@@ -621,14 +620,14 @@ export default function RackDetailPage() {
                         .then((r) => { if (r.ok) { setConsignerInput(""); setConsignerJInput(""); } else setConsignerError(r.error); });
                     }
                   }}
-                  className={inputCls}
+                  className={`flex-1 min-w-0 ${inputCls}`}
                 />
                 <input
                   type="text"
-                  placeholder="J-Number"
+                  placeholder="J-#"
                   value={consignerJInput}
                   onChange={(e) => setConsignerJInput(e.target.value)}
-                  className="w-28 rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-16 shrink-0 rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
                 />
                 <button
                   onClick={() => {
