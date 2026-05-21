@@ -27,7 +27,7 @@ export const ROLE_HOME: Record<Role, string> = {
   unpacker:   "/unpack",
   sorter:     "/racks",
   lotter:     "/lotting",
-  pickup:     "/racks",
+  pickup:     "/pickup",
 };
 
 // Allowed route prefixes per role. "*" means unrestricted.
@@ -37,7 +37,7 @@ export const ROLE_ROUTES: Record<Role, string[]> = {
   unpacker:   ["/unpack", "/racks", "/search", "/labels"],
   sorter:     ["/racks", "/search"],
   lotter:     ["/lotting", "/racks", "/search"],
-  pickup:     ["/racks", "/zones", "/search"],
+  pickup:     ["/pickup", "/racks", "/zones", "/search"],
 };
 
 // Desktop + mobile nav links per role
@@ -75,9 +75,9 @@ export const ROLE_NAV: Record<Role, Array<{ href: string; label: string }>> = {
     { href: "/search",  label: "Search"  },
   ],
   pickup: [
-    { href: "/racks",  label: "Racks"  },
-    { href: "/zones",  label: "Zones"  },
-    { href: "/search", label: "Search" },
+    { href: "/pickup", label: "Pick-Up" },
+    { href: "/racks",  label: "Racks"   },
+    { href: "/search", label: "Search"  },
   ],
 };
 
