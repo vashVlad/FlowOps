@@ -105,10 +105,12 @@ function RackCard({
   onClick: () => void;
   canAdvance?: boolean;
 }) {
+  const { has: queueHas, add: queueAdd, remove: queueRemove } = usePrintQueueStore();
   const isCompleted = rack.status === "completed";
   const nextLabel   = NEXT_STAGE_LABEL[rack.status];
   const isHeld      = !!rack.holdReason;
   const isCritical  = needsAttention && !isHeld && rack.priority === "high";
+  const inQueue     = queueHas(rack.id);
 
   return (
     <li
@@ -205,24 +207,31 @@ function RackCard({
         )}
       </div>
 
-      {/* BOTTOM — primary action */}
-      {canAdvance && (
-        <div className="px-4 pb-2.5">
+      {/* BOTTOM — actions */}
+      <div className="px-4 pb-2.5 flex gap-1.5">
+        {canAdvance && (
           <button
             onClick={(e) => { e.stopPropagation(); onAdvance(); }}
-            disabled={isCompleted}
-            className={`w-full rounded-lg py-1 text-xs font-medium transition-colors ${
-              isCompleted
-                ? "bg-stone-50 text-stone-300 cursor-default border border-stone-100"
-                : isCritical
+            className={`flex-1 rounded-lg py-1 text-xs font-medium transition-colors ${
+              isCritical
                 ? "bg-red-500 text-white hover:bg-red-600"
                 : "bg-orange-500 text-white hover:bg-orange-600"
             }`}
           >
-            {isCompleted ? "Completed" : `Move to ${nextLabel} →`}
+            {`Move to ${nextLabel} →`}
           </button>
-        </div>
-      )}
+        )}
+        <button
+          onClick={(e) => { e.stopPropagation(); inQueue ? queueRemove(rack.id) : queueAdd(rack.id); }}
+          className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
+            inQueue
+              ? "border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-100"
+              : "border-stone-200 text-stone-400 hover:text-stone-600 hover:bg-stone-50"
+          }`}
+        >
+          {inQueue ? "Queued" : "Queue"}
+        </button>
+      </div>
     </li>
   );
 }

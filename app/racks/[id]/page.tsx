@@ -24,6 +24,7 @@ import {
   STAGE_THRESHOLDS_MS,
 } from "@/lib/timeTracking";
 import { PIPELINE_STAGES, NEXT_STAGE_LABEL, STAGE_LABEL } from "@/lib/tokens";
+import { buildConsignerProfiles } from "@/lib/consigners";
 import { getPrevStatus } from "@/lib/racks";
 import AuctionColorPicker from "@/components/ui/AuctionColorPicker";
 import { useToastStore } from "@/store/toast";
@@ -73,9 +74,9 @@ export default function RackDetailPage() {
 
   // Consigners
   const { consigners: allConsigners, add: addConsigner, remove: removeConsigner } = useRackConsignersStore();
-  const [consignerInput,  setConsignerInput]  = useState("");
-  const [consignerJInput, setConsignerJInput] = useState("");
-  const [consignerError,  setConsignerError]  = useState("");
+  const [consignerSearch,   setConsignerSearch]   = useState("");
+  const [consignerError,    setConsignerError]    = useState("");
+  const [consignerDropOpen, setConsignerDropOpen] = useState(false);
 
   const isSupervisor  = useIsSupervisor();
   const isAdmin       = useIsAdmin();
@@ -110,6 +111,18 @@ export default function RackDetailPage() {
   const timeInStage    = getTimeInCurrentStatus(rack, history);
   const stageDurations = getStageDurations(rack, history);
   const stepIdx        = STATUS_ORDER.indexOf(rack.status);
+
+  const addedConsignerKeys = new Set([
+    rack.consignerName.trim().toLowerCase(),
+    ...rackConsigners.map((c) => c.consignerName.trim().toLowerCase()),
+  ]);
+  const consignerProfiles = buildConsignerProfiles(deliveries, racks)
+    .filter((p) => !addedConsignerKeys.has(p.key))
+    .filter((p) =>
+      !consignerSearch ||
+      p.name.toLowerCase().includes(consignerSearch.toLowerCase()) ||
+      (p.jNumber && p.jNumber.toLowerCase().includes(consignerSearch.toLowerCase()))
+    );
 
   const currentZoneOccupancy = rack.zoneId
     ? getZoneOccupancy(rack.zoneId, racks, zones, rack.id)
@@ -151,7 +164,7 @@ export default function RackDetailPage() {
 
   async function handleDelete() {
     const result = await deleteRack(rack!.id);
-    if (!result.ok) { setEditError(result.error); return; }
+    if (!result.ok) { addToast(result.error); setDeleteConfirm(false); return; }
     addToast(`${rack!.rackCode} deleted`);
     router.push("/racks");
   }
@@ -185,8 +198,8 @@ export default function RackDetailPage() {
       <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[1fr_340px] lg:items-start">
 
         {/* ── LEFT: main operational card ────────────────────────────── */}
-        <div className="rounded-xl border border-stone-200 bg-white shadow-sm overflow-hidden">
-          <div className={`h-0.5 ${isHeld ? "bg-blue-500" : "bg-orange-500"}`} />
+        <div className="rounded-xl border border-stone-200 bg-white shadow-sm">
+          <div className={`h-0.5 rounded-t-xl ${isHeld ? "bg-blue-500" : "bg-orange-500"}`} />
           <div className="p-5 space-y-5">
 
             {/* Inline edit form */}
@@ -213,7 +226,7 @@ export default function RackDetailPage() {
                       className="rounded-lg bg-orange-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-700 transition-colors">
                       Save
                     </button>
-                    <button type="button" onClick={() => { setEditOpen(false); setDeleteConfirm(false); }}
+                    <button type="button" onClick={() => setEditOpen(false)}
                       className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm font-medium text-stone-600 hover:bg-stone-50 transition-colors">
                       Cancel
                     </button>
@@ -222,23 +235,6 @@ export default function RackDetailPage() {
                       Clear
                     </button>
                   </div>
-                  {deleteConfirm ? (
-                    <div className="flex items-center gap-2">
-                      <button type="button" onClick={handleDelete}
-                        className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-600 transition-colors">
-                        Yes, delete
-                      </button>
-                      <button type="button" onClick={() => setDeleteConfirm(false)}
-                        className="rounded-lg border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-600 hover:bg-stone-50 transition-colors">
-                        Cancel
-                      </button>
-                    </div>
-                  ) : isSupervisor ? (
-                    <button type="button" onClick={() => setDeleteConfirm(true)}
-                      className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50 transition-colors">
-                      Delete
-                    </button>
-                  ) : null}
                 </div>
               </form>
             )}
@@ -296,36 +292,18 @@ export default function RackDetailPage() {
                   <p className="mt-0.5 text-xs text-stone-400 font-mono">{delivery.consignerJNumber}</p>
                 )}
               </div>
-              <div className="flex items-center gap-2 flex-wrap justify-end">
+              {!editOpen && (
                 <button
-                  onClick={() => inQueue ? queueRemove(rack.id) : queueAdd(rack.id)}
-                  className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
-                    inQueue
-                      ? "border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-100"
-                      : "border-stone-200 text-stone-600 hover:bg-stone-50"
-                  }`}
-                >
-                  {inQueue ? "In queue" : "Queue label"}
-                </button>
-                <Link
-                  href={`/racks/${rack.id}/label`}
+                  onClick={openEdit}
                   className="rounded-lg border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-600 hover:bg-stone-50 transition-colors"
                 >
-                  Print label
-                </Link>
-                {!editOpen && (
-                  <button
-                    onClick={openEdit}
-                    className="rounded-lg border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-600 hover:bg-stone-50 transition-colors"
-                  >
-                    Edit
-                  </button>
-                )}
-              </div>
+                  Edit
+                </button>
+              )}
             </div>
 
             {/* ── QUICK ACTION BAR ────────────────────────────────────────── */}
-            <div className="border-t border-stone-100 pt-4 space-y-2">
+            <div className="border-t border-stone-100 pt-5 pb-3 space-y-2">
               {/* Priority picker — shown when advancing unpacking_sorting → sorted */}
               {showPriorityPick && (
                 <div className="rounded-lg border border-orange-200 bg-orange-50 p-3.5 space-y-2.5">
@@ -402,42 +380,40 @@ export default function RackDetailPage() {
                     const result = await advanceStatus(rack.id);
                     if (result.ok && next) addToast(`Moved to ${next}`);
                   }}
-                  disabled={rack.status === "completed"}
-                  className={`flex-1 rounded-lg py-3 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+                  className={`flex-1 rounded-lg py-3 text-sm font-semibold text-white transition-colors ${
                     isCritical ? "bg-red-500 hover:bg-red-600" : "bg-orange-600 hover:bg-orange-700"
                   }`}
                 >
-                  {rack.status === "completed"
-                    ? "Completed"
-                    : `Move to ${NEXT_STAGE_LABEL[rack.status] ?? "Next"} →`}
+                  {`Move to ${NEXT_STAGE_LABEL[rack.status] ?? "Next"} →`}
                 </button>
                 )}
 
-                {/* Hold toggle */}
-                {roleCanAdvance && (
-                <button
-                  onClick={() => isHeld ? handleClearHold() : setHoldOpen((v) => !v)}
-                  className={`rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
-                    isHeld
-                      ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
-                      : "border border-stone-200 text-stone-700 hover:bg-stone-50"
-                  }`}
-                >
-                  {isHeld ? "Clear Hold" : "Hold"}
-                </button>
+                {/* Delete — supervisor only */}
+                {isSupervisor && (
+                  deleteConfirm ? (
+                    <>
+                      <button
+                        onClick={handleDelete}
+                        className="rounded-lg bg-red-500 px-3 py-3 text-xs font-medium text-white hover:bg-red-600 transition-colors"
+                      >
+                        Confirm
+                      </button>
+                      <button
+                        onClick={() => setDeleteConfirm(false)}
+                        className="rounded-lg border border-stone-200 px-2.5 py-3 text-xs text-stone-400 hover:text-stone-600 transition-colors"
+                      >
+                        ✕
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => setDeleteConfirm(true)}
+                      className="rounded-lg border border-red-200 px-3 py-3 text-xs font-medium text-red-500 hover:bg-red-50 transition-colors"
+                    >
+                      Delete
+                    </button>
+                  )
                 )}
-
-                {/* Note toggle */}
-                <button
-                  onClick={() => setNoteOpen((v) => !v)}
-                  className={`rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
-                    noteOpen
-                      ? "bg-amber-100 text-amber-700"
-                      : "border border-stone-200 text-stone-700 hover:bg-stone-50"
-                  }`}
-                >
-                  Note
-                </button>
               </div>
 
               {/* Zone quick-pick */}
@@ -450,71 +426,53 @@ export default function RackDetailPage() {
                   return (
                     <button
                       key={name}
+                      title={label}
                       onClick={async () => {
                         const result = await moveToZone(rack.id, isActive ? undefined : z.id);
                         if (result.ok) addToast(isActive ? "Zone cleared" : `Moved to ${name}`, "info");
                       }}
-                      className={`flex-1 rounded-lg border py-1.5 text-xs font-medium transition-colors text-center ${
+                      className={`flex-1 rounded-lg border py-1.5 text-xs font-bold transition-colors text-center ${
                         isActive
                           ? "bg-orange-600 border-orange-600 text-white"
                           : "border-stone-200 text-stone-600 hover:border-orange-400 hover:text-orange-600"
                       }`}
                     >
-                      <span className="font-bold">{name}</span>
-                      <span className="ml-1 opacity-70">{label}</span>
+                      {name}
                     </button>
                   );
                 })}
-                <select
-                  value={["C","B","H"].some(n => zones.find(z => z.name === n)?.id === rack.zoneId) ? "" : (rack.zoneId ?? "")}
-                  onChange={async (e) => {
-                    const result = await moveToZone(rack.id, e.target.value || undefined);
-                    if (result.ok) addToast(e.target.value ? "Zone updated" : "Zone cleared", "info");
-                  }}
-                  className="flex-1 rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-xs text-stone-600 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-colors"
-                >
-                  <option value="">
-                    {rack.zoneId && !["C","B","H"].some(n => zones.find(z => z.name === n)?.id === rack.zoneId)
-                      ? zones.find(z => z.id === rack.zoneId)?.name ?? "Other zone"
-                      : "Other zone…"}
-                  </option>
-                  <option value="">— Clear zone —</option>
-                  {zones.filter((z) => !["C","B","H"].includes(z.name)).map((z) => {
-                    const { count, status } = getZoneOccupancy(z.id, racks, zones, rack.id);
-                    return (
-                      <option key={z.id} value={z.id}>
-                        {z.name}{z.label ? ` — ${z.label}` : ""} ({count}{status === "full" ? " FULL" : ""})
-                      </option>
-                    );
-                  })}
-                </select>
+                {(() => {
+                  const otherZoneId = ["C","B","H"].some(n => zones.find(z => z.name === n)?.id === rack.zoneId) ? "" : (rack.zoneId ?? "");
+                  const hasOther = !!otherZoneId;
+                  return (
+                    <select
+                      value={otherZoneId}
+                      onChange={async (e) => {
+                        const result = await moveToZone(rack.id, e.target.value || undefined);
+                        if (result.ok) addToast(e.target.value ? "Zone updated" : "Zone cleared", "info");
+                      }}
+                      title="Other zone"
+                      className={`rounded-lg border bg-white text-xs text-stone-600 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all py-1.5 ${
+                        hasOther
+                          ? "flex-1 px-2.5 border-orange-400 text-orange-600 font-medium"
+                          : "w-8 shrink-0 px-0.5 border-stone-200"
+                      }`}
+                    >
+                      <option value=""></option>
+                      <option value="">— Clear zone —</option>
+                      {zones.filter((z) => !["C","B","H"].includes(z.name)).map((z) => {
+                        const { count, status } = getZoneOccupancy(z.id, racks, zones, rack.id);
+                        return (
+                          <option key={z.id} value={z.id}>
+                            {z.name}{z.label ? ` — ${z.label}` : ""} ({count}{status === "full" ? " FULL" : ""})
+                          </option>
+                        );
+                      })}
+                    </select>
+                  );
+                })()}
               </div>
 
-              {/* Inline note input */}
-              {noteOpen && (
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Pin a note…"
-                    value={noteInput}
-                    onChange={(e) => { setNoteInput(e.target.value); setNoteError(""); }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleAddNote().then(() => setNoteOpen(false));
-                      if (e.key === "Escape") setNoteOpen(false);
-                    }}
-                    className={inputCls}
-                    autoFocus
-                  />
-                  <button
-                    onClick={() => handleAddNote().then(() => setNoteOpen(false))}
-                    disabled={!noteInput.trim()}
-                    className="shrink-0 rounded-lg bg-orange-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-orange-700 disabled:opacity-40 transition-colors"
-                  >
-                    Pin
-                  </button>
-                </div>
-              )}
-              {noteError && <p className="text-xs text-red-500">{noteError}</p>}
             </div>
 
 
@@ -569,81 +527,6 @@ export default function RackDetailPage() {
             )}
 
 
-            {/* ── CONSIGNERS ───────────────────────────────────────────────── */}
-            <div className="border-t border-stone-100 pt-4 space-y-3">
-              <div className="flex items-center gap-2">
-                <SectionLabel>Consigners</SectionLabel>
-                {rackConsigners.length > 0 && (
-                  <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-medium text-violet-700">
-                    mixed
-                  </span>
-                )}
-              </div>
-
-              {/* Primary consigner (from delivery) */}
-              <div className="flex items-center gap-2 rounded-lg bg-stone-50 border border-stone-200 px-3 py-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-orange-400 shrink-0" />
-                <span className="flex-1 text-xs font-medium text-stone-700">{rack.consignerName}</span>
-                {delivery?.consignerJNumber && (
-                  <span className="text-[11px] font-mono text-stone-400">{delivery.consignerJNumber}</span>
-                )}
-                <span className="text-[10px] text-stone-400">primary</span>
-              </div>
-
-              {/* Secondary consigners */}
-              {rackConsigners.map((c) => (
-                <div key={c.id} className="flex items-center gap-2 rounded-lg bg-violet-50 border border-violet-100 px-3 py-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-violet-400 shrink-0" />
-                  <span className="flex-1 text-xs font-medium text-stone-700">{c.consignerName}</span>
-                  {c.jNumber && (
-                    <span className="text-[11px] font-mono text-stone-400">{c.jNumber}</span>
-                  )}
-                  <button
-                    onClick={() => removeConsigner(c.id)}
-                    className="text-[10px] text-stone-300 hover:text-red-400 transition-colors ml-1"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-
-              {/* Add consigner row */}
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Consigner name"
-                  value={consignerInput}
-                  onChange={(e) => { setConsignerInput(e.target.value); setConsignerError(""); }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && consignerInput.trim()) {
-                      addConsigner({ rackId: rack.id, consignerName: consignerInput.trim(), jNumber: consignerJInput.trim() || undefined })
-                        .then((r) => { if (r.ok) { setConsignerInput(""); setConsignerJInput(""); } else setConsignerError(r.error); });
-                    }
-                  }}
-                  className={`flex-1 min-w-0 ${inputCls}`}
-                />
-                <input
-                  type="text"
-                  placeholder="J-#"
-                  value={consignerJInput}
-                  onChange={(e) => setConsignerJInput(e.target.value)}
-                  className="w-16 shrink-0 rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                />
-                <button
-                  onClick={() => {
-                    if (!consignerInput.trim()) return;
-                    addConsigner({ rackId: rack.id, consignerName: consignerInput.trim(), jNumber: consignerJInput.trim() || undefined })
-                      .then((r) => { if (r.ok) { setConsignerInput(""); setConsignerJInput(""); } else setConsignerError(r.error); });
-                  }}
-                  disabled={!consignerInput.trim()}
-                  className="shrink-0 rounded-lg bg-violet-600 px-3 py-2 text-xs font-medium text-white hover:bg-violet-700 disabled:opacity-40 transition-colors"
-                >
-                  Add
-                </button>
-              </div>
-              {consignerError && <p className="text-xs text-red-500">{consignerError}</p>}
-            </div>
-
             {/* ── OPERATIONAL NOTES ────────────────────────────────────────── */}
             {rackNotes.length > 0 && (
               <div className="border-t border-stone-100 pt-4 space-y-2">
@@ -667,6 +550,143 @@ export default function RackDetailPage() {
                 </div>
               </div>
             )}
+
+            {/* ── SECONDARY ACTIONS ─────────────────────────────────────── */}
+            <div className="border-t border-stone-100 pt-4 space-y-2">
+              <div className="flex gap-2">
+                <Link
+                  href={`/racks/${rack.id}/label`}
+                  className="rounded-lg border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-500 hover:bg-stone-50 transition-colors"
+                >
+                  Print label
+                </Link>
+                {roleCanAdvance && (
+                  <button
+                    onClick={() => isHeld ? handleClearHold() : setHoldOpen((v) => !v)}
+                    className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                      isHeld
+                        ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
+                        : "border border-stone-200 text-stone-500 hover:bg-stone-50"
+                    }`}
+                  >
+                    {isHeld ? "Clear Hold" : "Hold"}
+                  </button>
+                )}
+                <button
+                  onClick={() => setNoteOpen((v) => !v)}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                    noteOpen
+                      ? "bg-amber-100 text-amber-700"
+                      : "border border-stone-200 text-stone-500 hover:bg-stone-50"
+                  }`}
+                >
+                  Note
+                </button>
+
+                {/* Extra consigner dropdown */}
+                <div className="relative">
+                  <button
+                    onClick={() => { setConsignerDropOpen((v) => !v); setConsignerError(""); }}
+                    className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+                      consignerDropOpen || rackConsigners.length > 0
+                        ? "border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100"
+                        : "border-stone-200 text-stone-500 hover:bg-stone-50"
+                    }`}
+                  >
+                    Consigner{rackConsigners.length > 0 ? ` (${rackConsigners.length})` : " +"}
+                  </button>
+                  {consignerDropOpen && (
+                    <>
+                      <div className="fixed inset-0 z-30" onClick={() => { setConsignerDropOpen(false); setConsignerSearch(""); }} />
+                      <div className="absolute left-0 bottom-full mb-1.5 z-40 w-72 rounded-xl border border-stone-200 bg-white shadow-lg overflow-hidden">
+                        {/* Already added */}
+                        {rackConsigners.length > 0 && (
+                          <div className="border-b border-stone-100">
+                            {rackConsigners.map((c) => (
+                              <div key={c.id} className="flex items-center justify-between gap-3 px-3 py-2 bg-violet-50">
+                                <div className="min-w-0">
+                                  <p className="text-xs font-medium text-violet-700 truncate">{c.consignerName}</p>
+                                  {c.jNumber && <p className="text-[11px] font-mono text-stone-400">{c.jNumber}</p>}
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <Link
+                                    href={`/racks/${rack.id}/label?consigner=${encodeURIComponent(c.consignerName)}${c.jNumber ? `&jnumber=${encodeURIComponent(c.jNumber)}` : ""}`}
+                                    className="rounded border border-violet-200 px-2 py-1 text-[10px] font-medium text-violet-600 hover:border-orange-300 hover:text-orange-600 transition-colors"
+                                    onClick={() => setConsignerDropOpen(false)}
+                                  >
+                                    Print label
+                                  </Link>
+                                  <button onClick={() => removeConsigner(c.id)} className="text-sm text-stone-300 hover:text-red-400 transition-colors leading-none">×</button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {/* Search */}
+                        <div className="p-2 border-b border-stone-100">
+                          <input
+                            type="text"
+                            placeholder="Search consigners…"
+                            value={consignerSearch}
+                            onChange={(e) => setConsignerSearch(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === "Escape") { setConsignerDropOpen(false); setConsignerSearch(""); } }}
+                            className="w-full rounded-lg border border-stone-200 px-2.5 py-1.5 text-xs text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                            autoFocus
+                          />
+                        </div>
+                        {/* Selectable list */}
+                        <div className="max-h-52 overflow-y-auto">
+                          {consignerProfiles.length === 0 ? (
+                            <p className="px-3 py-3 text-xs text-stone-400 text-center">
+                              {consignerSearch ? "No match" : "No other consigners"}
+                            </p>
+                          ) : (
+                            consignerProfiles.map((p) => (
+                              <button
+                                key={p.key}
+                                onClick={() => {
+                                  addConsigner({ rackId: rack.id, consignerName: p.name, jNumber: p.jNumber })
+                                    .then((r) => { if (!r.ok) setConsignerError(r.error); });
+                                }}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-violet-50 transition-colors"
+                              >
+                                <span className="flex-1 text-xs font-medium text-stone-700 truncate">{p.name}</span>
+                                {p.jNumber && <span className="text-[11px] font-mono text-stone-400 shrink-0">{p.jNumber}</span>}
+                              </button>
+                            ))
+                          )}
+                        </div>
+                        {consignerError && <p className="px-3 pb-2 text-xs text-red-500">{consignerError}</p>}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+              {noteOpen && (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Pin a note…"
+                    value={noteInput}
+                    onChange={(e) => { setNoteInput(e.target.value); setNoteError(""); }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleAddNote().then(() => setNoteOpen(false));
+                      if (e.key === "Escape") setNoteOpen(false);
+                    }}
+                    className={inputCls}
+                    autoFocus
+                  />
+                  <button
+                    onClick={() => handleAddNote().then(() => setNoteOpen(false))}
+                    disabled={!noteInput.trim()}
+                    className="shrink-0 rounded-lg bg-orange-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-orange-700 disabled:opacity-40 transition-colors"
+                  >
+                    Pin
+                  </button>
+                </div>
+              )}
+              {noteError && <p className="text-xs text-red-500">{noteError}</p>}
+            </div>
 
             {/* Pipeline progress */}
             <div className="border-t border-stone-100 pt-4">

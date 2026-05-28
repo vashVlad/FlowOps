@@ -1,16 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
+import { Suspense, useState, useEffect } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useRacksStore } from "@/store/racks";
 import { useDeliveriesStore } from "@/store/deliveries";
 import { usePrintQueueStore } from "@/store/printQueue";
 import { RackLabel } from "@/components/RackLabel";
 
-export default function RackLabelPage() {
-  const { id }    = useParams<{ id: string }>();
-  const router    = useRouter();
+function RackLabelContent() {
+  const { id }         = useParams<{ id: string }>();
+  const router         = useRouter();
+  const searchParams   = useSearchParams();
   const { racks }      = useRacksStore();
   const { deliveries } = useDeliveriesStore();
   const { has, add, remove } = usePrintQueueStore();
@@ -24,6 +24,12 @@ export default function RackLabelPage() {
   const delivery  = rack ? deliveries.find((d) => d.id === rack.deliveryId) : undefined;
   const printDate = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   const inQueue   = rack ? has(rack.id) : false;
+
+  const consignerParam = searchParams.get("consigner");
+  const jnumberParam   = searchParams.get("jnumber");
+  const consignerOverride = consignerParam
+    ? { name: consignerParam, jNumber: jnumberParam ?? undefined }
+    : undefined;
 
   if (!rack) {
     return (
@@ -55,22 +61,41 @@ export default function RackLabelPage() {
         >
           Print label
         </button>
-        <button
-          onClick={() => inQueue ? remove(rack.id) : add(rack.id)}
-          className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
-            inQueue
-              ? "border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-100"
-              : "border-stone-200 text-stone-600 hover:bg-stone-50"
-          }`}
-        >
-          {inQueue ? "In print queue" : "Add to queue"}
-        </button>
+        {!consignerOverride && (
+          <button
+            onClick={() => inQueue ? remove(rack.id) : add(rack.id)}
+            className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
+              inQueue
+                ? "border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-100"
+                : "border-stone-200 text-stone-600 hover:bg-stone-50"
+            }`}
+          >
+            {inQueue ? "In print queue" : "Add to queue"}
+          </button>
+        )}
+        {consignerOverride && (
+          <span className="text-xs text-stone-400">Extra consigner label — {consignerOverride.name}</span>
+        )}
         <p className="text-xs text-stone-400">Set scale to 100% and disable headers/footers in your print dialog.</p>
       </div>
 
       <div className="flex justify-center">
-        <RackLabel rack={rack} delivery={delivery} rackUrl={rackUrl} printDate={printDate} />
+        <RackLabel
+          rack={rack}
+          delivery={delivery}
+          rackUrl={rackUrl}
+          printDate={printDate}
+          consignerOverride={consignerOverride}
+        />
       </div>
     </>
+  );
+}
+
+export default function RackLabelPage() {
+  return (
+    <Suspense>
+      <RackLabelContent />
+    </Suspense>
   );
 }

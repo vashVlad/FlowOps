@@ -13,12 +13,17 @@ export function RackLabel({
   delivery,
   rackUrl,
   printDate,
+  consignerOverride,
 }: {
   rack: Rack;
   delivery?: Delivery;
   rackUrl: string;
   printDate: string;
+  consignerOverride?: { name: string; jNumber?: string };
 }) {
+  const displayName    = consignerOverride?.name    ?? rack.consignerName;
+  const displayJNumber = consignerOverride?.jNumber ?? delivery?.consignerJNumber;
+
   return (
     <div
       className="w-full bg-white overflow-hidden"
@@ -55,18 +60,18 @@ export function RackLabel({
         </p>
         <p style={{
           fontSize: "18px", fontWeight: 700, color: "#000",
-          marginBottom: delivery?.consignerJNumber ? "10px" : 0,
+          marginBottom: displayJNumber ? "10px" : 0,
           overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
         }}>
-          {rack.consignerName}
+          {displayName}
         </p>
-        {delivery?.consignerJNumber && (
+        {displayJNumber && (
           <>
             <p style={{ fontSize: "10px", letterSpacing: "0.2em", color: "#888", textTransform: "uppercase", marginBottom: "4px" }}>
               J-Number
             </p>
             <p style={{ fontSize: "28px", fontWeight: 900, color: "#000", letterSpacing: "0.05em" }}>
-              {delivery.consignerJNumber}
+              {displayJNumber}
             </p>
           </>
         )}

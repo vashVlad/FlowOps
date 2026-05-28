@@ -134,11 +134,24 @@ export const useRacksStore = create<RacksStore>()((set, get) => ({
     }
 
     try {
-      await dbAdvance(id, next);
+      if (next === "completed") {
+        await dbDelete(id);
+      } else {
+        await dbAdvance(id, next);
+      }
     } catch (e) {
       const message = logMutationError("advanceStatus", e);
       set({ error: message });
       return err(message);
+    }
+
+    // Completing a rack deletes it — remove from store and bail early
+    if (next === "completed") {
+      set((state) => ({
+        racks:   state.racks.filter((r) => r.id !== id),
+        history: state.history.filter((e) => e.rackId !== id),
+      }));
+      return ok(undefined);
     }
 
     // DB write succeeded — safe to update local state

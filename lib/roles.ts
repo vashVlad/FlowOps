@@ -45,11 +45,11 @@ export const ROLE_NAV: Record<Role, Array<{ href: string; label: string }>> = {
   admin: [
     { href: "/",            label: "Dashboard"  },
     { href: "/deliveries",  label: "Deliveries" },
-    { href: "/consigners",  label: "Consigners" },
     { href: "/racks",       label: "Racks"      },
+    { href: "/consigners",  label: "Consigners" },
+    { href: "/search",      label: "Search"     },
     { href: "/zones",       label: "Zones"      },
     { href: "/lotting",     label: "Lotting"    },
-    { href: "/search",      label: "Search"     },
     { href: "/reports",     label: "Reports"    },
   ],
   front_desk: [
