@@ -416,20 +416,48 @@ function RacksContent() {
             </div>
           )}
 
-          <Select value={zoneId} onChange={(e) => setZoneId(e.target.value)}>
-            <option value="">No zone assigned</option>
-            {zones.map((z) => {
-              const { count, status } = getZoneOccupancy(z.id, racks, zones);
-              const cap  = z.capacity ? ` (${count}/${z.capacity}${status === "full" ? " FULL" : ""})` : ` (${count})`;
-              const desc = z.label ? ` — ${z.label}` : "";
-              return <option key={z.id} value={z.id}>{z.name}{desc}{cap}</option>;
+          <div className="flex gap-1.5">
+            {(["C", "B", "H"] as const).map((name) => {
+              const z = zones.find((z) => z.name === name);
+              if (!z) return null;
+              const isActive = zoneId === z.id;
+              const label = name === "C" ? "Sorting" : name === "B" ? "Lotting" : "Hallway";
+              return (
+                <button key={name} type="button" title={label}
+                  onClick={() => setZoneId(isActive ? "" : z.id)}
+                  className={`flex-1 rounded-lg border py-1.5 text-xs font-bold transition-colors text-center ${
+                    isActive
+                      ? "bg-orange-600 border-orange-600 text-white"
+                      : "border-stone-200 text-stone-600 hover:border-orange-400 hover:text-orange-600"
+                  }`}>
+                  {name}
+                </button>
+              );
             })}
-          </Select>
-
-          {/* Priority — only when not unpacking_sorting */}
-          {initialStatus !== "unpacking_sorting" && (
-            <PriorityPicker value={sortedPriority} onChange={setSortedPriority} />
-          )}
+            {(() => {
+              const otherZoneId = ["C", "B", "H"].some((n) => zones.find((z) => z.name === n)?.id === zoneId) ? "" : zoneId;
+              const hasOther = !!otherZoneId;
+              return (
+                <select value={otherZoneId} onChange={(e) => setZoneId(e.target.value)} title="Other zone"
+                  className={`rounded-lg border bg-white text-xs text-stone-600 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all py-1.5 ${
+                    hasOther
+                      ? "flex-1 px-2.5 border-orange-400 text-orange-600 font-medium"
+                      : "w-8 shrink-0 px-0.5 border-stone-200"
+                  }`}>
+                  <option value=""></option>
+                  <option value="">— No zone —</option>
+                  {zones.filter((z) => !["C", "B", "H"].includes(z.name)).map((z) => {
+                    const { count, status } = getZoneOccupancy(z.id, racks, zones);
+                    return (
+                      <option key={z.id} value={z.id}>
+                        {z.name}{z.label ? ` — ${z.label}` : ""} ({count}{status === "full" ? " FULL" : ""})
+                      </option>
+                    );
+                  })}
+                </select>
+              );
+            })()}
+          </div>
 
           {/* Auction color — only when not unpacking_sorting */}
           {initialStatus !== "unpacking_sorting" && (
@@ -438,6 +466,7 @@ function RacksContent() {
               <div className="flex items-center gap-2">
                 {[
                   { hex: "#ef4444", label: "Red"    },
+                  { hex: "#f97316", label: "Orange" },
                   { hex: "#eab308", label: "Yellow" },
                   { hex: "#22c55e", label: "Green"  },
                   { hex: "#3b82f6", label: "Blue"   },
@@ -467,6 +496,16 @@ function RacksContent() {
                 )}
               </div>
             </div>
+          )}
+
+          {/* Priority — only when not unpacking_sorting */}
+          {initialStatus !== "unpacking_sorting" && (
+            <label className="flex items-center gap-2.5 cursor-pointer select-none">
+              <input type="checkbox" checked={sortedPriority === "high"}
+                onChange={(e) => setSortedPriority(e.target.checked ? "high" : "normal")}
+                className="h-4 w-4 rounded border-stone-300 accent-orange-600 cursor-pointer" />
+              <span className="text-sm text-stone-600">High priority</span>
+            </label>
           )}
 
           {/* Hold checkbox */}

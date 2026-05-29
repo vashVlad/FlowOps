@@ -15,8 +15,17 @@ export default function PrintQueuePage() {
   const { deliveries } = useDeliveriesStore();
   const { ids, remove, clear } = usePrintQueueStore();
 
-  const [baseUrl, setBaseUrl] = useState("");
+  const [baseUrl, setBaseUrl]       = useState("");
+  const [printingId, setPrintingId] = useState<string | null>(null);
   const printDate = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
+  function printSingle(id: string) {
+    setPrintingId(id);
+    setTimeout(() => {
+      window.print();
+      setPrintingId(null);
+    }, 80);
+  }
 
   useEffect(() => {
     setBaseUrl(window.location.origin);
@@ -108,13 +117,12 @@ export default function PrintQueuePage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
-                  <Link
-                    href={`/racks/${rack.id}/label`}
-                    target="_blank"
-                    className="text-xs text-stone-400 hover:text-stone-700 transition-colors"
+                  <button
+                    onClick={() => printSingle(rack.id)}
+                    className="text-xs text-stone-500 hover:text-orange-600 transition-colors font-medium"
                   >
-                    Preview
-                  </Link>
+                    Print
+                  </button>
                   <button
                     onClick={() => remove(rack.id)}
                     className="text-xs text-stone-400 hover:text-red-500 transition-colors"
@@ -144,7 +152,7 @@ export default function PrintQueuePage() {
 
       {/* ── Print-only labels ─────────────────────────────────────────────────── */}
       <div className="print-labels">
-        {queued.map(({ rack, delivery }) => (
+        {(printingId ? queued.filter(({ rack }) => rack.id === printingId) : queued).map(({ rack, delivery }) => (
           <div key={rack.id} className="label-item">
             <div className="label-item-inner">
               <RackLabel
