@@ -82,6 +82,7 @@ function PUFloorPlan({
   onAuctionDateChange,
   onAuctionSave,
   onAuctionCancel,
+  onComplete,
 }: {
   racks: Rack[];
   placedRacks: Record<string, string>;
@@ -100,6 +101,7 @@ function PUFloorPlan({
   onAuctionDateChange: (date: string) => void;
   onAuctionSave: () => void;
   onAuctionCancel: () => void;
+  onComplete: (rackId: string) => void;
 }) {
   const [over, setOver] = useState<string | null>(null);
 
@@ -282,13 +284,12 @@ function PUFloorPlan({
                     <p className="text-[10px] text-stone-400 truncate leading-tight mt-0.5">{r.consignerName}</p>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
-                    {cell ? (
-                      <span className="text-[9px] font-mono font-semibold text-violet-600 bg-violet-100 rounded px-1.5 py-0.5 leading-none">
-                        {CELL_LABEL[cell] ?? cell}
-                      </span>
-                    ) : (
-                      <StatusBadge status={r.status} />
-                    )}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onComplete(r.id); }}
+                      className="rounded-md px-2 py-1 text-[10px] font-semibold text-white bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 transition-colors leading-none shrink-0 shadow-sm"
+                    >
+                      Complete
+                    </button>
                     {/* auction edit toggle */}
                     <button
                       onClick={(e) => { e.stopPropagation(); isEditing ? onAuctionCancel() : onAuctionEdit(r); }}
@@ -416,9 +417,10 @@ export default function ZoneDetailPage() {
   const [editDate,      setEditDate]      = useState("");
 
   // Derived from store — cellId → rackId (source of truth is rack.puPosition in DB)
+  // Exclude completed racks so they disappear from the layout automatically
   const placedRacks = Object.fromEntries(
     racks
-      .filter((r) => r.zoneId === id && r.puPosition)
+      .filter((r) => r.zoneId === id && r.puPosition && r.status !== "completed")
       .map((r) => [r.puPosition!, r.id])
   );
 
@@ -652,7 +654,7 @@ export default function ZoneDetailPage() {
         </div>
         <div className="flex-1 min-h-0">
           <PUFloorPlan
-            racks={zoneRacks}
+            racks={activeRacks}
             placedRacks={placedRacks}
             draggingId={draggingId}
             searchQuery={puSearch}
@@ -669,6 +671,7 @@ export default function ZoneDetailPage() {
             onAuctionDateChange={setEditDate}
             onAuctionSave={handleAuctionSave}
             onAuctionCancel={() => setAuctionEditId(null)}
+            onComplete={(rackId) => advanceStatus(rackId)}
           />
         </div>
       </div>

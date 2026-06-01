@@ -255,7 +255,7 @@ function RacksContent() {
   const activeRole        = useActiveRole();
   const allowedStatuses   = activeRole ? ROLE_RACK_STATUSES[activeRole] : undefined;
   const roleCanAdvance    = activeRole ? canAdvanceRacks(activeRole) : true;
-  const roleCanCreate     = activeRole === "admin" || activeRole === null;
+  const roleCanCreate     = activeRole === "admin" || activeRole === "sorter" || activeRole === null;
   // Roles with restricted status visibility get a locked default filter
   const defaultFilter: RackFilter = allowedStatuses?.length === 1
     ? allowedStatuses[0] as RackFilter

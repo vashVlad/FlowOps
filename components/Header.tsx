@@ -70,9 +70,9 @@ export default function Header() {
         <div className="flex items-center gap-1 shrink-0">
           <NotificationBell />
 
-          {/* Role switcher — only shown when user has more than one role */}
+          {/* Role switcher — desktop only; mobile uses BottomNav */}
           {roles.length > 1 && activeRole && (
-            <div className="relative">
+            <div className="relative hidden sm:block">
               <button
                 onClick={() => { setRoleOpen((v) => !v); setProfileOpen(false); }}
                 className="flex items-center gap-1 rounded-lg px-2 py-1 hover:bg-stone-100 transition-colors"

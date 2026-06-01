@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth";
-import { ROLE_NAV } from "@/lib/roles";
+import { ROLE_NAV, ROLE_LABELS, ROLE_HOME, type Role } from "@/lib/roles";
 
 // Icons keyed by route href
 const NAV_ICONS: Record<string, React.ReactNode> = {
@@ -83,11 +84,22 @@ function getIcon(href: string): React.ReactNode {
 
 export default function BottomNav() {
   const pathname   = usePathname();
-  const activeRole = useAuthStore((s) => s.activeRole);
+  const router     = useRouter();
+  const { activeRole, roles, setActiveRole } = useAuthStore();
   const links      = activeRole ? ROLE_NAV[activeRole] : [];
+  const [roleOpen, setRoleOpen] = useState(false);
 
-  // Bottom nav: show max 5 links (mobile screen constraint)
-  const mobileLinks = links.slice(0, 5);
+  const hasMultipleRoles = roles.length > 1;
+
+  // Reserve one slot for the role switcher if needed
+  const maxLinks   = hasMultipleRoles ? 4 : 5;
+  const mobileLinks = links.slice(0, maxLinks);
+
+  function handleRoleSwitch(role: Role) {
+    setRoleOpen(false);
+    setActiveRole(role);
+    router.push(ROLE_HOME[role]);
+  }
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-stone-200 bg-white sm:hidden pb-safe">
@@ -113,6 +125,51 @@ export default function BottomNav() {
             </Link>
           );
         })}
+
+        {/* Role switcher slot */}
+        {hasMultipleRoles && activeRole && (
+          <div className="relative flex flex-1 flex-col items-center justify-center">
+            <button
+              onClick={() => setRoleOpen((v) => !v)}
+              className="flex flex-col items-center gap-0.5 px-3 py-2 text-xs transition-colors text-stone-400"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+                <circle cx="12" cy="8" r="4" />
+                <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+              </svg>
+              <span className="text-[10px] font-medium truncate max-w-[56px]">{ROLE_LABELS[activeRole]}</span>
+            </button>
+
+            {roleOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setRoleOpen(false)} />
+                <div className="absolute bottom-full right-0 mb-2 z-50 w-44 rounded-xl border border-stone-200 bg-white shadow-lg overflow-hidden">
+                  <p className="px-3 py-2 text-[10px] font-medium text-stone-400 uppercase tracking-wider border-b border-stone-100">
+                    Switch role
+                  </p>
+                  {roles.map((role) => (
+                    <button
+                      key={role}
+                      onClick={() => handleRoleSwitch(role)}
+                      className={`w-full text-left px-3 py-2.5 text-sm transition-colors flex items-center justify-between ${
+                        role === activeRole
+                          ? "bg-orange-50 text-orange-700 font-medium"
+                          : "text-stone-600 hover:bg-stone-50 hover:text-stone-900"
+                      }`}
+                    >
+                      {ROLE_LABELS[role]}
+                      {role === activeRole && (
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5 text-orange-600">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </nav>
   );
