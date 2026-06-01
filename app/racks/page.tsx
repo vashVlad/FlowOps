@@ -31,6 +31,7 @@ import {
 import type { Priority, RackStatus, Rack, Delivery, Zone } from "@/types";
 import { useActiveRole } from "@/store/auth";
 import { ROLE_RACK_STATUSES, canAdvanceRacks } from "@/lib/roles";
+import { useAuctionColorDatesStore } from "@/store/auctionColorDates";
 
 const inputCls =
   "w-full rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500";
@@ -106,6 +107,7 @@ function RackCard({
   canAdvance?: boolean;
 }) {
   const { has: queueHas, add: queueAdd, remove: queueRemove } = usePrintQueueStore();
+  const colorDates  = useAuctionColorDatesStore((s) => s.dates);
   const isCompleted = rack.status === "completed";
   const nextLabel   = NEXT_STAGE_LABEL[rack.status];
   const isHeld      = !!rack.holdReason;
@@ -121,8 +123,15 @@ function RackCard({
       <div className="px-4 pt-2.5 pb-1 flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 flex-wrap min-w-0">
           {rack.auctionColor && (
-            <span className="h-3 w-3 rounded-full shrink-0 ring-1 ring-stone-200"
-              style={{ backgroundColor: rack.auctionColor }} />
+            <>
+              <span className="h-3 w-3 rounded-full shrink-0 ring-1 ring-stone-200"
+                style={{ backgroundColor: rack.auctionColor }} />
+              {colorDates[rack.auctionColor] && (
+                <span className="text-[10px] text-stone-400 shrink-0 tabular-nums">
+                  {new Date(colorDates[rack.auctionColor] + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                </span>
+              )}
+            </>
           )}
           <span className="font-mono text-base font-bold text-stone-900 tracking-tight">
             {rack.rackCode}

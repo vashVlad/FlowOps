@@ -28,6 +28,8 @@ import PageHeader from "@/components/ui/PageHeader";
 import Card, { SectionLabel } from "@/components/ui/Card";
 import { buildIntakeForecast, type ForecastItem } from "@/lib/consigners";
 import { useConnectionStore } from "@/store/connection";
+import { useAuctionColorDatesStore } from "@/store/auctionColorDates";
+import { AUCTION_COLORS } from "@/lib/tokens";
 import type { Rack, Zone, Delivery } from "@/types";
 
 
@@ -177,12 +179,7 @@ export default function Dashboard() {
 
             <EfficiencyCard efficiency={stageEfficiency} />
 
-            <DailyBriefing
-              heldCount={heldCount}
-              needsAttentionCount={needsAttentionCount}
-              readyForPickup={readyForPickup}
-              inLotting={inLotting}
-            />
+            <AuctionColorDatesPanel />
 
           </div>
 
@@ -226,6 +223,82 @@ function KpiCard({
       <p className="text-3xl font-bold tabular-nums tracking-tight text-stone-900">{value}</p>
       <p className="mt-1 text-xs text-stone-400 leading-tight">{label}</p>
     </Link>
+  );
+}
+
+// ── Auction Color Dates Panel ─────────────────────────────────────────────────
+
+function AuctionColorDatesPanel() {
+  const { dates, setDate, clearDate } = useAuctionColorDatesStore();
+  const [editing, setEditing] = useState<string | null>(null);
+  const [inputVal, setInputVal] = useState("");
+
+  function openEdit(hex: string) {
+    setEditing(hex);
+    setInputVal(dates[hex] ?? "");
+  }
+
+  async function handleSave(hex: string) {
+    if (!inputVal) {
+      await clearDate(hex);
+    } else {
+      await setDate(hex, inputVal);
+    }
+    setEditing(null);
+  }
+
+  return (
+    <Card padding="px-4 py-3.5">
+      <SectionLabel>Auction dates</SectionLabel>
+      <div className="mt-3 space-y-2">
+        {AUCTION_COLORS.map(({ hex, label }) => {
+          const date    = dates[hex];
+          const dateStr = date
+            ? new Date(date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+            : null;
+          const isEdit  = editing === hex;
+          return (
+            <div key={hex} className="flex items-center gap-2.5">
+              <span className="h-3.5 w-3.5 rounded-full shrink-0 ring-1 ring-stone-200" style={{ backgroundColor: hex }} />
+              <span className="text-xs text-stone-500 w-14 shrink-0">{label}</span>
+              {isEdit ? (
+                <>
+                  <input
+                    type="date"
+                    value={inputVal}
+                    onChange={(e) => setInputVal(e.target.value)}
+                    autoFocus
+                    className="flex-1 rounded-lg border border-stone-200 px-2 py-1 text-xs text-stone-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                  <button onClick={() => handleSave(hex)}
+                    className="rounded-lg bg-orange-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-orange-700 transition-colors shrink-0">
+                    Save
+                  </button>
+                  <button onClick={() => setEditing(null)}
+                    className="text-xs text-stone-400 hover:text-stone-600 transition-colors shrink-0">
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span className="flex-1 text-xs text-stone-400">{dateStr ?? "—"}</span>
+                  <button onClick={() => openEdit(hex)}
+                    className="text-xs text-stone-400 hover:text-orange-600 transition-colors shrink-0">
+                    {date ? "Edit" : "Set"}
+                  </button>
+                  {date && (
+                    <button onClick={() => clearDate(hex)}
+                      className="text-xs text-stone-300 hover:text-red-400 transition-colors shrink-0">
+                      ✕
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </Card>
   );
 }
 
@@ -385,8 +458,11 @@ function ZoneMap({ zones, racks, deliveries }: { zones: Zone[]; racks: Rack[]; d
 }
 
 function ZoneCell({ zone, count, assignedDelivery }: { zone: Zone; count: number; assignedDelivery?: Delivery }) {
+  const colorDates = useAuctionColorDatesStore((s) => s.dates);
   const name = zone.name;
   const cell = "rounded-lg border p-2 min-h-[48px] flex flex-col justify-between hover:shadow-sm hover:-translate-y-px transition-all duration-150";
+
+  const globalDate = zone.auctionColor ? colorDates[zone.auctionColor] : undefined;
 
   const colorDot = zone.auctionColor ? (
     <span className="h-2.5 w-2.5 rounded-full shrink-0 ring-1 ring-white/60"
@@ -484,16 +560,16 @@ function ZoneCell({ zone, count, assignedDelivery }: { zone: Zone; count: number
 
   // ── Auction (color set, no delivery) ─────────────────────────────────────
   if (zone.auctionColor) {
-    const auctionDate = zone.auctionDate ?? assignedDelivery?.auctionDate;
+    const dateStr = globalDate ?? zone.auctionDate ?? assignedDelivery?.auctionDate;
     return (
       <Link href={`/zones/${zone.id}`} className={`${cell} border-stone-200 bg-stone-50`}>
         <div className="flex items-start justify-between gap-1">
           <span className="text-xs font-bold leading-none text-stone-700">{name}</span>
           {colorDot}
         </div>
-        {auctionDate && (
+        {dateStr && (
           <p className="text-[9px] text-stone-400 leading-tight font-mono">
-            {new Date(auctionDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+            {new Date(dateStr + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
           </p>
         )}
       </Link>
@@ -682,59 +758,6 @@ function AlertsPanel({
 
 // ── Daily Briefing ────────────────────────────────────────────────────────────
 
-function DailyBriefing({
-  heldCount, needsAttentionCount, readyForPickup, inLotting,
-}: {
-  heldCount: number;
-  needsAttentionCount: number;
-  readyForPickup: number;
-  inLotting: number;
-}) {
-  const today = new Date().toLocaleDateString("en-US", {
-    weekday: "short", month: "short", day: "numeric",
-  });
-
-  return (
-    <Card padding="px-4 py-3.5" className="space-y-2.5">
-      <div className="flex items-center justify-between">
-        <SectionLabel>Daily briefing</SectionLabel>
-        <span className="text-[11px] text-stone-400">{today}</span>
-      </div>
-      <div className="space-y-1.5">
-        {needsAttentionCount > 0 && (
-          <div className="flex items-center gap-2">
-            <span className="text-amber-500 text-[11px] font-mono leading-none">⚠</span>
-            <span className="text-xs text-stone-700">
-              <span className="font-semibold">{needsAttentionCount}</span> need attention
-            </span>
-          </div>
-        )}
-        {heldCount > 0 && (
-          <div className="flex items-center gap-2">
-            <span className="text-blue-500 text-[11px] font-mono leading-none">⏸</span>
-            <span className="text-xs text-stone-700">
-              <span className="font-semibold">{heldCount}</span> on hold · pending review
-            </span>
-          </div>
-        )}
-        <div className="flex items-center gap-2">
-          <span className="text-stone-400 text-[11px] font-mono leading-none">→</span>
-          <span className="text-xs text-stone-600">
-            <span className="font-semibold">{readyForPickup}</span> ready for pickup
-            {" · "}
-            <span className="font-semibold">{inLotting}</span> in lotting
-          </span>
-        </div>
-        {needsAttentionCount === 0 && heldCount === 0 && (
-          <div className="flex items-center gap-2">
-            <span className="text-emerald-500 text-[11px] font-mono leading-none">✓</span>
-            <span className="text-xs text-stone-500">Pipeline flowing normally</span>
-          </div>
-        )}
-      </div>
-    </Card>
-  );
-}
 
 function AlertCard({
   severity, href, children,

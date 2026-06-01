@@ -15,8 +15,8 @@ import { formatBusinessDuration } from "@/lib/timeTracking";
 import { getZoneOccupancy, FIXED_ZONE_LABELS } from "@/lib/zones";
 import AuctionColorPicker from "@/components/ui/AuctionColorPicker";
 import { isRackNeedsAttention, getTimeInCurrentStatus, WAITING_STAGES } from "@/lib/timeTracking";
-import { OCCUPANCY_STYLE } from "@/lib/tokens";
 import { OperationalAlerts, type AlertItem } from "@/components/OperationalAlerts";
+import { useAuctionColorDatesStore } from "@/store/auctionColorDates";
 import type { Rack } from "@/types";
 
 const inputCls =
@@ -71,7 +71,6 @@ function PUFloorPlan({
   searchQuery,
   auctionEditId,
   editColor,
-  editDate,
   onDrop,
   onClear,
   onSearchChange,
@@ -79,7 +78,6 @@ function PUFloorPlan({
   onDragEnd,
   onAuctionEdit,
   onAuctionColorChange,
-  onAuctionDateChange,
   onAuctionSave,
   onAuctionCancel,
   onComplete,
@@ -90,7 +88,6 @@ function PUFloorPlan({
   searchQuery: string;
   auctionEditId: string | null;
   editColor: string;
-  editDate: string;
   onDrop: (cellId: string) => void;
   onClear: (cellId: string) => void;
   onSearchChange: (q: string) => void;
@@ -98,12 +95,12 @@ function PUFloorPlan({
   onDragEnd: () => void;
   onAuctionEdit: (rack: Rack) => void;
   onAuctionColorChange: (color: string) => void;
-  onAuctionDateChange: (date: string) => void;
   onAuctionSave: () => void;
   onAuctionCancel: () => void;
   onComplete: (rackId: string) => void;
 }) {
   const [over, setOver] = useState<string | null>(null);
+  const colorDates = useAuctionColorDatesStore((s) => s.dates);
 
   // cellId → Rack
   const cellRack: Record<string, Rack | undefined> = {};
@@ -254,8 +251,9 @@ function PUFloorPlan({
             const cell      = rackCell[r.id];
             const matched   = isMatch(r);
             const isEditing = auctionEditId === r.id;
-            const dateLabel = r.auctionDate
-              ? new Date(r.auctionDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })
+            const globalDate = r.auctionColor ? colorDates[r.auctionColor] : undefined;
+            const dateLabel = (globalDate ?? r.auctionDate)
+              ? new Date((globalDate ?? r.auctionDate)! + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })
               : null;
             return (
               <div
@@ -315,12 +313,6 @@ function PUFloorPlan({
                 {isEditing && (
                   <div className="px-2.5 pb-2.5 space-y-2 border-t border-violet-200 pt-2.5 mt-0">
                     <AuctionColorPicker value={editColor} onChange={onAuctionColorChange} />
-                    <input
-                      type="date"
-                      value={editDate}
-                      onChange={(e) => onAuctionDateChange(e.target.value)}
-                      className="w-full rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-xs text-stone-700 focus:outline-none focus:ring-2 focus:ring-violet-400 transition-shadow"
-                    />
                     <div className="flex gap-2">
                       <button
                         onClick={(e) => { e.stopPropagation(); onAuctionSave(); }}
@@ -399,6 +391,7 @@ export default function ZoneDetailPage() {
   const { zones, updateZone } = useZonesStore();
   const { racks, history, advanceStatus, updateRack } = useRacksStore();
   const { deliveries, addDelivery } = useDeliveriesStore();
+  const colorDates = useAuctionColorDatesStore((s) => s.dates);
 
   // ── Edit form state ────────────────────────────────────────────────────────
   const [editing, setEditing]                   = useState(false);
@@ -414,7 +407,6 @@ export default function ZoneDetailPage() {
   const [puSearch,      setPuSearch]      = useState("");
   const [auctionEditId, setAuctionEditId] = useState<string | null>(null);
   const [editColor,     setEditColor]     = useState("");
-  const [editDate,      setEditDate]      = useState("");
 
   // Derived from store — cellId → rackId (source of truth is rack.puPosition in DB)
   // Exclude completed racks so they disappear from the layout automatically
@@ -437,18 +429,14 @@ export default function ZoneDetailPage() {
     if (rack) await updateRack(rack.id, { puPosition: null });
   }
 
-  function openAuctionEdit(rack: { id: string; auctionColor?: string; auctionDate?: string }) {
+  function openAuctionEdit(rack: { id: string; auctionColor?: string }) {
     setAuctionEditId(rack.id);
     setEditColor(rack.auctionColor ?? "");
-    setEditDate(rack.auctionDate ?? "");
   }
 
   async function handleAuctionSave() {
     if (!auctionEditId) return;
-    await updateRack(auctionEditId, {
-      auctionColor: editColor || null,
-      auctionDate:  editDate  || null,
-    });
+    await updateRack(auctionEditId, { auctionColor: editColor || null });
     setAuctionEditId(null);
   }
 
@@ -459,7 +447,6 @@ export default function ZoneDetailPage() {
   const [purposeScheduledJNumber, setPurposeScheduledJNumber]     = useState("");
   const [purposeScheduledDate, setPurposeScheduledDate]           = useState(today());
   const [purposeAuctionColor, setPurposeAuctionColor] = useState("#ef4444");
-  const [purposeAuctionDate, setPurposeAuctionDate] = useState("");
   const [purposeReserveReason, setPurposeReserveReason] = useState("");
   const [purposeSaving, setPurposeSaving]           = useState(false);
 
@@ -554,7 +541,7 @@ export default function ZoneDetailPage() {
       await updateZone(zone!.id, {
         deliveryId: null, reserved: false,
         auctionColor: purposeAuctionColor,
-        auctionDate: purposeAuctionDate || null,
+        auctionDate: null,
       });
     }
 
@@ -568,6 +555,7 @@ export default function ZoneDetailPage() {
 
     setPurposeSaving(false);
     setPurposeMode(null);
+    setEditing(false);
   }
 
   // ── Clear zone purpose ─────────────────────────────────────────────────────
@@ -637,18 +625,12 @@ export default function ZoneDetailPage() {
             {count} rack{count !== 1 ? "s" : ""} · {healthLabel}
           </span>
 
-          {/* ── Zone auction color + date ── */}
+          {/* ── Zone auction color ── */}
           <div className="ml-auto flex items-center gap-2">
             <span className="text-[10px] font-medium uppercase tracking-wider text-stone-400">Auction</span>
             <AuctionColorPicker
               value={zone.auctionColor ?? ""}
               onChange={(hex) => updateZone(zone.id, { auctionColor: hex || null })}
-            />
-            <input
-              type="date"
-              defaultValue={zone.auctionDate ?? ""}
-              onBlur={(e) => updateZone(zone.id, { auctionDate: e.target.value || null })}
-              className="rounded-lg border border-stone-200 bg-white px-2 py-1 text-xs text-stone-600 focus:outline-none focus:ring-2 focus:ring-violet-400 transition-shadow"
             />
           </div>
         </div>
@@ -660,7 +642,6 @@ export default function ZoneDetailPage() {
             searchQuery={puSearch}
             auctionEditId={auctionEditId}
             editColor={editColor}
-            editDate={editDate}
             onDrop={handleCellDrop}
             onClear={handleCellClear}
             onSearchChange={setPuSearch}
@@ -668,7 +649,6 @@ export default function ZoneDetailPage() {
             onDragEnd={() => setDraggingId(null)}
             onAuctionEdit={openAuctionEdit}
             onAuctionColorChange={setEditColor}
-            onAuctionDateChange={setEditDate}
             onAuctionSave={handleAuctionSave}
             onAuctionCancel={() => setAuctionEditId(null)}
             onComplete={(rackId) => advanceStatus(rackId)}
@@ -688,61 +668,7 @@ export default function ZoneDetailPage() {
       <div className="rounded-xl border border-stone-200 bg-white shadow-sm overflow-hidden">
         <div className="h-0.5 bg-orange-500" />
         <div className="p-5">
-          {editing ? (
-            /* ── Edit form ─────────────────────────────────────────────────── */
-            <form onSubmit={handleSave} className="space-y-3">
-              <p className="text-sm font-semibold text-stone-900">Edit {zone.name}</p>
-              <Select value={editDeliveryId} onChange={(e) => setEditDeliveryId(e.target.value)}>
-                <option value="">No delivery assigned</option>
-                {deliveries
-                  .filter((d) => d.status !== "complete" || d.id === editDeliveryId)
-                  .sort((a, b) => a.consignerName.localeCompare(b.consignerName))
-                  .map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.consignerJNumber ?? d.deliveryCode} — {d.consignerName}
-                    </option>
-                  ))}
-              </Select>
-              {!FIXED_ZONE_LABELS[zone.name] && (
-                <input type="text" placeholder="Description (optional)" value={editLabel}
-                  onChange={(e) => setEditLabel(e.target.value)} className={inputCls} autoFocus />
-              )}
-              <div className="space-y-1">
-                <input type="number" placeholder="Rack capacity (optional)" value={editCapacity}
-                  onChange={(e) => setEditCapacity(e.target.value)} min={1} className={inputCls} />
-                {editCapacity && (
-                  <button type="button" onClick={() => setEditCapacity("")}
-                    className="text-xs text-stone-400 hover:text-stone-700 transition-colors">
-                    Remove capacity limit
-                  </button>
-                )}
-              </div>
-              {!isUtility && (
-                <>
-                  <label className="flex items-center gap-2.5 cursor-pointer select-none">
-                    <input type="checkbox" checked={editReserved}
-                      onChange={(e) => setEditReserved(e.target.checked)}
-                      disabled={!!editDeliveryId}
-                      className="h-4 w-4 rounded border-stone-300 accent-amber-500 cursor-pointer disabled:opacity-40" />
-                    <span className={`text-sm ${editDeliveryId ? "text-stone-400" : "text-stone-600"}`}>
-                      Reserved
-                      {editDeliveryId && <span className="ml-1.5 text-xs text-stone-400">(cleared when delivery assigned)</span>}
-                    </span>
-                  </label>
-                  <div className="space-y-1.5">
-                    <p className="text-xs font-medium text-stone-600">Auction color</p>
-                    <AuctionColorPicker value={editAuctionColor} onChange={setEditAuctionColor} />
-                  </div>
-                </>
-              )}
-              {editError && <p className="text-xs text-red-500">{editError}</p>}
-              <div className="flex gap-2">
-                <button type="submit" className="rounded-lg bg-orange-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-700 transition-colors">Save</button>
-                <button type="button" onClick={() => setEditing(false)} className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm font-medium text-stone-600 hover:bg-stone-50 transition-colors">Cancel</button>
-                <button type="button" onClick={() => { setEditLabel(""); setEditCapacity(""); setEditDeliveryId(""); setEditReserved(false); setEditAuctionColor(""); setEditError(""); }} className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm font-medium text-stone-400 hover:bg-stone-50 transition-colors">Clear</button>
-              </div>
-            </form>
-          ) : (
+          {(
             <div className="space-y-5">
               {/* Header */}
               <div className="flex items-start justify-between gap-4">
@@ -771,24 +697,26 @@ export default function ZoneDetailPage() {
                   })()}
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
-                  {!isEmpty && (
-                    <div className="text-right">
-                      <p className="text-xl font-bold text-stone-900 tabular-nums">
-                        {zone.capacity ? `${count}/${zone.capacity}` : count}
-                      </p>
-                      <p className="text-[11px] text-stone-400">racks{zone.capacity ? "" : " · no limit"}</p>
-                    </div>
-                  )}
                   <button onClick={openEdit} className="text-xs text-stone-400 hover:text-orange-600 transition-colors">
                     Edit
                   </button>
                 </div>
               </div>
 
-              {/* ── Purpose picker — shown only for empty non-utility zones ── */}
-              {isEmpty && (
+              {/* ── Purpose picker — empty zones or when editing ── */}
+              {(isEmpty || editing) && (
                 <div className="space-y-3">
-                  <p className="text-xs font-medium text-stone-400 uppercase tracking-wide">Set zone purpose</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-medium text-stone-400 uppercase tracking-wide">
+                      {editing ? "Change zone purpose" : "Set zone purpose"}
+                    </p>
+                    {editing && (
+                      <button onClick={() => { setEditing(false); setPurposeMode(null); }}
+                        className="text-xs text-stone-400 hover:text-stone-600 transition-colors">
+                        Cancel
+                      </button>
+                    )}
+                  </div>
 
                   {/* 4 option cards */}
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -863,12 +791,6 @@ export default function ZoneDetailPage() {
                         <p className="text-xs text-stone-600">Color</p>
                         <AuctionColorPicker value={purposeAuctionColor} onChange={setPurposeAuctionColor} />
                       </div>
-                      <div className="space-y-1">
-                        <label className="text-xs text-stone-600">Auction date <span className="text-stone-400">(optional)</span></label>
-                        <input type="date" value={purposeAuctionDate}
-                          onChange={(e) => setPurposeAuctionDate(e.target.value)}
-                          className={inputCls} />
-                      </div>
                       <button onClick={applyPurpose} disabled={purposeSaving}
                         className="rounded-lg bg-stone-700 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 disabled:opacity-40 transition-colors">
                         {purposeSaving ? "Saving…" : "Set auction"}
@@ -904,7 +826,12 @@ export default function ZoneDetailPage() {
                   {zone.auctionColor && (
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-600">
                       <span className="h-3 w-3 rounded-full ring-1 ring-stone-200" style={{ backgroundColor: zone.auctionColor }} />
-                      Auction{zone.auctionDate ? ` · ${new Date(zone.auctionDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : ""}
+                      {(() => {
+                        const d = colorDates[zone.auctionColor!];
+                        return d
+                          ? `Auction · ${new Date(d + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+                          : "Auction";
+                      })()}
                     </span>
                   )}
                   <button onClick={clearPurpose}
@@ -914,49 +841,6 @@ export default function ZoneDetailPage() {
                 </div>
               )}
 
-              {/* Stats — hidden for empty zones */}
-              {!isEmpty && (
-                <>
-                  {zone.capacity && (
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-medium uppercase tracking-wide text-stone-400">Occupancy</span>
-                        <span className="text-xs font-medium text-stone-500">{pct}%</span>
-                      </div>
-                      <div className="h-2 w-full overflow-hidden rounded-full bg-stone-100">
-                        <div className={`h-full rounded-full transition-all ${OCCUPANCY_STYLE[status]?.bar ?? "bg-stone-300"}`}
-                          style={{ width: `${pct}%` }} />
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex divide-x divide-stone-100 border-t border-stone-100 pt-4">
-                    {isWaitingZone ? (
-                      <div className="flex-1 text-center pr-4">
-                        <p className={`text-base font-bold tabular-nums ${zone.capacity && count >= zone.capacity ? "text-red-600" : "text-stone-800"}`}>
-                          {zone.capacity ? `${count}/${zone.capacity}` : count}
-                        </p>
-                        <p className="text-[11px] text-stone-400 mt-0.5">capacity</p>
-                      </div>
-                    ) : (
-                      <div className="flex-1 text-center pr-4">
-                        <p className={`text-base font-bold tabular-nums ${stuckInZone > 0 ? "text-orange-600" : "text-stone-800"}`}>{stuckInZone}</p>
-                        <p className="text-[11px] text-stone-400 mt-0.5">stuck</p>
-                      </div>
-                    )}
-                    <div className="flex-1 text-center px-4">
-                      <p className="text-base font-bold text-stone-800 tabular-nums">{activeRacks.length}</p>
-                      <p className="text-[11px] text-stone-400 mt-0.5">active</p>
-                    </div>
-                    <div className="flex-1 text-center pl-4">
-                      <p className="text-base font-bold text-stone-800 tabular-nums">
-                        {avgDwellMs != null ? formatBusinessDuration(avgDwellMs) : "—"}
-                      </p>
-                      <p className="text-[11px] text-stone-400 mt-0.5">avg dwell</p>
-                    </div>
-                  </div>
-                </>
-              )}
             </div>
           )}
         </div>

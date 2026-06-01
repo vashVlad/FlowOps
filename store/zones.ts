@@ -9,7 +9,6 @@ import {
 
 export interface ZonePatch {
   label?:        string;
-  capacity?:     number;
   deliveryId?:   string | null;
   reserved?:     boolean;
   auctionColor?: string | null;

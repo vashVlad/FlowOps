@@ -31,6 +31,7 @@ import { useToastStore } from "@/store/toast";
 import { useIsSupervisor, useIsAdmin, useActiveRole } from "@/store/auth";
 import { canAdvanceRacks } from "@/lib/roles";
 import { usePrintQueueStore } from "@/store/printQueue";
+import { useAuctionColorDatesStore } from "@/store/auctionColorDates";
 import type { Priority } from "@/types";
 
 const inputCls = "w-full rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500";
@@ -78,6 +79,7 @@ export default function RackDetailPage() {
   const [consignerError,    setConsignerError]    = useState("");
   const [consignerDropOpen, setConsignerDropOpen] = useState(false);
 
+  const colorDates    = useAuctionColorDatesStore((s) => s.dates);
   const isSupervisor  = useIsSupervisor();
   const isAdmin       = useIsAdmin();
   const activeRole    = useActiveRole();
@@ -269,6 +271,11 @@ export default function RackDetailPage() {
                     )}
                   </div>
                   <h1 className="text-xl font-bold text-stone-900 tracking-tight">{rack.rackCode}</h1>
+                  {rack.auctionColor && colorDates[rack.auctionColor] && (
+                    <span className="rounded-md bg-stone-100 px-2 py-0.5 text-xs text-stone-500 tabular-nums">
+                      {new Date(colorDates[rack.auctionColor] + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                    </span>
+                  )}
                   <StatusBadge status={rack.status} />
                   {isHeld ? (
                     <span className="inline-flex items-center gap-1 rounded-md bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">

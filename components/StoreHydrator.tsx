@@ -8,6 +8,7 @@ import { useDeliveriesStore } from "@/store/deliveries";
 import { useRacksStore } from "@/store/racks";
 import { useNotesStore } from "@/store/notes";
 import { useRackConsignersStore } from "@/store/rackConsigners";
+import { useAuctionColorDatesStore } from "@/store/auctionColorDates";
 import { useConnectionStore } from "@/store/connection";
 import {
   toRack,
@@ -32,13 +33,14 @@ export default function StoreHydrator() {
   const hydrateRacks      = useRacksStore((s) => s.hydrate);
   const hydrateNotes           = useNotesStore((s) => s.hydrate);
   const hydrateRackConsigners  = useRackConsignersStore((s) => s.hydrate);
+  const hydrateAuctionColors   = useAuctionColorDatesStore((s) => s.hydrate);
   const setConnStatus          = useConnectionStore((s) => s.setStatus);
 
   useEffect(() => {
     let channel: RealtimeChannel | null = null;
     let cancelled = false;
 
-    Promise.all([hydrateZones(), hydrateDeliveries(), hydrateRacks(), hydrateNotes(), hydrateRackConsigners()])
+    Promise.all([hydrateZones(), hydrateDeliveries(), hydrateRacks(), hydrateNotes(), hydrateRackConsigners(), hydrateAuctionColors()])
       .then(() => {
         if (cancelled) return;
 
@@ -123,7 +125,7 @@ export default function StoreHydrator() {
         try { getSupabase().removeChannel(channel); } catch { /* already torn down */ }
       }
     };
-  }, [hydrateZones, hydrateDeliveries, hydrateRacks, hydrateNotes, hydrateRackConsigners, setConnStatus]);
+  }, [hydrateZones, hydrateDeliveries, hydrateRacks, hydrateNotes, hydrateRackConsigners, hydrateAuctionColors, setConnStatus]);
 
   return null;
 }

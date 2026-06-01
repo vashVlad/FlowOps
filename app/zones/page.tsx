@@ -10,6 +10,7 @@ import { LoadingCards } from "@/components/LoadingCards";
 import ErrorBanner from "@/components/ErrorBanner";
 import PageHeader from "@/components/ui/PageHeader";
 import { DELIVERY_STATUS_BADGE, DELIVERY_STATUS_LABEL } from "@/lib/tokens";
+import { useAuctionColorDatesStore } from "@/store/auctionColorDates";
 import type { Zone, Delivery, Rack } from "@/types";
 
 const inputCls =
@@ -55,10 +56,16 @@ function ZoneCell({
   assignedDelivery?: Delivery;
   tall?: boolean;
 }) {
+  const colorDates = useAuctionColorDatesStore((s) => s.dates);
   const name = zone.name;
   const base = `rounded-lg border p-2.5 flex flex-col justify-between hover:shadow-sm hover:-translate-y-px transition-all duration-150 ${
     tall ? "h-full" : "min-h-[80px]"
   }`;
+
+  const globalDate = zone.auctionColor ? colorDates[zone.auctionColor] : undefined;
+  const globalDateLabel = globalDate
+    ? new Date(globalDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })
+    : null;
 
   const colorDot = zone.auctionColor ? (
     <span
@@ -205,16 +212,17 @@ function ZoneCell({
   // ── Auction (color set, no delivery) ──────────────────────────────────────
   if (zone.auctionColor) {
     const auctionDate = zone.auctionDate ?? assignedDelivery?.auctionDate;
+    const displayDate = globalDateLabel ?? (auctionDate
+      ? new Date(auctionDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })
+      : null);
     return (
       <Link href={`/zones/${zone.id}`} className={`${base} border-stone-200 bg-stone-50`}>
         <div className="flex items-start justify-between gap-1">
           <span className="text-sm font-bold leading-none text-stone-700">{name}</span>
           {colorDot}
         </div>
-        {auctionDate && (
-          <p className="text-[10px] text-stone-400 leading-tight font-mono">
-            {new Date(auctionDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-          </p>
+        {displayDate && (
+          <p className="text-[10px] text-stone-400 leading-tight font-mono">{displayDate}</p>
         )}
       </Link>
     );
@@ -242,7 +250,6 @@ export default function ZonesPage() {
   const [showForm, setShowForm] = useState(false);
   const [name, setName]         = useState("");
   const [label, setLabel]       = useState("");
-  const [capacity, setCapacity] = useState("");
   const [error, setError]       = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
@@ -254,10 +261,9 @@ export default function ZonesPage() {
     const result = await addZone({
       name: name.trim(),
       label: label.trim() || undefined,
-      capacity: capacity ? Number(capacity) : undefined,
     });
     if (!result.ok) return;
-    setName(""); setLabel(""); setCapacity(""); setShowForm(false);
+    setName(""); setLabel(""); setShowForm(false);
   }
 
   const byName = new Map(zones.map((z) => [z.name, z]));
@@ -307,9 +313,7 @@ export default function ZonesPage() {
             onChange={(e) => setName(e.target.value)} className={inputCls} autoFocus />
           <input type="text" placeholder="Description (optional)" value={label}
             onChange={(e) => setLabel(e.target.value)} className={inputCls} />
-          <input type="number" placeholder="Rack capacity (optional)" value={capacity}
-            onChange={(e) => setCapacity(e.target.value)} min={1} className={inputCls} />
-          {error && <p className="text-xs text-red-500">{error}</p>}
+{error && <p className="text-xs text-red-500">{error}</p>}
           <button type="submit"
             className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700 transition-colors">
             Create zone

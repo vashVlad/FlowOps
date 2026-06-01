@@ -56,7 +56,6 @@ export interface ZoneRow {
   id: string;
   name: string;
   label: string | null;
-  capacity: number | null;
   delivery_id: string | null;
   reserved: boolean;
   auction_color: string | null;
@@ -137,7 +136,6 @@ export function toZone(row: ZoneRow): Zone {
     id:           row.id,
     name:         row.name,
     label:        row.label         ?? undefined,
-    capacity:     row.capacity      ?? undefined,
     deliveryId:   row.delivery_id   ?? undefined,
     reserved:     row.reserved      ?? false,
     auctionColor: row.auction_color ?? undefined,
@@ -390,6 +388,30 @@ export async function deleteDeliveryPhoto(
   await supabase.storage.from("delivery-photos").remove([storagePath]);
 }
 
+// ── Auction color dates ───────────────────────────────────────────────────────
+
+export async function fetchAuctionColorDates(): Promise<Record<string, string>> {
+  const { data, error } = await supabase
+    .from("auction_color_dates")
+    .select("color_hex, auction_date");
+  if (error) throw error;
+  return Object.fromEntries(
+    (data ?? []).map((r: { color_hex: string; auction_date: string }) => [r.color_hex, r.auction_date])
+  );
+}
+
+export async function upsertAuctionColorDate(colorHex: string, auctionDate: string): Promise<void> {
+  const { error } = await supabase
+    .from("auction_color_dates")
+    .upsert({ color_hex: colorHex, auction_date: auctionDate, updated_at: new Date().toISOString() }, { onConflict: "color_hex" });
+  if (error) throw error;
+}
+
+export async function deleteAuctionColorDate(colorHex: string): Promise<void> {
+  const { error } = await supabase.from("auction_color_dates").delete().eq("color_hex", colorHex);
+  if (error) throw error;
+}
+
 // ════════════════════════════════════════════════════════════════════════════
 // MUTATIONS
 // ════════════════════════════════════════════════════════════════════════════
@@ -534,7 +556,6 @@ export async function updateZone(
   id: string,
   patch: {
     label?: string;
-    capacity?: number;
     deliveryId?: string | null;
     reserved?: boolean;
     auctionColor?: string | null;
@@ -543,7 +564,6 @@ export async function updateZone(
 ): Promise<Zone> {
   const update: Record<string, unknown> = {};
   if ("label"        in patch) update.label         = patch.label         ?? null;
-  if ("capacity"     in patch) update.capacity      = patch.capacity      ?? null;
   if ("deliveryId"   in patch) update.delivery_id   = patch.deliveryId    ?? null;
   if ("reserved"     in patch) update.reserved      = patch.reserved;
   if ("auctionColor" in patch) update.auction_color = patch.auctionColor  ?? null;
@@ -652,14 +672,12 @@ export async function deleteRackConsigner(id: string): Promise<void> {
 export async function createZone(input: {
   name: string;
   label?: string;
-  capacity?: number;
 }): Promise<Zone> {
   const { data, error } = await supabase
     .from("zones")
     .insert({
-      name:     input.name.toUpperCase().trim(),
-      label:    input.label    ?? null,
-      capacity: input.capacity ?? null,
+      name:  input.name.toUpperCase().trim(),
+      label: input.label ?? null,
     })
     .select()
     .single();
