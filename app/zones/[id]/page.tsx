@@ -11,11 +11,9 @@ import Select from "@/components/Select";
 import StatusBadge from "@/components/StatusBadge";
 import { StageStrip } from "@/app/racks/page";
 import { timeAgo } from "@/lib/utils";
-import { formatBusinessDuration } from "@/lib/timeTracking";
 import { getZoneOccupancy, FIXED_ZONE_LABELS } from "@/lib/zones";
 import AuctionColorPicker from "@/components/ui/AuctionColorPicker";
-import { isRackNeedsAttention, getTimeInCurrentStatus, WAITING_STAGES } from "@/lib/timeTracking";
-import { OperationalAlerts, type AlertItem } from "@/components/OperationalAlerts";
+import { isRackNeedsAttention, WAITING_STAGES } from "@/lib/timeTracking";
 import { useAuctionColorDatesStore } from "@/store/auctionColorDates";
 import type { Rack } from "@/types";
 
@@ -396,7 +394,6 @@ export default function ZoneDetailPage() {
   // ── Edit form state ────────────────────────────────────────────────────────
   const [editing, setEditing]                   = useState(false);
   const [editLabel, setEditLabel]               = useState("");
-  const [editCapacity, setEditCapacity]         = useState("");
   const [editDeliveryId, setEditDeliveryId]     = useState("");
   const [editReserved, setEditReserved]         = useState(false);
   const [editAuctionColor, setEditAuctionColor] = useState("");
@@ -472,34 +469,8 @@ export default function ZoneDetailPage() {
 
   const zoneRacks        = racks.filter((r) => r.zoneId === id)
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-  const activeRacks      = zoneRacks.filter((r) => r.status !== "completed");
-  const processingInZone = activeRacks.filter((r) => !WAITING_STAGES.has(r.status));
-  const waitingInZone    = activeRacks.filter((r) => WAITING_STAGES.has(r.status));
-  const isWaitingZone    = waitingInZone.length > processingInZone.length;
-
-  const stuckInZone = processingInZone.filter((r) => isRackNeedsAttention(r, history)).length;
-  const avgDwellMs  = activeRacks.length > 0
-    ? activeRacks.reduce((sum, r) => sum + getTimeInCurrentStatus(r, history), 0) / activeRacks.length
-    : null;
-
-  const { count, pct, status } = getZoneOccupancy(zone.id, racks, zones);
-
-  const zoneAlerts: AlertItem[] = [];
-  if (status === "full") {
-    zoneAlerts.push({ severity: "critical", message: `${zone.name} is at capacity (${count}/${zone.capacity} racks)`, detail: "Move racks to overflow before adding more." });
-  } else if (status === "near" && zone.capacity) {
-    zoneAlerts.push({ severity: "warning", message: `${zone.name} near capacity — ${zone.capacity - count} spot${zone.capacity - count !== 1 ? "s" : ""} remaining` });
-  }
-  if (!isWaitingZone && stuckInZone > 0) {
-    zoneAlerts.push({ severity: stuckInZone >= 3 ? "critical" : "warning", message: `${stuckInZone} rack${stuckInZone !== 1 ? "s" : ""} delayed in ${zone.name}`, detail: "Review stage timing on rack detail pages.", href: "/racks" });
-  }
-
-  const healthLevel = isWaitingZone
-    ? status === "full" ? "critical" : status === "near" ? "warn" : "ok"
-    : stuckInZone > 0 || status === "full" ? "critical" : status === "near" ? "warn" : "ok";
-  const healthLabel = isWaitingZone
-    ? healthLevel === "critical" ? "overloaded" : healthLevel === "warn" ? "near capacity" : "healthy"
-    : healthLevel === "critical" ? "needs attention" : healthLevel === "warn" ? "near capacity" : "healthy";
+  const activeRacks = zoneRacks.filter((r) => r.status !== "completed");
+  const { count }   = getZoneOccupancy(zone.id, racks, zones);
 
   // ── Filtered delivery lists ────────────────────────────────────────────────
   const activeDeliveries = deliveries.filter((d) => ["arrived", "processing"].includes(d.status));
@@ -572,7 +543,6 @@ export default function ZoneDetailPage() {
   // ── Edit form ──────────────────────────────────────────────────────────────
   function openEdit() {
     setEditLabel(zone!.label ?? "");
-    setEditCapacity(zone!.capacity ? String(zone!.capacity) : "");
     setEditDeliveryId(zone!.deliveryId ?? "");
     setEditReserved(zone!.reserved ?? false);
     setEditAuctionColor(zone!.auctionColor ?? "");
@@ -582,14 +552,11 @@ export default function ZoneDetailPage() {
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
-    const cap = editCapacity.trim();
-    if (cap !== "" && (isNaN(Number(cap)) || Number(cap) < 1)) return setEditError("Capacity must be a positive number.");
     setEditError("");
 
     const isFixed  = !!FIXED_ZONE_LABELS[zone!.name];
     const newDel   = editDeliveryId ? deliveries.find((d) => d.id === editDeliveryId) : null;
     const patch: Parameters<typeof updateZone>[1] = {
-      capacity:   cap ? Number(cap) : undefined,
       deliveryId: editDeliveryId || null,
     };
     if (!isFixed) {
@@ -613,16 +580,8 @@ export default function ZoneDetailPage() {
           <button onClick={() => router.back()} className="text-sm text-stone-400 hover:text-stone-700 transition-colors">← Zones</button>
           <span className="text-stone-300 select-none">·</span>
           <h1 className="text-sm font-bold text-violet-700">Pick-Up</h1>
-          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${
-            healthLevel === "critical" ? "bg-orange-100 text-orange-600" :
-            healthLevel === "warn"     ? "bg-amber-100 text-amber-600"   :
-            "bg-emerald-100 text-emerald-600"
-          }`}>
-            <span className={`h-1.5 w-1.5 rounded-full ${
-              healthLevel === "critical" ? "bg-orange-500 animate-pulse" :
-              healthLevel === "warn"     ? "bg-amber-400" : "bg-emerald-400"
-            }`} />
-            {count} rack{count !== 1 ? "s" : ""} · {healthLabel}
+          <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium bg-stone-100 text-stone-600">
+            {count} rack{count !== 1 ? "s" : ""}
           </span>
 
           {/* ── Zone auction color ── */}
@@ -675,19 +634,6 @@ export default function ZoneDetailPage() {
                 <div className="min-w-0">
                   <div className="flex items-center gap-2.5 flex-wrap">
                     <h1 className="text-xl font-bold text-stone-900 tracking-tight">{zone.name}</h1>
-                    {!isEmpty && (
-                      <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                        healthLevel === "critical" ? "bg-orange-100 text-orange-600" :
-                        healthLevel === "warn"     ? "bg-amber-100 text-amber-600"   :
-                        "bg-emerald-100 text-emerald-600"
-                      }`}>
-                        <span className={`h-1.5 w-1.5 rounded-full ${
-                          healthLevel === "critical" ? "bg-orange-500 animate-pulse" :
-                          healthLevel === "warn"     ? "bg-amber-400" : "bg-emerald-400"
-                        }`} />
-                        {healthLabel}
-                      </span>
-                    )}
                   </div>
                   {(() => {
                     const fixed = FIXED_ZONE_LABELS[zone.name];
@@ -846,7 +792,6 @@ export default function ZoneDetailPage() {
         </div>
       </div>
 
-      <OperationalAlerts alerts={zoneAlerts} />
 
       {/* ── Rack list — hidden for PU (layout handles placement) ──────────── */}
       {zone.name !== "PU" && <div>

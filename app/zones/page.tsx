@@ -78,22 +78,14 @@ function ZoneCell({
   if (name === "H" || name === "B" || name === "C") {
     if (tall) {
       return (
-        <Link href={`/zones/${zone.id}`} className="h-full rounded-lg border border-stone-200 bg-stone-100 p-2.5 flex gap-2 hover:shadow-sm transition-all duration-150">
-          {/* Left: name + label */}
-          <div className="flex flex-col justify-start shrink-0">
+        <Link href={`/zones/${zone.id}`} className="h-full rounded-lg border border-stone-200 bg-stone-100 p-2.5 flex flex-col justify-between hover:shadow-sm transition-all duration-150">
+          <div className="flex items-center gap-2">
             <span className="text-sm font-bold leading-none text-stone-500">{name}</span>
-            <p className="text-[10px] text-stone-400 leading-tight mt-0.5">{FIXED_ZONE_LABELS[name]}</p>
+            <p className="text-[10px] text-stone-400 leading-tight">{FIXED_ZONE_LABELS[name]}</p>
           </div>
-          {/* Center: chips */}
-          <div className="flex-1 flex items-center overflow-hidden pl-6">
+          <div className="overflow-hidden">
             <RackChips zoneRacks={zoneRacks} max={30} />
           </div>
-          {/* Right: count */}
-          {zoneRacks.length > 0 && (
-            <div className="shrink-0 self-start">
-              <p className="text-2xl font-bold tabular-nums text-stone-600">{zoneRacks.length}</p>
-            </div>
-          )}
         </Link>
       );
     }
@@ -342,33 +334,33 @@ export default function ZonesPage() {
               <div className="grid gap-2" style={{ gridTemplateColumns: "1fr 20px 1fr 20px 1fr 1fr", gridTemplateRows: "auto 20px auto" }}>
                 {/* Row 1 */}
                 {cell("G4")}
-                <div className="flex items-center justify-center">
-                  <span className="text-[9px] font-medium text-stone-300 tracking-widest" style={{ writingMode: "vertical-rl" }}>hallway</span>
+                <div className="flex items-center justify-center border-x border-slate-200 bg-slate-100">
+                  <span className="text-[9px] font-medium text-slate-400 tracking-widest" style={{ writingMode: "vertical-rl" }}>hallway</span>
                 </div>
                 {cell("G5")}
                 <div />
                 {cell("G6")} {cell("G7")}
 
                 {/* Horizontal hallways — one per column group */}
-                <div className="flex items-center justify-center">
-                  <span className="text-[9px] font-medium text-stone-300 tracking-widest">hallway</span>
+                <div className="flex items-center justify-center border-y border-slate-200 bg-slate-100">
+                  <span className="text-[9px] font-medium text-slate-400 tracking-widest">hallway</span>
                 </div>
-                <div />
-                <div className="flex items-center justify-center">
-                  <span className="text-[9px] font-medium text-stone-300 tracking-widest">hallway</span>
+                <div className="border border-slate-200 bg-slate-100" />
+                <div className="flex items-center justify-center border-y border-slate-200 bg-slate-100">
+                  <span className="text-[9px] font-medium text-slate-400 tracking-widest">hallway</span>
                 </div>
-                <div />
-                <div className="col-span-2 flex items-center justify-center">
-                  <span className="text-[9px] font-medium text-stone-300 tracking-widest">hallway</span>
+                <div className="border border-slate-200 bg-slate-100" />
+                <div className="col-span-2 flex items-center justify-center border-y border-slate-200 bg-slate-100">
+                  <span className="text-[9px] font-medium text-slate-400 tracking-widest">hallway</span>
                 </div>
 
                 {/* Row 2 */}
                 {cell("PU")}
-                <div className="flex items-center justify-center">
-                  <span className="text-[9px] font-medium text-stone-300 tracking-widest" style={{ writingMode: "vertical-rl" }}>hallway</span>
+                <div className="flex items-center justify-center border-x border-slate-200 bg-slate-100">
+                  <span className="text-[9px] font-medium text-slate-400 tracking-widest" style={{ writingMode: "vertical-rl" }}>hallway</span>
                 </div>
                 {cell("G2")}
-                <div />
+                <div className="border-x border-slate-200 bg-slate-100" />
                 <div className="col-span-2 flex justify-center items-start">
                   <div className="w-1/2">{cell("G1")}</div>
                 </div>
@@ -377,7 +369,7 @@ export default function ZonesPage() {
           )}
 
           {hasGallery && hasWarehouse && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 my-16">
               <div className="flex-1 h-px bg-stone-200" />
               <span className="text-[9px] text-stone-300 shrink-0">court</span>
               <div className="flex-1 h-px bg-stone-200" />
@@ -400,17 +392,18 @@ export default function ZonesPage() {
                 <div style={{ gridColumn: 3, gridRow: 1 }}>{cell("W5")}</div>
                 <div style={{ gridColumn: 4, gridRow: 1 }}>{cell("W6")}</div>
 
-                {/* Hallway row (cols 3-4 only) */}
-                <div style={{ gridColumn: 3, gridRow: 2 }} className="flex items-center justify-center">
-                  <span className="text-[9px] font-medium text-stone-300 tracking-widest">hallway</span>
+                {/* Hallway row intersection + cols 3-4 */}
+                <div style={{ gridColumn: 2, gridRow: 2 }} className="border border-slate-200 bg-slate-100" />
+                <div style={{ gridColumn: 3, gridRow: 2 }} className="flex items-center justify-center border-y border-slate-200 bg-slate-100">
+                  <span className="text-[9px] font-medium text-slate-400 tracking-widest">hallway</span>
                 </div>
-                <div style={{ gridColumn: 4, gridRow: 2 }} className="flex items-center justify-center">
-                  <span className="text-[9px] font-medium text-stone-300 tracking-widest">hallway</span>
+                <div style={{ gridColumn: 4, gridRow: 2 }} className="flex items-center justify-center border-y border-slate-200 bg-slate-100">
+                  <span className="text-[9px] font-medium text-slate-400 tracking-widest">hallway</span>
                 </div>
 
-                {/* Vertical hallway — rows 3–6 only */}
-                <div style={{ gridColumn: 2, gridRow: "3 / 7" }} className="flex items-center justify-center">
-                  <span className="text-[9px] font-medium text-stone-300 tracking-widest" style={{ writingMode: "vertical-rl" }}>hallway</span>
+                {/* Vertical hallway — rows 3–7 */}
+                <div style={{ gridColumn: 2, gridRow: "3 / 7" }} className="flex items-center justify-center border-x border-slate-200 bg-slate-100">
+                  <span className="text-[9px] font-medium text-slate-400 tracking-widest" style={{ writingMode: "vertical-rl" }}>hallway</span>
                 </div>
 
                 {/* Rows 3–5 */}
@@ -420,6 +413,11 @@ export default function ZonesPage() {
                 <div style={{ gridColumn: 1, gridRow: 4 }}>{cell("W2")}</div>
                 <div style={{ gridColumn: 3, gridRow: 4 }}>{cell("W9")}</div>
                 <div style={{ gridColumn: 4, gridRow: 4 }}>{cell("B")}</div>
+                <div style={{ gridColumn: 1, gridRow: 5 }} className="flex items-center justify-center">
+                  <div className="flex items-center justify-center border-x border-slate-200 bg-slate-100 w-full" style={{ height: "40px" }}>
+                    <span className="text-[9px] font-medium text-slate-400 tracking-widest">hallway</span>
+                  </div>
+                </div>
                 <div style={{ gridColumn: 3, gridRow: 5 }}>{cell("W10")}</div>
                 <div style={{ gridColumn: 4, gridRow: 5 }}>{cell("C")}</div>
 

@@ -126,17 +126,12 @@ export default function RackDetailPage() {
       (p.jNumber && p.jNumber.toLowerCase().includes(consignerSearch.toLowerCase()))
     );
 
-  const currentZoneOccupancy = rack.zoneId
-    ? getZoneOccupancy(rack.zoneId, racks, zones, rack.id)
-    : null;
-
   const zoneOptions = [
     { value: "", label: "No zone assigned" },
     ...zones.map((z) => {
-      const { count, status } = getZoneOccupancy(z.id, racks, zones, rack.id);
-      const cap  = z.capacity ? ` (${count}/${z.capacity}${status === "full" ? " FULL" : ""})` : ` (${count})`;
+      const { count } = getZoneOccupancy(z.id, racks, zones, rack.id);
       const desc = z.label ? ` — ${z.label}` : "";
-      return { value: z.id, label: `${z.name}${desc}${cap}` };
+      return { value: z.id, label: `${z.name}${desc} (${count})` };
     }),
   ];
 
@@ -468,10 +463,10 @@ export default function RackDetailPage() {
                       <option value=""></option>
                       <option value="">— Clear zone —</option>
                       {zones.filter((z) => !["C","B","H"].includes(z.name)).map((z) => {
-                        const { count, status } = getZoneOccupancy(z.id, racks, zones, rack.id);
+                        const { count } = getZoneOccupancy(z.id, racks, zones, rack.id);
                         return (
                           <option key={z.id} value={z.id}>
-                            {z.name}{z.label ? ` — ${z.label}` : ""} ({count}{status === "full" ? " FULL" : ""})
+                            {z.name}{z.label ? ` — ${z.label}` : ""} ({count})
                           </option>
                         );
                       })}

@@ -2,9 +2,12 @@
 
 import Link from "next/link";
 import { usePrintQueueStore } from "@/store/printQueue";
+import { useRacksStore } from "@/store/racks";
 
 export default function PrintQueueBadge() {
-  const count = usePrintQueueStore((s) => s.ids.length);
+  const ids   = usePrintQueueStore((s) => s.ids);
+  const racks = useRacksStore((s) => s.racks);
+  const count = ids.filter((id) => racks.some((r) => r.id === id)).length;
   if (count === 0) return null;
   return (
     <Link

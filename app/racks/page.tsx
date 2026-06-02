@@ -456,10 +456,10 @@ function RacksContent() {
                   <option value=""></option>
                   <option value="">— No zone —</option>
                   {zones.filter((z) => !["C", "B", "H"].includes(z.name)).map((z) => {
-                    const { count, status } = getZoneOccupancy(z.id, racks, zones);
+                    const { count } = getZoneOccupancy(z.id, racks, zones);
                     return (
                       <option key={z.id} value={z.id}>
-                        {z.name}{z.label ? ` — ${z.label}` : ""} ({count}{status === "full" ? " FULL" : ""})
+                        {z.name}{z.label ? ` — ${z.label}` : ""} ({count})
                       </option>
                     );
                   })}

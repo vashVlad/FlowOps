@@ -1,4 +1,4 @@
-import type { RackStatus, Priority, OccupancyStatus } from "@/types";
+import type { RackStatus, Priority } from "@/types";
 
 // ── Stage colors ──────────────────────────────────────────────────────────────
 
@@ -141,31 +141,4 @@ export const AUCTION_COLORS: { hex: string; label: string }[] = [
 export const NOTIFICATION_DOT: Record<string, string> = {
   needs_attention: "bg-red-500 animate-pulse",
   bottleneck:      "bg-amber-400",
-};
-
-// ── Zone occupancy ────────────────────────────────────────────────────────────
-
-export const OCCUPANCY_BADGE: Record<string, string> = {
-  ok:   "",
-  near: "bg-amber-100 text-amber-700",
-  full: "bg-red-100 text-red-600",
-};
-
-export const OCCUPANCY_LABEL: Record<string, string> = {
-  ok:   "",
-  near: "Near capacity",
-  full: "Full",
-};
-
-export const OCCUPANCY_STYLE: Record<OccupancyStatus | "none", {
-  border: string;
-  bg:     string;
-  name:   string;
-  bar:    string;
-  dot:    string;
-}> = {
-  ok:   { border: "border-emerald-200", bg: "bg-emerald-50", name: "text-emerald-700", bar: "bg-emerald-400", dot: "bg-emerald-400" },
-  near: { border: "border-amber-300",   bg: "bg-amber-50",   name: "text-amber-700",   bar: "bg-amber-400",   dot: "bg-amber-400"   },
-  full: { border: "border-red-300",     bg: "bg-red-50",     name: "text-red-700",     bar: "bg-red-500",     dot: "bg-red-400"     },
-  none: { border: "border-stone-200",   bg: "bg-stone-50",   name: "text-stone-700",   bar: "bg-stone-300",   dot: "bg-stone-300"   },
 };

@@ -4,6 +4,7 @@ import { ok, err, logMutationError, type MutationResult } from "@/lib/store";
 import { STATUS_ORDER, getNextStatus, getPrevStatus } from "@/lib/racks";
 import { useDeliveriesStore } from "@/store/deliveries";
 import { useZonesStore } from "@/store/zones";
+import { usePrintQueueStore } from "@/store/printQueue";
 import { useAuthStore } from "@/store/auth";
 import {
   fetchRacks,
@@ -59,6 +60,10 @@ export const useRacksStore = create<RacksStore>()((set, get) => ({
         fetchAllRackEvents(),
       ]);
       set({ racks, history, loading: false });
+      // Prune print queue IDs for racks that no longer exist
+      const rackIds = new Set(racks.map((r) => r.id));
+      const { ids, remove } = usePrintQueueStore.getState();
+      ids.filter((id) => !rackIds.has(id)).forEach(remove);
 
       // One-time: assign blue to any lotting rack that has no auction color
       const needsColor = racks.some((r) => r.status === "lotting" && !r.auctionColor);
@@ -109,6 +114,7 @@ export const useRacksStore = create<RacksStore>()((set, get) => ({
         racks:   state.racks.filter((r) => r.id !== id),
         history: state.history.filter((e) => e.rackId !== id),
       }));
+      usePrintQueueStore.getState().remove(id);
       return ok(undefined);
     } catch (e) {
       const message = logMutationError("deleteRack", e);
