@@ -9,16 +9,12 @@ import { useDeliveriesStore } from "@/store/deliveries";
 import { useZonesStore } from "@/store/zones";
 import { useNotesStore } from "@/store/notes";
 import { useRackConsignersStore } from "@/store/rackConsigners";
-import Select from "@/components/Select";
 import { LoadingCards } from "@/components/LoadingCards";
 import ErrorBanner from "@/components/ErrorBanner";
 import PageHeader from "@/components/ui/PageHeader";
-import PriorityPicker from "@/components/ui/PriorityPicker";
-import { useToastStore } from "@/store/toast";
 import { usePrintQueueStore } from "@/store/printQueue";
 import { timeAgo } from "@/lib/utils";
 import { formatBusinessDuration } from "@/lib/timeTracking";
-import { getZoneOccupancy } from "@/lib/zones";
 import { isRackNeedsAttention, getTimeInCurrentStatus } from "@/lib/timeTracking";
 import {
   PIPELINE_STAGES,
@@ -250,97 +246,34 @@ function RackCard({
 function RacksContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const preselectedDelivery = searchParams.get("delivery") ?? "";
-  const preselectedZone     = searchParams.get("zone")     ?? "";
 
-  const { racks, history, loading, error: storeError, addRack, advanceStatus } = useRacksStore();
+  const { racks, history, loading, error: storeError, advanceStatus } = useRacksStore();
   function clearStoreError() { useRacksStore.setState({ error: null }); }
   const { deliveries } = useDeliveriesStore();
   const { zones }      = useZonesStore();
   const { notes }      = useNotesStore();
   const { consigners: rackConsigners } = useRackConsignersStore();
-  const addToast       = useToastStore((s) => s.add);
-
   const activeRole        = useActiveRole();
   const allowedStatuses   = activeRole ? ROLE_RACK_STATUSES[activeRole] : undefined;
   const roleCanAdvance    = activeRole ? canAdvanceRacks(activeRole) : true;
-  const roleCanCreate     = activeRole === "admin" || activeRole === "sorter" || activeRole === null;
-  // Roles with restricted status visibility get a locked default filter
-  const defaultFilter: RackFilter = allowedStatuses?.length === 1
+  const roleCanCreate     = activeRole === "admin" || activeRole === "unpacker" || activeRole === "lotter" || activeRole === null;
+  // Roles with restricted status visibility default to their first allowed status
+  const defaultFilter: RackFilter = allowedStatuses
     ? allowedStatuses[0] as RackFilter
     : "all";
 
-  const [query, setQuery]                       = useState(searchParams.get("q") ?? "");
-  const [filter, setFilter]                     = useState<RackFilter>((searchParams.get("filter") as RackFilter) ?? defaultFilter);
-  const [colorFilter, setColorFilter]           = useState(searchParams.get("color") ?? "");
+  const [query, setQuery]           = useState(searchParams.get("q") ?? "");
+  const [filter, setFilter]         = useState<RackFilter>((searchParams.get("filter") as RackFilter) ?? defaultFilter);
+  const [colorFilter, setColorFilter] = useState(searchParams.get("color") ?? "");
 
   // Sync filter state back to URL so browser back button restores it
   useEffect(() => {
     const p = new URLSearchParams();
-    if (preselectedDelivery) p.set("delivery", preselectedDelivery);
-    if (preselectedZone)     p.set("zone", preselectedZone);
-    if (query)               p.set("q", query);
+    if (query)       p.set("q", query);
     if (filter !== defaultFilter) p.set("filter", filter);
-    if (colorFilter)         p.set("color", colorFilter);
+    if (colorFilter) p.set("color", colorFilter);
     router.replace(`/racks${p.toString() ? `?${p}` : ""}`, { scroll: false });
   }, [query, filter, colorFilter]); // eslint-disable-line react-hooks/exhaustive-deps
-  const [showForm, setShowForm]                 = useState(!!(preselectedDelivery || preselectedZone));
-  const [rackCodeInput, setRackCodeInput]       = useState("");
-  const [initialStatus, setInitialStatus]       = useState<RackStatus>("unpacking_sorting");
-  const [sortedPriority, setSortedPriority]     = useState<Priority>("normal");
-  const [auctionColor, setAuctionColor]         = useState("");
-  const [isHeldAtCreation, setIsHeldAtCreation] = useState(false);
-  const [zoneId, setZoneId]                     = useState(preselectedZone);
-  const [deliveryId, setDeliveryId]             = useState(preselectedDelivery);
-  const [consignerInput, setConsignerInput]     = useState("");
-  const [formError, setFormError]               = useState("");
-  const [addToQueue, setAddToQueue]             = useState(true);
-  const addToQueueFn = usePrintQueueStore((s) => s.add);
-
-  const activeDeliveries = deliveries.filter((d) => d.status !== "complete");
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const needsDelivery = initialStatus === "unpacking_sorting";
-    const hasOptionalDelivery = initialStatus === "sorted" || initialStatus === "lotting";
-    let consignerName = "";
-    let resolvedDeliveryId: string | undefined;
-
-    if (needsDelivery) {
-      if (!deliveryId) return setFormError("Select a delivery.");
-      const selectedDelivery = activeDeliveries.find((d) => d.id === deliveryId);
-      if (!selectedDelivery) return setFormError("Select a delivery.");
-      consignerName = selectedDelivery.consignerName;
-      resolvedDeliveryId = deliveryId;
-    } else if (hasOptionalDelivery && deliveryId) {
-      const selectedDelivery = activeDeliveries.find((d) => d.id === deliveryId);
-      if (selectedDelivery) {
-        consignerName = selectedDelivery.consignerName;
-        resolvedDeliveryId = deliveryId;
-      }
-    }
-
-    setFormError("");
-    const now = new Date().toISOString();
-    const result = await addRack({
-      consignerName,
-      status:        initialStatus,
-      priority:      initialStatus !== "unpacking_sorting" ? sortedPriority : undefined,
-      zoneId:        zoneId || undefined,
-      deliveryId:    resolvedDeliveryId,
-      rackCode:      rackCodeInput.trim() || undefined,
-      holdReason:    isHeldAtCreation ? "On Hold" : undefined,
-      holdStartedAt: isHeldAtCreation ? now : undefined,
-      auctionColor:  auctionColor || undefined,
-    });
-    if (!result.ok) { setFormError(result.error); return; }
-    if (addToQueue) addToQueueFn(result.data.id);
-    setRackCodeInput(""); setInitialStatus("unpacking_sorting"); setSortedPriority("normal");
-    setAuctionColor(""); setIsHeldAtCreation(false); setZoneId(preselectedZone);
-    setDeliveryId(preselectedDelivery); setConsignerInput("");
-    setShowForm(false);
-    addToast(`${result.data.rackCode} added`);
-  }
 
   const q = query.toLowerCase();
   const filtered = [...racks].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).filter((r) => {
@@ -379,176 +312,17 @@ function RacksContent() {
         title="Racks"
         action={
           roleCanCreate ? (
-            <button
-              onClick={() => setShowForm((v) => !v)}
+            <Link
+              href="/unpack"
               className="rounded-lg bg-orange-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-700 transition-colors"
             >
-              {showForm ? "Cancel" : "Add rack"}
-            </button>
+              Create rack
+            </Link>
           ) : undefined
         }
       />
 
       <ErrorBanner error={storeError} onDismiss={clearStoreError} />
-
-      {showForm && (
-        <form onSubmit={handleSubmit} className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm space-y-3">
-          <p className="text-sm font-semibold text-stone-900">New rack</p>
-          <input type="text" placeholder="Rack ID (optional — auto-generated if blank)" value={rackCodeInput}
-            onChange={(e) => { setRackCodeInput(e.target.value); setFormError(""); }} className={inputCls} autoFocus />
-
-          {/* Status at creation */}
-          <div className="space-y-1.5">
-            <p className="text-xs font-medium text-stone-600">Initial status</p>
-            <div className="grid grid-cols-2 gap-2">
-              {(["unpacking_sorting", "sorted", "lotting", "ready"] as const).map((s) => (
-                <button key={s} type="button"
-                  onClick={() => setInitialStatus(s)}
-                  className={`rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${
-                    initialStatus === s
-                      ? "border-orange-400 bg-orange-50 text-orange-700"
-                      : "border-stone-200 bg-white text-stone-500 hover:border-stone-300"
-                  }`}>
-                  {s === "unpacking_sorting" ? "Unpacking & Sorting" : s.charAt(0).toUpperCase() + s.slice(1)}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Delivery — required for unpacking_sorting, optional for sorted/lotting */}
-          {(initialStatus === "unpacking_sorting" || initialStatus === "sorted" || initialStatus === "lotting") && (
-            <div className="space-y-1">
-              {(initialStatus === "sorted" || initialStatus === "lotting") && (
-                <p className="text-xs text-stone-400">Delivery <span className="italic">(optional)</span></p>
-              )}
-              <Select value={deliveryId} onChange={(e) => setDeliveryId(e.target.value)}>
-                <option value="">
-                  {initialStatus === "unpacking_sorting" ? "Select a delivery" : "No delivery — skip"}
-                </option>
-                {activeDeliveries.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.consignerName}{d.consignerJNumber ? ` · ${d.consignerJNumber}` : ""}
-                  </option>
-                ))}
-              </Select>
-            </div>
-          )}
-
-          <div className="flex gap-1.5">
-            {(["C", "B", "H"] as const).map((name) => {
-              const z = zones.find((z) => z.name === name);
-              if (!z) return null;
-              const isActive = zoneId === z.id;
-              const label = name === "C" ? "Sorting" : name === "B" ? "Lotting" : "Hallway";
-              return (
-                <button key={name} type="button" title={label}
-                  onClick={() => setZoneId(isActive ? "" : z.id)}
-                  className={`flex-1 rounded-lg border py-1.5 text-xs font-bold transition-colors text-center ${
-                    isActive
-                      ? "bg-orange-600 border-orange-600 text-white"
-                      : "border-stone-200 text-stone-600 hover:border-orange-400 hover:text-orange-600"
-                  }`}>
-                  {name}
-                </button>
-              );
-            })}
-            {(() => {
-              const otherZoneId = ["C", "B", "H"].some((n) => zones.find((z) => z.name === n)?.id === zoneId) ? "" : zoneId;
-              const hasOther = !!otherZoneId;
-              return (
-                <select value={otherZoneId} onChange={(e) => setZoneId(e.target.value)} title="Other zone"
-                  className={`rounded-lg border bg-white text-xs text-stone-600 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all py-1.5 ${
-                    hasOther
-                      ? "flex-1 px-2.5 border-orange-400 text-orange-600 font-medium"
-                      : "w-8 shrink-0 px-0.5 border-stone-200"
-                  }`}>
-                  <option value=""></option>
-                  <option value="">— No zone —</option>
-                  {zones.filter((z) => !["C", "B", "H"].includes(z.name)).map((z) => {
-                    const { count } = getZoneOccupancy(z.id, racks, zones);
-                    return (
-                      <option key={z.id} value={z.id}>
-                        {z.name}{z.label ? ` — ${z.label}` : ""} ({count})
-                      </option>
-                    );
-                  })}
-                </select>
-              );
-            })()}
-          </div>
-
-          {/* Auction color — only when not unpacking_sorting */}
-          {initialStatus !== "unpacking_sorting" && (
-            <div className="space-y-1.5">
-              <p className="text-xs font-medium text-stone-600">Auction color</p>
-              <div className="flex items-center gap-2">
-                {[
-                  { hex: "#ef4444", label: "Red"    },
-                  { hex: "#f97316", label: "Orange" },
-                  { hex: "#eab308", label: "Yellow" },
-                  { hex: "#22c55e", label: "Green"  },
-                  { hex: "#3b82f6", label: "Blue"   },
-                  { hex: "#1c1917", label: "Black"  },
-                ].map(({ hex, label }) => (
-                  <button
-                    key={hex}
-                    type="button"
-                    title={label}
-                    onClick={() => setAuctionColor(auctionColor === hex ? "" : hex)}
-                    className={`h-6 w-6 rounded-full transition-all ${
-                      auctionColor === hex
-                        ? "ring-2 ring-offset-2 ring-stone-400 scale-110"
-                        : "opacity-70 hover:opacity-100"
-                    }`}
-                    style={{ backgroundColor: hex }}
-                  />
-                ))}
-                {auctionColor && (
-                  <button
-                    type="button"
-                    onClick={() => setAuctionColor("")}
-                    className="text-xs text-stone-400 hover:text-stone-600 transition-colors ml-1"
-                  >
-                    Clear
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Priority — only when not unpacking_sorting */}
-          {initialStatus !== "unpacking_sorting" && (
-            <label className="flex items-center gap-2.5 cursor-pointer select-none">
-              <input type="checkbox" checked={sortedPriority === "high"}
-                onChange={(e) => setSortedPriority(e.target.checked ? "high" : "normal")}
-                className="h-4 w-4 rounded border-stone-300 accent-orange-600 cursor-pointer" />
-              <span className="text-sm text-stone-600">High priority</span>
-            </label>
-          )}
-
-          {/* Hold checkbox */}
-          <label className="flex items-center gap-2.5 cursor-pointer select-none">
-            <input type="checkbox" checked={isHeldAtCreation}
-              onChange={(e) => setIsHeldAtCreation(e.target.checked)}
-              className="h-4 w-4 rounded border-stone-300 accent-orange-600 cursor-pointer" />
-            <span className="text-sm text-stone-600">Place on hold</span>
-          </label>
-
-          {/* Print queue checkbox */}
-          <label className="flex items-center gap-2.5 cursor-pointer select-none">
-            <input type="checkbox" checked={addToQueue}
-              onChange={(e) => setAddToQueue(e.target.checked)}
-              className="h-4 w-4 rounded border-stone-300 accent-orange-600 cursor-pointer" />
-            <span className="text-sm text-stone-600">Add to print queue</span>
-          </label>
-
-          {formError && <p className="text-xs text-red-500">{formError}</p>}
-          <button type="submit"
-            className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700 transition-colors">
-            Add rack
-          </button>
-        </form>
-      )}
 
       {/* Filter pills — horizontal scroll on mobile */}
       <div className="-mx-4 sm:mx-0 overflow-x-auto">

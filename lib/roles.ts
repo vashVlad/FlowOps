@@ -68,11 +68,10 @@ export const ROLE_NAV: Record<Role, Array<{ href: string; label: string }>> = {
     { href: "/search", label: "Search" },
   ],
   lotter: [
-    { href: "/lotting", label: "Lotting"     },
-    { href: "/unpack",  label: "Create Rack" },
-    { href: "/racks",   label: "Racks"       },
-    { href: "/zones",   label: "Zones"       },
-    { href: "/search",  label: "Search"      },
+    { href: "/lotting", label: "Lotting" },
+    { href: "/racks",   label: "Racks"   },
+    { href: "/zones",   label: "Zones"   },
+    { href: "/search",  label: "Search"  },
   ],
   pickup: [
     { href: "/pickup", label: "Pick-Up" },
