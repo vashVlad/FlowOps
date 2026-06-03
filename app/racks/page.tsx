@@ -257,14 +257,22 @@ function RacksContent() {
   const allowedStatuses   = activeRole ? ROLE_RACK_STATUSES[activeRole] : undefined;
   const roleCanAdvance    = activeRole ? canAdvanceRacks(activeRole) : true;
   const roleCanCreate     = activeRole === "admin" || activeRole === "unpacker" || activeRole === "lotter" || activeRole === null;
-  // Roles with restricted status visibility default to their first allowed status
+
+  // Compute visible filter options before state so initial value can be clamped
+  const visibleFilterOptions = allowedStatuses
+    ? FILTER_OPTIONS.filter((o) => allowedStatuses.includes(o.key as RackStatus))
+    : FILTER_OPTIONS;
   const defaultFilter: RackFilter = allowedStatuses
     ? allowedStatuses[0] as RackFilter
     : "all";
 
-  const [query, setQuery]           = useState(searchParams.get("q") ?? "");
-  const [filter, setFilter]         = useState<RackFilter>((searchParams.get("filter") as RackFilter) ?? defaultFilter);
+  const [query, setQuery]             = useState(searchParams.get("q") ?? "");
   const [colorFilter, setColorFilter] = useState(searchParams.get("color") ?? "");
+  // Clamp URL param to only options this role can see
+  const [filter, setFilter] = useState<RackFilter>(() => {
+    const raw = (searchParams.get("filter") as RackFilter) ?? defaultFilter;
+    return visibleFilterOptions.some((o) => o.key === raw) ? raw : defaultFilter;
+  });
 
   // Sync filter state back to URL so browser back button restores it
   useEffect(() => {
@@ -300,11 +308,6 @@ function RacksContent() {
     if (filter !== "all")             return r.status === filter;
     return true;
   });
-
-  // Filter options available to this role — restricted roles only see their status pills
-  const visibleFilterOptions = allowedStatuses
-    ? FILTER_OPTIONS.filter((o) => allowedStatuses.includes(o.key as RackStatus))
-    : FILTER_OPTIONS;
 
   return (
     <div className="space-y-4">
