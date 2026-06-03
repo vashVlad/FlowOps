@@ -92,7 +92,7 @@ export const ROLE_RACK_STATUSES: Record<Role, string[] | undefined> = {
 };
 
 // Roles that cannot advance racks (view-only on rack cards)
-export const ADVANCE_RESTRICTED_ROLES = new Set<Role>(["front_desk", "unpacker"]);
+export const ADVANCE_RESTRICTED_ROLES = new Set<Role>(["front_desk"]);
 
 export function canAdvanceRacks(role: Role): boolean {
   return !ADVANCE_RESTRICTED_ROLES.has(role);
