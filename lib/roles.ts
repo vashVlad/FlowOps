@@ -85,7 +85,7 @@ export const ROLE_NAV: Record<Role, Array<{ href: string; label: string }>> = {
 export const ROLE_RACK_STATUSES: Record<Role, string[] | undefined> = {
   admin:      undefined,
   front_desk: undefined,
-  unpacker:   ["unpacking_sorting"],
+  unpacker:   ["unpacking_sorting", "ready"],
   sorter:     ["unpacking_sorting"],
   lotter:     ["sorted", "lotting", "ready"],
   pickup:     ["ready", "pickup"],
