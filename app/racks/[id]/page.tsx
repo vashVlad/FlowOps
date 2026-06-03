@@ -28,7 +28,7 @@ import { buildConsignerProfiles } from "@/lib/consigners";
 import { getPrevStatus } from "@/lib/racks";
 import AuctionColorPicker from "@/components/ui/AuctionColorPicker";
 import { useToastStore } from "@/store/toast";
-import { useIsSupervisor, useIsAdmin, useActiveRole } from "@/store/auth";
+import { useIsAdmin, useActiveRole } from "@/store/auth";
 import { canAdvanceRacks } from "@/lib/roles";
 import { usePrintQueueStore } from "@/store/printQueue";
 import { useAuctionColorDatesStore } from "@/store/auctionColorDates";
@@ -80,7 +80,6 @@ export default function RackDetailPage() {
   const [consignerDropOpen, setConsignerDropOpen] = useState(false);
 
   const colorDates    = useAuctionColorDatesStore((s) => s.dates);
-  const isSupervisor  = useIsSupervisor();
   const isAdmin       = useIsAdmin();
   const activeRole    = useActiveRole();
   const roleCanAdvance = activeRole ? canAdvanceRacks(activeRole) : true;
@@ -390,9 +389,8 @@ export default function RackDetailPage() {
                 </button>
                 )}
 
-                {/* Delete — supervisor only */}
-                {isSupervisor && (
-                  deleteConfirm ? (
+                {/* Delete — not available to front desk (view-only via delivery/consigner links) */}
+                {activeRole !== "front_desk" && (deleteConfirm ? (
                     <>
                       <button
                         onClick={handleDelete}
