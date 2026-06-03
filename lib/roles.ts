@@ -59,10 +59,9 @@ export const ROLE_NAV: Record<Role, Array<{ href: string; label: string }>> = {
     { href: "/search",      label: "Search"     },
   ],
   unpacker: [
-    { href: "/unpack",        label: "Home"        },
-    { href: "/racks",         label: "Racks"       },
-    { href: "/labels/queue",  label: "Print Queue" },
-    { href: "/search",        label: "Search"      },
+    { href: "/unpack",  label: "Home"   },
+    { href: "/racks",   label: "Racks"  },
+    { href: "/search",  label: "Search" },
   ],
   sorter: [
     { href: "/racks",  label: "Racks"  },
