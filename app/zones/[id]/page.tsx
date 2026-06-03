@@ -67,34 +67,22 @@ function PUFloorPlan({
   placedRacks,
   draggingId,
   searchQuery,
-  auctionEditId,
-  editColor,
   onDrop,
   onClear,
   onSearchChange,
   onDragStart,
   onDragEnd,
-  onAuctionEdit,
-  onAuctionColorChange,
-  onAuctionSave,
-  onAuctionCancel,
   onComplete,
 }: {
   racks: Rack[];
   placedRacks: Record<string, string>;
   draggingId: string | null;
   searchQuery: string;
-  auctionEditId: string | null;
-  editColor: string;
   onDrop: (cellId: string) => void;
   onClear: (cellId: string) => void;
   onSearchChange: (q: string) => void;
   onDragStart: (rackId: string) => void;
   onDragEnd: () => void;
-  onAuctionEdit: (rack: Rack) => void;
-  onAuctionColorChange: (color: string) => void;
-  onAuctionSave: () => void;
-  onAuctionCancel: () => void;
   onComplete: (rackId: string) => void;
 }) {
   const [over, setOver] = useState<string | null>(null);
@@ -248,7 +236,6 @@ function PUFloorPlan({
           {racks.map((r) => {
             const cell      = rackCell[r.id];
             const matched   = isMatch(r);
-            const isEditing = auctionEditId === r.id;
             const globalDate = r.auctionColor ? colorDates[r.auctionColor] : undefined;
             const dateLabel = (globalDate ?? r.auctionDate)
               ? new Date((globalDate ?? r.auctionDate)! + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })
@@ -256,14 +243,13 @@ function PUFloorPlan({
             return (
               <div
                 key={r.id}
-                draggable={!isEditing}
-                onDragStart={!isEditing ? () => onDragStart(r.id) : undefined}
-                onDragEnd={!isEditing ? onDragEnd : undefined}
+                draggable
+                onDragStart={() => onDragStart(r.id)}
+                onDragEnd={onDragEnd}
                 className={`select-none rounded-lg border transition-all ${
-                  isEditing ? "border-violet-400 bg-violet-50 cursor-default" :
-                  matched   ? "cursor-grab border-violet-500 bg-violet-50 ring-1 ring-violet-300 animate-pulse" :
-                  cell      ? "cursor-grab border-violet-300 bg-violet-50" :
-                              "cursor-grab border-stone-200 bg-white hover:border-violet-200 hover:bg-violet-50/40"
+                  matched ? "cursor-grab border-violet-500 bg-violet-50 ring-1 ring-violet-300 animate-pulse" :
+                  cell    ? "cursor-grab border-violet-300 bg-violet-50" :
+                            "cursor-grab border-stone-200 bg-white hover:border-violet-200 hover:bg-violet-50/40"
                 } ${draggingId === r.id ? "opacity-40" : ""}`}
               >
                 {/* ── card top row ── */}
@@ -286,45 +272,25 @@ function PUFloorPlan({
                     >
                       Complete
                     </button>
-                    {/* auction edit toggle */}
-                    <button
-                      onClick={(e) => { e.stopPropagation(); isEditing ? onAuctionCancel() : onAuctionEdit(r); }}
-                      className={`p-1 rounded transition-colors ${isEditing ? "text-violet-500 bg-violet-100" : "text-stone-300 hover:text-violet-500"}`}
-                      title="Set auction color & date"
+                    {/* open rack detail */}
+                    <Link
+                      href={`/racks/${r.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="p-1 rounded text-stone-300 hover:text-orange-500 transition-colors"
+                      title="Open rack detail"
                     >
                       <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                       </svg>
-                    </button>
+                    </Link>
                   </div>
                 </div>
 
                 {/* ── auction date strip ── */}
-                {!isEditing && dateLabel && (
+                {dateLabel && (
                   <div className="px-2.5 pb-2 -mt-1">
                     <span className="text-[10px] text-stone-400">{dateLabel}</span>
-                  </div>
-                )}
-
-                {/* ── inline auction editor ── */}
-                {isEditing && (
-                  <div className="px-2.5 pb-2.5 space-y-2 border-t border-violet-200 pt-2.5 mt-0">
-                    <AuctionColorPicker value={editColor} onChange={onAuctionColorChange} />
-                    <div className="flex gap-2">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); onAuctionSave(); }}
-                        className="flex-1 rounded-lg bg-violet-600 py-1.5 text-xs font-medium text-white hover:bg-violet-700 transition-colors"
-                      >
-                        Save
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); onAuctionCancel(); }}
-                        className="rounded-lg border border-stone-200 px-3 py-1.5 text-xs text-stone-500 hover:bg-stone-50 transition-colors"
-                      >
-                        Cancel
-                      </button>
-                    </div>
                   </div>
                 )}
               </div>
@@ -402,8 +368,6 @@ export default function ZoneDetailPage() {
   // ── PU floor plan drag + search state ────────────────────────────────────
   const [draggingId,    setDraggingId]    = useState<string | null>(null);
   const [puSearch,      setPuSearch]      = useState("");
-  const [auctionEditId, setAuctionEditId] = useState<string | null>(null);
-  const [editColor,     setEditColor]     = useState("");
 
   // Derived from store — cellId → rackId (source of truth is rack.puPosition in DB)
   // Exclude completed racks so they disappear from the layout automatically
@@ -424,17 +388,6 @@ export default function ZoneDetailPage() {
   async function handleCellClear(cellId: string) {
     const rack = racks.find((r) => r.zoneId === id && r.puPosition === cellId);
     if (rack) await updateRack(rack.id, { puPosition: null });
-  }
-
-  function openAuctionEdit(rack: { id: string; auctionColor?: string }) {
-    setAuctionEditId(rack.id);
-    setEditColor(rack.auctionColor ?? "");
-  }
-
-  async function handleAuctionSave() {
-    if (!auctionEditId) return;
-    await updateRack(auctionEditId, { auctionColor: editColor || null });
-    setAuctionEditId(null);
   }
 
   // ── Purpose picker state ───────────────────────────────────────────────────
@@ -599,17 +552,11 @@ export default function ZoneDetailPage() {
             placedRacks={placedRacks}
             draggingId={draggingId}
             searchQuery={puSearch}
-            auctionEditId={auctionEditId}
-            editColor={editColor}
             onDrop={handleCellDrop}
             onClear={handleCellClear}
             onSearchChange={setPuSearch}
             onDragStart={setDraggingId}
             onDragEnd={() => setDraggingId(null)}
-            onAuctionEdit={openAuctionEdit}
-            onAuctionColorChange={setEditColor}
-            onAuctionSave={handleAuctionSave}
-            onAuctionCancel={() => setAuctionEditId(null)}
             onComplete={(rackId) => advanceStatus(rackId)}
           />
         </div>

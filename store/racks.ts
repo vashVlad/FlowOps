@@ -216,8 +216,14 @@ export const useRacksStore = create<RacksStore>()((set, get) => ({
       return err(message);
     }
 
+    const leavingPU = rack.status === "pickup";
+
     try {
       await dbAdvance(id, prev);
+      if (leavingPU) {
+        await dbMoveToZone(id, null);
+        await dbUpdate(id, { puPosition: null });
+      }
     } catch (e) {
       const message = logMutationError("revertStatus", e);
       set({ error: message });
@@ -236,7 +242,9 @@ export const useRacksStore = create<RacksStore>()((set, get) => ({
     set({
       history: [...history, event],
       racks: racks.map((r) =>
-        r.id === id ? { ...r, status: prev, updatedAt: ts } : r
+        r.id === id
+          ? { ...r, status: prev, updatedAt: ts, ...(leavingPU ? { zoneId: undefined, puPosition: undefined } : {}) }
+          : r
       ),
     });
 

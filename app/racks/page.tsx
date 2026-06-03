@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense, Fragment } from "react";
+import { useState, useEffect, Suspense, Fragment } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
@@ -270,9 +270,20 @@ function RacksContent() {
     ? allowedStatuses[0] as RackFilter
     : "all";
 
-  const [query, setQuery]                       = useState("");
-  const [filter, setFilter]                     = useState<RackFilter>(defaultFilter);
-  const [colorFilter, setColorFilter]           = useState("");
+  const [query, setQuery]                       = useState(searchParams.get("q") ?? "");
+  const [filter, setFilter]                     = useState<RackFilter>((searchParams.get("filter") as RackFilter) ?? defaultFilter);
+  const [colorFilter, setColorFilter]           = useState(searchParams.get("color") ?? "");
+
+  // Sync filter state back to URL so browser back button restores it
+  useEffect(() => {
+    const p = new URLSearchParams();
+    if (preselectedDelivery) p.set("delivery", preselectedDelivery);
+    if (preselectedZone)     p.set("zone", preselectedZone);
+    if (query)               p.set("q", query);
+    if (filter !== defaultFilter) p.set("filter", filter);
+    if (colorFilter)         p.set("color", colorFilter);
+    router.replace(`/racks${p.toString() ? `?${p}` : ""}`, { scroll: false });
+  }, [query, filter, colorFilter]); // eslint-disable-line react-hooks/exhaustive-deps
   const [showForm, setShowForm]                 = useState(!!(preselectedDelivery || preselectedZone));
   const [rackCodeInput, setRackCodeInput]       = useState("");
   const [initialStatus, setInitialStatus]       = useState<RackStatus>("unpacking_sorting");

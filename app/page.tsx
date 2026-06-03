@@ -29,6 +29,9 @@ import Card, { SectionLabel } from "@/components/ui/Card";
 import { buildIntakeForecast, type ForecastItem } from "@/lib/consigners";
 import { useConnectionStore } from "@/store/connection";
 import { useAuctionColorDatesStore } from "@/store/auctionColorDates";
+import { useAuthStore } from "@/store/auth";
+import { ROLE_HOME } from "@/lib/roles";
+import { useRouter } from "next/navigation";
 import { AUCTION_COLORS } from "@/lib/tokens";
 import type { Rack, Zone, Delivery } from "@/types";
 
@@ -56,6 +59,17 @@ function formatAuctionDate(dateStr: string): string {
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
 export default function Dashboard() {
+  const router     = useRouter();
+  const activeRole = useAuthStore((s) => s.activeRole);
+  const roleLoading = useAuthStore((s) => s.roleLoading);
+
+  // Only admin can view the dashboard — redirect everyone else to their home
+  useEffect(() => {
+    if (!roleLoading && activeRole && activeRole !== "admin") {
+      router.replace(ROLE_HOME[activeRole]);
+    }
+  }, [activeRole, roleLoading, router]);
+
   const { racks, history, loading: racksLoading } = useRacksStore();
   const { deliveries, loading: deliveriesLoading } = useDeliveriesStore();
   const { zones }     = useZonesStore();

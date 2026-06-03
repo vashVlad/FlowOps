@@ -188,9 +188,9 @@ export default function RackDetailPage() {
 
   return (
     <div className="space-y-4">
-      <Link href="/racks" className="inline-flex items-center gap-1.5 text-sm text-stone-400 hover:text-stone-700 transition-colors">
-        ← Racks
-      </Link>
+      <button onClick={() => router.back()} className="inline-flex items-center gap-1.5 text-sm text-stone-400 hover:text-stone-700 transition-colors">
+        ← Back
+      </button>
 
       <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[1fr_340px] lg:items-start">
 

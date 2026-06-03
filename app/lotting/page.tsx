@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useRacksStore } from "@/store/racks";
 import { useDeliveriesStore } from "@/store/deliveries";
+import { useZonesStore } from "@/store/zones";
 import { LoadingCards } from "@/components/LoadingCards";
 import PageHeader from "@/components/ui/PageHeader";
 import { formatBusinessDuration } from "@/lib/timeTracking";
@@ -18,6 +19,7 @@ export default function LottingPage() {
   const { racks, history, loading, advanceStatus } = useRacksStore();
   const addToast = useToastStore((s) => s.add);
   const { deliveries } = useDeliveriesStore();
+  const { zones } = useZonesStore();
 
   const sortedQueue = racks
     .filter((r) => r.status === "sorted")
@@ -103,6 +105,7 @@ export default function LottingPage() {
               <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                 {sortedQueue.map(({ rack, waitMs, needsAttention }, i) => {
                   const delivery    = deliveries.find((d) => d.id === rack.deliveryId);
+                  const zone        = rack.zoneId ? zones.find((z) => z.id === rack.zoneId) : undefined;
                   const isCritical  = needsAttention && rack.priority === "high";
                   const borderKey   = isCritical ? "needs_attention" : rack.priority === "high" ? "high" : rack.priority === "low" ? "low" : "normal";
 
@@ -134,6 +137,9 @@ export default function LottingPage() {
                           </div>
                           <p className="text-xs text-stone-400 mt-0.5">{rack.consignerName}</p>
                           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                            {zone && (
+                              <span className="text-xs font-medium text-stone-500">{zone.name}</span>
+                            )}
                             <span className="text-xs text-stone-400">
                               {STAGE_LABEL["sorted"]} {formatBusinessDuration(waitMs)}
                             </span>
@@ -182,6 +188,7 @@ export default function LottingPage() {
               <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                 {lottingRacks.map(({ rack, waitMs, needsAttention }, i) => {
                   const delivery   = deliveries.find((d) => d.id === rack.deliveryId);
+                  const zone       = rack.zoneId ? zones.find((z) => z.id === rack.zoneId) : undefined;
                   const isCritical = needsAttention && rack.priority === "high";
                   const borderKey  = isCritical ? "needs_attention" : rack.priority === "high" ? "high" : rack.priority === "low" ? "low" : "normal";
 
@@ -213,6 +220,9 @@ export default function LottingPage() {
                           </div>
                           <p className="text-xs text-stone-400 mt-0.5">{rack.consignerName}</p>
                           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                            {zone && (
+                              <span className="text-xs font-medium text-stone-500">{zone.name}</span>
+                            )}
                             <span className={`text-xs font-medium ${needsAttention ? "text-amber-600" : "text-stone-400"}`}>
                               In lotting {formatBusinessDuration(waitMs)}
                             </span>

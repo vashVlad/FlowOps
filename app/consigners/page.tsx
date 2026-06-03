@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, Suspense } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useDeliveriesStore } from "@/store/deliveries";
 import { useRacksStore } from "@/store/racks";
 import PageHeader from "@/components/ui/PageHeader";
@@ -103,11 +104,24 @@ function ConsignerCard({ profile }: { profile: ConsignerProfile }) {
 }
 
 export default function ConsignersPage() {
+  return <Suspense><ConsignersContent /></Suspense>;
+}
+
+function ConsignersContent() {
+  const router       = useRouter();
+  const searchParams = useSearchParams();
   const { deliveries, loading: dLoading } = useDeliveriesStore();
   const { racks,      loading: rLoading } = useRacksStore();
 
-  const [query, setQuery] = useState("");
-  const [sort, setSort]   = useState<SortKey>("active");
+  const [query, setQuery] = useState(searchParams.get("q") ?? "");
+  const [sort, setSort]   = useState<SortKey>((searchParams.get("sort") as SortKey) ?? "active");
+
+  useEffect(() => {
+    const p = new URLSearchParams();
+    if (query)          p.set("q", query);
+    if (sort !== "active") p.set("sort", sort);
+    router.replace(`/consigners${p.toString() ? `?${p}` : ""}`, { scroll: false });
+  }, [query, sort]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const profiles = useMemo(
     () => buildConsignerProfiles(deliveries, racks),

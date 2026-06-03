@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useDeliveriesStore } from "@/store/deliveries";
 import { useRacksStore } from "@/store/racks";
 import { useZonesStore } from "@/store/zones";
@@ -45,7 +45,12 @@ type FormMode = "walkin" | "scheduled";
 const LAST_VISITED_KEY = "flowops:lastVisitedDelivery";
 
 export default function DeliveriesPage() {
-  const router = useRouter();
+  return <Suspense><DeliveriesContent /></Suspense>;
+}
+
+function DeliveriesContent() {
+  const router       = useRouter();
+  const searchParams = useSearchParams();
   const { deliveries, loading, error: storeError, addDelivery, setStatus } = useDeliveriesStore();
   function clearStoreError() { useDeliveriesStore.setState({ error: null }); }
   const { racks }  = useRacksStore();
@@ -104,7 +109,13 @@ export default function DeliveriesPage() {
   }
 
   type DeliveryFilter = "all" | "arrived" | "processing" | "done";
-  const [deliveryFilter, setDeliveryFilter] = useState<DeliveryFilter>("all");
+  const [deliveryFilter, setDeliveryFilter] = useState<DeliveryFilter>((searchParams.get("filter") as DeliveryFilter) ?? "all");
+
+  useEffect(() => {
+    const p = new URLSearchParams();
+    if (deliveryFilter !== "all") p.set("filter", deliveryFilter);
+    router.replace(`/deliveries${p.toString() ? `?${p}` : ""}`, { scroll: false });
+  }, [deliveryFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const sorted = [...deliveries]
     .filter((d) => {
