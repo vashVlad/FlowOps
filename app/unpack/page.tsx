@@ -122,6 +122,7 @@ function RackCreateForm({
       if (!result.ok) throw new Error(result.error);
       addToQueue(result.data.id);
       onCreated(result.data.id, result.data.rackCode);
+      setCustomCode("");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to create rack");
     } finally {

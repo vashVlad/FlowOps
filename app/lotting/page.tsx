@@ -22,7 +22,7 @@ export default function LottingPage() {
   const { zones } = useZonesStore();
 
   const sortedQueue = racks
-    .filter((r) => r.status === "sorted")
+    .filter((r) => r.status === "sorted" && !r.holdReason)
     .map((r) => ({
       rack:           r,
       waitMs:         getTimeInCurrentStatus(r, history),
@@ -36,7 +36,7 @@ export default function LottingPage() {
     });
 
   const lottingRacks = racks
-    .filter((r) => r.status === "lotting")
+    .filter((r) => r.status === "lotting" && !r.holdReason)
     .map((r) => ({
       rack:           r,
       waitMs:         getTimeInCurrentStatus(r, history),
