@@ -28,7 +28,7 @@ import { buildConsignerProfiles } from "@/lib/consigners";
 import { getPrevStatus } from "@/lib/racks";
 import AuctionColorPicker from "@/components/ui/AuctionColorPicker";
 import { useToastStore } from "@/store/toast";
-import { useIsAdmin, useActiveRole } from "@/store/auth";
+import { useActiveRole } from "@/store/auth";
 import { canAdvanceRacks } from "@/lib/roles";
 import { usePrintQueueStore } from "@/store/printQueue";
 import { useAuctionColorDatesStore } from "@/store/auctionColorDates";
@@ -80,7 +80,6 @@ export default function RackDetailPage() {
   const [consignerDropOpen, setConsignerDropOpen] = useState(false);
 
   const colorDates    = useAuctionColorDatesStore((s) => s.dates);
-  const isAdmin       = useIsAdmin();
   const activeRole    = useActiveRole();
   const roleCanAdvance = activeRole ? canAdvanceRacks(activeRole) : true;
 
@@ -337,7 +336,7 @@ export default function RackDetailPage() {
 
               <div className="flex gap-2">
                 {/* Revert — left of advance button, admin only */}
-                {isAdmin && getPrevStatus(rack.status) && roleCanAdvance && (
+                {getPrevStatus(rack.status) && roleCanAdvance && (
                   revertConfirm ? (
                     <>
                       <button
