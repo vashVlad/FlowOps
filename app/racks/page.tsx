@@ -370,9 +370,11 @@ function RacksContent() {
 
   // Filter options available to this role
   const visibleFilterOptions = allowedStatuses
-    ? FILTER_OPTIONS.filter(
-        (o) => o.key === "all" || o.key === "needs_attention" || o.key === "held" || allowedStatuses.includes(o.key as RackStatus)
-      )
+    ? allowedStatuses.length === 1
+      ? FILTER_OPTIONS.filter((o) => allowedStatuses.includes(o.key as RackStatus))
+      : FILTER_OPTIONS.filter(
+          (o) => o.key === "all" || o.key === "needs_attention" || o.key === "held" || allowedStatuses.includes(o.key as RackStatus)
+        )
     : FILTER_OPTIONS;
 
   return (
