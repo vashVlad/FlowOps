@@ -368,13 +368,9 @@ function RacksContent() {
     return true;
   });
 
-  // Filter options available to this role
+  // Filter options available to this role — restricted roles only see their status pills
   const visibleFilterOptions = allowedStatuses
-    ? allowedStatuses.length === 1
-      ? FILTER_OPTIONS.filter((o) => allowedStatuses.includes(o.key as RackStatus))
-      : FILTER_OPTIONS.filter(
-          (o) => o.key === "all" || o.key === "needs_attention" || o.key === "held" || allowedStatuses.includes(o.key as RackStatus)
-        )
+    ? FILTER_OPTIONS.filter((o) => allowedStatuses.includes(o.key as RackStatus))
     : FILTER_OPTIONS;
 
   return (
