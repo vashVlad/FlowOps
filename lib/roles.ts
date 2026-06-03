@@ -86,7 +86,7 @@ export const ROLE_RACK_STATUSES: Record<Role, string[] | undefined> = {
   admin:      undefined,
   front_desk: undefined,
   unpacker:   ["unpacking_sorting", "ready"],
-  sorter:     ["unpacking_sorting"],
+  sorter:     ["unpacking_sorting", "ready"],
   lotter:     ["sorted", "lotting", "ready"],
   pickup:     ["ready", "pickup"],
 };
