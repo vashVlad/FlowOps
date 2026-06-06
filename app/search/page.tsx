@@ -12,9 +12,9 @@ import { search } from "@/lib/search";
 import { formatBusinessDuration } from "@/lib/timeTracking";
 import { PRIORITY_BORDER } from "@/lib/tokens";
 import { WAITING_STAGES } from "@/lib/timeTracking";
-import type { RackResult, DeliveryResult } from "@/lib/search";
+import type { RackResult, DeliveryResult, ZoneResult } from "@/lib/search";
 
-type ResultFilter = "all" | "racks" | "deliveries";
+type ResultFilter = "all" | "racks" | "deliveries" | "zones";
 
 const QUICK_LINKS = [
   { href: "/racks",      label: "All racks"         },
@@ -27,7 +27,7 @@ const SEARCH_HINTS = [
   { label: "Rack code",  example: "RC-0042"        },
   { label: "Consigner",  example: "Smith Auctions"  },
   { label: "Delivery",   example: "DEL-0008"        },
-  { label: "Zone",       example: "G3, W1, OVF"    },
+  { label: "Zone",       example: "B, OVF, Hall"    },
 ];
 
 export default function SearchPage() {
@@ -53,10 +53,11 @@ export default function SearchPage() {
 
   const raw     = search(query, racks, deliveries, zones, history);
   const results = {
-    racks:      filter === "deliveries" ? [] : raw.racks,
-    deliveries: filter === "racks"      ? [] : raw.deliveries,
+    zones:      filter === "racks" || filter === "deliveries" ? [] : raw.zones,
+    racks:      filter === "deliveries" || filter === "zones" ? [] : raw.racks,
+    deliveries: filter === "racks" || filter === "zones"      ? [] : raw.deliveries,
   };
-  const total    = results.racks.length + results.deliveries.length;
+  const total    = results.zones.length + results.racks.length + results.deliveries.length;
   const hasQuery = query.trim().length > 0;
 
   return (
@@ -97,7 +98,7 @@ export default function SearchPage() {
       {/* Type filter — only show when there's a query */}
       {hasQuery && (
         <div className="flex gap-1.5">
-          {(["all", "racks", "deliveries"] as ResultFilter[]).map((f) => (
+          {(["all", "zones", "racks", "deliveries"] as ResultFilter[]).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
@@ -162,6 +163,19 @@ export default function SearchPage() {
       {/* Results */}
       {hasQuery && total > 0 && (
         <div className="space-y-5">
+          {results.zones.length > 0 && (
+            <section>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-stone-400 mb-2">
+                Zones · {results.zones.length}
+              </p>
+              <ul className="flex flex-col gap-1.5">
+                {results.zones.map((z) => (
+                  <ZoneRow key={z.id} result={z} />
+                ))}
+              </ul>
+            </section>
+          )}
+
           {results.deliveries.length > 0 && (
             <section>
               <p className="text-[11px] font-semibold uppercase tracking-wide text-stone-400 mb-2">
@@ -190,6 +204,32 @@ export default function SearchPage() {
         </div>
       )}
     </div>
+  );
+}
+
+function ZoneRow({ result }: { result: ZoneResult }) {
+  return (
+    <li className="rounded-xl border border-stone-200 bg-white shadow-sm hover:shadow-md hover:-translate-y-px transition-all duration-150">
+      <Link href={`/zones/${result.id}`} className="flex items-center justify-between gap-4 px-4 py-3">
+        <div className="min-w-0 flex items-center gap-3">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-stone-100 font-bold text-sm text-stone-700">
+            {result.name}
+          </span>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-stone-900">
+              Zone {result.name}
+              {result.label && <span className="ml-1.5 text-stone-400 font-normal">— {result.label}</span>}
+            </p>
+            <p className="text-xs text-stone-400 mt-0.5">
+              {result.rackCount > 0
+                ? `${result.rackCount} rack${result.rackCount !== 1 ? "s" : ""}`
+                : "Empty"}
+            </p>
+          </div>
+        </div>
+        <span className="shrink-0 text-xs text-stone-300">→</span>
+      </Link>
+    </li>
   );
 }
 
