@@ -22,8 +22,9 @@ const NAV_ICONS: Record<string, React.ReactNode> = {
   ),
   "/unpack": (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-      <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z" />
-      <path d="M9 21V12h6v9" />
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <line x1="12" y1="8" x2="12" y2="16" />
+      <line x1="8" y1="12" x2="16" y2="12" />
     </svg>
   ),
   "/deliveries": (
