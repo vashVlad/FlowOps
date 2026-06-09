@@ -28,7 +28,7 @@ export default function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-stone-200 bg-white px-4 sm:px-6 lg:px-10">
+    <header className="sticky top-0 z-40 border-b border-stone-200 bg-white px-4 sm:px-6 lg:px-10" style={{ paddingTop: "env(safe-area-inset-top)" }}>
       <div className="mx-auto max-w-[1440px] flex items-center justify-between gap-4 h-11">
 
         {/* Left: logo + desktop nav */}

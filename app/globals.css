@@ -4,6 +4,13 @@
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* Prevent iOS Safari from zooming on input focus (triggered when font-size < 16px) */
+@supports (-webkit-touch-callout: none) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
 @media print {
   header,
   nav,

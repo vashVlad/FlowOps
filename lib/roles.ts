@@ -59,7 +59,7 @@ export const ROLE_NAV: Record<Role, Array<{ href: string; label: string }>> = {
     { href: "/search",      label: "Search"     },
   ],
   unpacker: [
-    { href: "/unpack",  label: "Home"   },
+    { href: "/unpack",  label: "Create Rack" },
     { href: "/racks",   label: "Racks"  },
     { href: "/search",  label: "Search" },
   ],
