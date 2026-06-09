@@ -87,7 +87,7 @@ function DeliveryPicker({
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="Search delivery or consigner…"
+        placeholder="Search consigner or delivery…"
         className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
       />
 
@@ -525,7 +525,7 @@ export default function UnpackPage() {
             <Card>
               <div className="flex items-center gap-2 mb-4">
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-orange-600 text-[11px] font-bold text-white">1</span>
-                <p className="text-sm font-semibold text-stone-900">Select delivery</p>
+                <p className="text-sm font-semibold text-stone-900">Select consigner</p>
               </div>
               <DeliveryPicker
                 selected={selectedDelivery}
