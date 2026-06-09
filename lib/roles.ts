@@ -34,10 +34,10 @@ export const ROLE_HOME: Record<Role, string> = {
 export const ROLE_ROUTES: Record<Role, string[]> = {
   admin:      ["*"],
   front_desk: ["/front-desk", "/deliveries", "/consigners", "/racks", "/search"],
-  unpacker:   ["/unpack", "/racks", "/labels", "/search"],
-  sorter:     ["/racks", "/unpack", "/search"],
+  unpacker:   ["/unpack", "/racks", "/labels", "/search", "/scan"],
+  sorter:     ["/racks", "/unpack", "/search", "/scan"],
   lotter:     ["/lotting", "/racks", "/unpack", "/search"],
-  pickup:     ["/pickup", "/racks", "/search"],
+  pickup:     ["/pickup", "/racks", "/search", "/scan"],
 };
 
 // Desktop + mobile nav links per role
@@ -63,11 +63,13 @@ export const ROLE_NAV: Record<Role, Array<{ href: string; label: string }>> = {
     { href: "/unpack",  label: "Create Rack" },
     { href: "/racks",   label: "Racks"  },
     { href: "/search",  label: "Search" },
+    { href: "/scan",    label: "Scan"   },
   ],
   sorter: [
     { href: "/unpack", label: "Create Rack" },
     { href: "/racks",  label: "Racks"       },
     { href: "/search", label: "Search"      },
+    { href: "/scan",   label: "Scan"        },
   ],
   lotter: [
     { href: "/lotting", label: "Lotting" },
@@ -78,6 +80,7 @@ export const ROLE_NAV: Record<Role, Array<{ href: string; label: string }>> = {
     { href: "/pickup", label: "Pick-Up" },
     { href: "/racks",  label: "Racks"   },
     { href: "/search", label: "Search"  },
+    { href: "/scan",   label: "Scan"    },
   ],
 };
 
