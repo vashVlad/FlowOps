@@ -19,54 +19,43 @@ import type { Delivery, Rack } from "@/types";
 function DeliveryPicker({
   selected,
   noConsigner,
+  customConsigner,
   onSelect,
   onNoConsigner,
+  onCustomConsigner,
   onDeselect,
 }: {
   selected: Delivery | null;
   noConsigner: boolean;
+  customConsigner: { name: string; jNumber: string } | null;
   onSelect: (d: Delivery) => void;
   onNoConsigner: () => void;
+  onCustomConsigner: (name: string, jNumber: string) => void;
   onDeselect: () => void;
 }) {
   const deliveries = useDeliveriesStore((s) => s.deliveries);
-  const [query, setQuery] = useState("");
+  const [query,       setQuery]       = useState("");
+  const [showForm,    setShowForm]    = useState(false);
+  const [addName,     setAddName]     = useState("");
+  const [addJNumber,  setAddJNumber]  = useState("");
   const todayStr = today();
 
-  // Collapsed state: a delivery or no-consigner is confirmed
-  if (selected) {
-    const jNumber = selected.consignerJNumber?.trim();
-    return (
-      <button
-        onClick={onDeselect}
-        className="w-full flex items-center justify-between px-3 py-2 rounded-lg border border-emerald-300 bg-emerald-50 text-left transition-all hover:bg-emerald-100"
-      >
-        <div className="flex items-center gap-2 min-w-0">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-emerald-500 shrink-0">
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
-          <span className="text-sm font-semibold text-emerald-900 truncate">{selected.consignerName}</span>
-          {(jNumber ?? selected.deliveryCode) && (
-            <span className="text-xs text-emerald-600 font-mono shrink-0">{jNumber ?? selected.deliveryCode}</span>
-          )}
-        </div>
-      </button>
-    );
-  }
+  const collapsedChip = (label: string, sub?: string) => (
+    <button
+      onClick={onDeselect}
+      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg border border-emerald-300 bg-emerald-50 text-left transition-all hover:bg-emerald-100"
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-emerald-500 shrink-0">
+        <polyline points="20 6 9 17 4 12" />
+      </svg>
+      <span className="text-sm font-semibold text-emerald-900 truncate">{label}</span>
+      {sub && <span className="text-xs text-emerald-600 font-mono shrink-0">{sub}</span>}
+    </button>
+  );
 
-  if (noConsigner) {
-    return (
-      <button
-        onClick={onDeselect}
-        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg border border-emerald-300 bg-emerald-50 text-left transition-all hover:bg-emerald-100"
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-emerald-500 shrink-0">
-          <polyline points="20 6 9 17 4 12" />
-        </svg>
-        <span className="text-sm font-semibold text-emerald-900">No consigner</span>
-      </button>
-    );
-  }
+  if (selected)        return collapsedChip(selected.consignerName, selected.consignerJNumber?.trim() ?? selected.deliveryCode);
+  if (noConsigner)     return collapsedChip("No consigner");
+  if (customConsigner) return collapsedChip(customConsigner.name, customConsigner.jNumber || undefined);
 
   const active = deliveries
     .filter((d) => d.status !== "complete")
@@ -84,6 +73,14 @@ function DeliveryPicker({
       )
     : active;
 
+  function handleConfirmCustom() {
+    if (!addName.trim()) return;
+    onCustomConsigner(addName.trim(), addJNumber.trim());
+    setAddName("");
+    setAddJNumber("");
+    setShowForm(false);
+  }
+
   return (
     <div className="space-y-3">
       <input
@@ -95,12 +92,65 @@ function DeliveryPicker({
       />
 
       <div className="space-y-1.5 max-h-72 overflow-y-auto">
-        <button
-          onClick={onNoConsigner}
-          className="w-full flex items-center justify-between px-4 py-3 rounded-lg border border-stone-200 bg-white hover:border-stone-300 hover:bg-stone-50 text-left transition-all"
-        >
-          <p className="text-sm font-semibold text-stone-400">No consigner</p>
-        </button>
+        {/* No consigner + Add consigner row */}
+        <div className="grid grid-cols-2 gap-1.5">
+          <button
+            onClick={onNoConsigner}
+            className="flex items-center justify-center px-3 py-2.5 rounded-lg border border-stone-200 bg-white hover:border-stone-300 hover:bg-stone-50 transition-all"
+          >
+            <p className="text-sm font-semibold text-stone-400">No consigner</p>
+          </button>
+          <button
+            onClick={() => setShowForm((v) => !v)}
+            className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg border transition-all ${
+              showForm
+                ? "border-orange-300 bg-orange-50 text-orange-700"
+                : "border-stone-200 bg-white text-stone-500 hover:border-stone-300 hover:bg-stone-50"
+            }`}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5 shrink-0">
+              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            <span className="text-sm font-semibold">Add consigner</span>
+          </button>
+        </div>
+
+        {/* Inline add-consigner form */}
+        <AnimatePresence initial={false}>
+          {showForm && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2, ease: "easeInOut" }}
+              className="overflow-hidden"
+            >
+              <div className="rounded-lg border border-orange-200 bg-orange-50 p-3 space-y-2">
+                <input
+                  type="text"
+                  value={addName}
+                  onChange={(e) => setAddName(e.target.value)}
+                  placeholder="Consigner name"
+                  className="w-full rounded-md border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+                <input
+                  type="text"
+                  value={addJNumber}
+                  onChange={(e) => setAddJNumber(e.target.value)}
+                  placeholder="J number (optional)"
+                  className="w-full rounded-md border border-stone-200 bg-white px-3 py-2 text-sm font-mono text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+                <button
+                  onClick={handleConfirmCustom}
+                  disabled={!addName.trim()}
+                  className="w-full rounded-md bg-orange-600 px-3 py-2 text-sm font-semibold text-white hover:bg-orange-700 disabled:opacity-40 transition-colors"
+                >
+                  Confirm
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {filtered.length === 0 && (
           <p className="text-sm text-stone-400 text-center py-6">No active deliveries found</p>
@@ -166,9 +216,11 @@ function DuplicateRackCard({ rack, onDeleted }: { rack: Rack; onDeleted: () => v
 
 function RackCreateForm({
   delivery,
+  customConsigner,
   onCreated,
 }: {
   delivery: Delivery | null;
+  customConsigner: { name: string; jNumber: string } | null;
   onCreated: (rackId: string, rackCode: string) => void;
 }) {
   const addRack      = useRacksStore((s) => s.addRack);
@@ -192,7 +244,7 @@ function RackCreateForm({
     setDuplicateRack(null);
     try {
       const result = await addRack({
-        consignerName: delivery?.consignerName ?? "",
+        consignerName: delivery?.consignerName ?? customConsigner?.name ?? "",
         status,
         deliveryId:    delivery?.id,
         auctionColor:  auctionColor || undefined,
@@ -230,6 +282,19 @@ function RackCreateForm({
           <div className="min-w-0">
             <p className="text-xs font-semibold text-orange-800 truncate">{delivery.consignerName}</p>
             <p className="text-[11px] text-orange-600">{delivery.deliveryCode}</p>
+          </div>
+        </div>
+      ) : customConsigner ? (
+        <div className="rounded-lg bg-stone-100 border border-stone-200 px-4 py-3 flex items-center gap-3">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-stone-500 shrink-0">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+          </svg>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-stone-700 truncate">{customConsigner.name}</p>
+            {customConsigner.jNumber && (
+              <p className="text-[11px] text-stone-400 font-mono">{customConsigner.jNumber}</p>
+            )}
           </div>
         </div>
       ) : (
@@ -368,23 +433,35 @@ function RackCreateForm({
 export default function UnpackPage() {
   const [selectedDelivery,  setSelectedDelivery]  = useState<Delivery | null>(null);
   const [noConsignerMode,   setNoConsignerMode]   = useState(false);
+  const [customConsigner,   setCustomConsigner]   = useState<{ name: string; jNumber: string } | null>(null);
   const [recentRacks,       setRecentRacks]       = useState<{ id: string; code: string }[]>([]);
   const printQueueIds = usePrintQueueStore((s) => s.ids);
   const racks         = useRacksStore((s) => s.racks);
 
+  const anySelected = !!(selectedDelivery || noConsignerMode || customConsigner);
+
   function handleSelectDelivery(d: Delivery) {
     setSelectedDelivery(d);
     setNoConsignerMode(false);
+    setCustomConsigner(null);
   }
 
   function handleNoConsigner() {
     setSelectedDelivery(null);
     setNoConsignerMode(true);
+    setCustomConsigner(null);
+  }
+
+  function handleCustomConsigner(name: string, jNumber: string) {
+    setSelectedDelivery(null);
+    setNoConsignerMode(false);
+    setCustomConsigner({ name, jNumber });
   }
 
   function handleDeselect() {
     setSelectedDelivery(null);
     setNoConsignerMode(false);
+    setCustomConsigner(null);
   }
 
   function handleCreated(id: string, code: string) {
@@ -415,7 +492,7 @@ export default function UnpackPage() {
 
       {/* Step 1 — collapses to a single row once a selection is made */}
       <AnimatePresence initial={false} mode="wait">
-        {selectedDelivery || noConsignerMode ? (
+        {anySelected ? (
           <motion.div
             key="collapsed"
             initial={{ opacity: 0, height: 0 }}
@@ -428,8 +505,10 @@ export default function UnpackPage() {
               <DeliveryPicker
                 selected={selectedDelivery}
                 noConsigner={noConsignerMode}
+                customConsigner={customConsigner}
                 onSelect={handleSelectDelivery}
                 onNoConsigner={handleNoConsigner}
+                onCustomConsigner={handleCustomConsigner}
                 onDeselect={handleDeselect}
               />
             </Card>
@@ -451,8 +530,10 @@ export default function UnpackPage() {
               <DeliveryPicker
                 selected={selectedDelivery}
                 noConsigner={noConsignerMode}
+                customConsigner={customConsigner}
                 onSelect={handleSelectDelivery}
                 onNoConsigner={handleNoConsigner}
+                onCustomConsigner={handleCustomConsigner}
                 onDeselect={handleDeselect}
               />
             </Card>
@@ -461,14 +542,15 @@ export default function UnpackPage() {
       </AnimatePresence>
 
       {/* Step 2 */}
-      <Card className={`mt-4 ${!selectedDelivery && !noConsignerMode ? "opacity-40 pointer-events-none" : ""}`}>
+      <Card className={`mt-4 ${!anySelected ? "opacity-40 pointer-events-none" : ""}`}>
         <div className="flex items-center gap-2 mb-4">
-          <span className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold text-white ${selectedDelivery || noConsignerMode ? "bg-orange-600" : "bg-stone-300"}`}>2</span>
+          <span className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold text-white ${anySelected ? "bg-orange-600" : "bg-stone-300"}`}>2</span>
           <p className="text-sm font-semibold text-stone-900">Create rack</p>
         </div>
-        {selectedDelivery || noConsignerMode ? (
+        {anySelected ? (
           <RackCreateForm
             delivery={selectedDelivery}
+            customConsigner={customConsigner}
             onCreated={handleCreated}
           />
         ) : (
