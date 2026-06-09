@@ -44,14 +44,14 @@ export const ROLE_ROUTES: Record<Role, string[]> = {
 export const ROLE_NAV: Record<Role, Array<{ href: string; label: string }>> = {
   admin: [
     { href: "/",            label: "Dashboard"  },
-    { href: "/deliveries",  label: "Deliveries" },
     { href: "/racks",       label: "Racks"      },
-    { href: "/consigners",  label: "Consigners" },
+    { href: "/scan",        label: "Scan"       },
     { href: "/search",      label: "Search"     },
+    { href: "/deliveries",  label: "Deliveries" },
+    { href: "/consigners",  label: "Consigners" },
     { href: "/zones",       label: "Zones"      },
     { href: "/lotting",     label: "Lotting"    },
     { href: "/reports",     label: "Reports"    },
-    { href: "/scan",        label: "Scan"       },
   ],
   front_desk: [
     { href: "/front-desk",  label: "Home"       },
