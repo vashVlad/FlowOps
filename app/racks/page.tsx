@@ -256,7 +256,7 @@ function RacksContent() {
   const activeRole        = useActiveRole();
   const allowedStatuses   = activeRole ? ROLE_RACK_STATUSES[activeRole] : undefined;
   const roleCanAdvance    = activeRole ? canAdvanceRacks(activeRole) : true;
-  const roleCanCreate     = activeRole === "admin" || activeRole === "unpacker" || activeRole === "lotter" || activeRole === null;
+  const roleCanCreate     = activeRole === "admin" || activeRole === "unpacker" || activeRole === "sorter" || activeRole === "lotter" || activeRole === null;
 
   // Compute visible filter options before state so initial value can be clamped
   const visibleFilterOptions = allowedStatuses

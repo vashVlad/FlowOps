@@ -35,7 +35,7 @@ export const ROLE_ROUTES: Record<Role, string[]> = {
   admin:      ["*"],
   front_desk: ["/front-desk", "/deliveries", "/consigners", "/racks", "/search"],
   unpacker:   ["/unpack", "/racks", "/labels", "/search"],
-  sorter:     ["/racks", "/search"],
+  sorter:     ["/racks", "/unpack", "/search"],
   lotter:     ["/lotting", "/racks", "/unpack", "/search"],
   pickup:     ["/pickup", "/racks", "/zones", "/search"],
 };
@@ -64,8 +64,9 @@ export const ROLE_NAV: Record<Role, Array<{ href: string; label: string }>> = {
     { href: "/search",  label: "Search" },
   ],
   sorter: [
-    { href: "/racks",  label: "Racks"  },
-    { href: "/search", label: "Search" },
+    { href: "/unpack", label: "Create Rack" },
+    { href: "/racks",  label: "Racks"       },
+    { href: "/search", label: "Search"      },
   ],
   lotter: [
     { href: "/lotting", label: "Lotting" },
