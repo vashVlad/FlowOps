@@ -83,10 +83,11 @@ export const ROLE_NAV: Record<Role, Array<{ href: string; label: string }>> = {
 // Mobile bottom nav links per role — includes Scan, which is mobile-only
 export const ROLE_NAV_MOBILE: Record<Role, Array<{ href: string; label: string }>> = {
   admin: [
-    { href: "/",       label: "Dashboard" },
-    { href: "/racks",  label: "Racks"     },
-    { href: "/scan",   label: "Scan"      },
-    { href: "/search", label: "Search"    },
+    { href: "/",           label: "Dashboard"  },
+    { href: "/racks",      label: "Racks"      },
+    { href: "/deliveries", label: "Deliveries" },
+    { href: "/scan",       label: "Scan"       },
+    { href: "/search",     label: "Search"     },
   ],
   front_desk: ROLE_NAV.front_desk,
   unpacker: [
