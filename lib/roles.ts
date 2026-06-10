@@ -48,8 +48,9 @@ export const ROLE_NAV: Record<Role, Array<{ href: string; label: string }>> = {
     { href: "/racks",       label: "Racks"      },
     { href: "/deliveries",  label: "Deliveries" },
     { href: "/consigners",  label: "Consigners" },
-    { href: "/search",      label: "Search"     },
+    { href: "/dumpsters",   label: "Dumpsters"  },
     { href: "/reports",     label: "Reports"    },
+    { href: "/search",      label: "Search"     },
   ],
   front_desk: [
     { href: "/front-desk",  label: "Home"       },

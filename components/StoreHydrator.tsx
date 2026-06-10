@@ -9,6 +9,7 @@ import { useRacksStore } from "@/store/racks";
 import { useNotesStore } from "@/store/notes";
 import { useRackConsignersStore } from "@/store/rackConsigners";
 import { useAuctionColorDatesStore } from "@/store/auctionColorDates";
+import { useDumpstersStore } from "@/store/dumpsters";
 import { useConnectionStore } from "@/store/connection";
 import {
   toRack,
@@ -16,11 +17,13 @@ import {
   toZone,
   toHistoryEvent,
   toRackNote,
+  toDumpster,
   type RackRow,
   type DeliveryRow,
   type ZoneRow,
   type RackEventRow,
   type RackNoteRow,
+  type DumpsterRow,
 } from "@/supabase/queries";
 
 // ── Subscription ordering constraint ─────────────────────────────────────────
@@ -34,13 +37,14 @@ export default function StoreHydrator() {
   const hydrateNotes           = useNotesStore((s) => s.hydrate);
   const hydrateRackConsigners  = useRackConsignersStore((s) => s.hydrate);
   const hydrateAuctionColors   = useAuctionColorDatesStore((s) => s.hydrate);
+  const hydrateDumpsters       = useDumpstersStore((s) => s.hydrate);
   const setConnStatus          = useConnectionStore((s) => s.setStatus);
 
   useEffect(() => {
     let channel: RealtimeChannel | null = null;
     let cancelled = false;
 
-    Promise.all([hydrateZones(), hydrateDeliveries(), hydrateRacks(), hydrateNotes(), hydrateRackConsigners(), hydrateAuctionColors()])
+    Promise.all([hydrateZones(), hydrateDeliveries(), hydrateRacks(), hydrateNotes(), hydrateRackConsigners(), hydrateAuctionColors(), hydrateDumpsters()])
       .then(() => {
         if (cancelled) return;
 
@@ -105,6 +109,18 @@ export default function StoreHydrator() {
               }
             })
 
+            .on("postgres_changes", { event: "*", schema: "public", table: "dumpsters" }, (payload) => {
+              if (payload.eventType !== "DELETE") {
+                useDumpstersStore.getState().upsertDumpster(toDumpster(payload.new as DumpsterRow));
+              }
+            })
+
+            // dumpster_entries needs the joined delivery (consigner/code) for display,
+            // which postgres_changes payloads don't include — re-hydrate on change instead.
+            .on("postgres_changes", { event: "*", schema: "public", table: "dumpster_entries" }, () => {
+              useDumpstersStore.getState().hydrate();
+            })
+
             .subscribe((status) => {
               if (status === "SUBSCRIBED")                              setConnStatus("connected");
               else if (status === "TIMED_OUT" || status === "CLOSED")  setConnStatus("disconnected");
@@ -125,7 +141,7 @@ export default function StoreHydrator() {
         try { getSupabase().removeChannel(channel); } catch { /* already torn down */ }
       }
     };
-  }, [hydrateZones, hydrateDeliveries, hydrateRacks, hydrateNotes, hydrateRackConsigners, hydrateAuctionColors, setConnStatus]);
+  }, [hydrateZones, hydrateDeliveries, hydrateRacks, hydrateNotes, hydrateRackConsigners, hydrateAuctionColors, hydrateDumpsters, setConnStatus]);
 
   return null;
 }

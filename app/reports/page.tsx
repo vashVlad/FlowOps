@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation";
 import { useRacksStore } from "@/store/racks";
 import { useDeliveriesStore } from "@/store/deliveries";
 import { useZonesStore } from "@/store/zones";
+import { useDumpstersStore } from "@/store/dumpsters";
 import {
   exportRacks,
   exportDeliveries,
   exportStageDurations,
+  exportDumpsters,
 } from "@/lib/export";
 import PageHeader from "@/components/ui/PageHeader";
 import { useAuthStore } from "@/store/auth";
@@ -27,7 +29,7 @@ function ExportCard({ title, description, detail, onExport, count, countLabel, u
   return (
     <div className={`rounded-xl border bg-white shadow-sm overflow-hidden ${urgent ? "border-red-200" : "border-stone-200"}`}>
       <div className={`h-0.5 ${urgent ? "bg-red-500" : "bg-orange-500"}`} />
-      <div className="px-5 py-4 flex flex-wrap items-start justify-between gap-4">
+      <div className="px-5 py-4 flex items-start justify-between gap-4">
         <div className="min-w-0 space-y-1">
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-sm font-semibold text-stone-800">{title}</p>
@@ -60,6 +62,7 @@ export default function ReportsPage() {
   const { racks, history, closeAuctionCycle } = useRacksStore();
   const { deliveries }                        = useDeliveriesStore();
   const { zones }                             = useZonesStore();
+  const { dumpsters, entries: dumpsterEntries } = useDumpstersStore();
 
   const activeRacks      = racks.filter((r) => r.status !== "completed").length;
   const activeDeliveries = deliveries.filter((d) => d.status !== "complete").length;
@@ -102,20 +105,20 @@ export default function ReportsPage() {
         <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-stone-400">Operational</h2>
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           <ExportCard
-            title="All Racks"
-            description="Full rack list with current status, priority, zone assignment, and stuck flag."
-            detail="Columns: rack code, consigner, status, priority, zone, delivery, created, updated, time in stage, stuck"
-            onExport={() => exportRacks(racks, zones, deliveries, history)}
-            count={activeRacks}
-            countLabel="active"
-          />
-          <ExportCard
             title="All Deliveries"
             description="Delivery summary with progress and rack counts."
             detail="Columns: delivery code, consigner, type, status, date, completed, auction date, expected racks, linked, done, progress %"
             onExport={() => exportDeliveries(deliveries, racks)}
             count={activeDeliveries}
             countLabel="active"
+          />
+          <ExportCard
+            title="Dumpsters"
+            description="Dumpster activity log — every fill addition and swap, for trash-charge billing."
+            detail="Columns: date, dumpster, type, consigner, j-number, percent, logged by"
+            onExport={() => exportDumpsters(dumpsters, dumpsterEntries)}
+            count={dumpsterEntries.length}
+            countLabel="entries"
           />
         </div>
       </div>
@@ -124,6 +127,14 @@ export default function ReportsPage() {
       <div>
         <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-stone-400">Detailed</h2>
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+          <ExportCard
+            title="All Racks"
+            description="Full rack list with current status, priority, zone assignment, and stuck flag."
+            detail="Columns: rack code, consigner, status, priority, zone, delivery, created, updated, time in stage, stuck"
+            onExport={() => exportRacks(racks, zones, deliveries, history)}
+            count={activeRacks}
+            countLabel="active"
+          />
           <ExportCard
             title="Stage Durations"
             description="Per-rack breakdown of time spent at each pipeline stage. One row per stage per rack."

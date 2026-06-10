@@ -9,6 +9,7 @@ import { usePrintQueueStore } from "@/store/printQueue";
 import PageHeader from "@/components/ui/PageHeader";
 import Card from "@/components/ui/Card";
 import AuctionColorPicker from "@/components/ui/AuctionColorPicker";
+import TrashIcon from "@/components/ui/TrashIcon";
 import { today, timeAgo } from "@/lib/utils";
 import { STAGE_BADGE, STAGE_LABEL, STAGE_DOT } from "@/lib/tokens";
 import type { RackStatus } from "@/types";
@@ -206,9 +207,10 @@ function DuplicateRackCard({ rack, onDeleted }: { rack: Rack; onDeleted: () => v
       <button
         onClick={handleDelete}
         disabled={deleting}
-        className="shrink-0 rounded-md border border-red-200 bg-white px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 transition-colors"
+        aria-label={deleting ? "Deleting…" : "Delete"}
+        className="flex shrink-0 items-center justify-center rounded-md border border-red-200 bg-white p-1.5 text-red-600 hover:bg-red-50 disabled:opacity-50 transition-colors"
       >
-        {deleting ? "Deleting…" : "Delete"}
+        <TrashIcon className="h-3.5 w-3.5" />
       </button>
     </div>
   );

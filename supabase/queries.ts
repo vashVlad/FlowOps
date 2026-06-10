@@ -13,6 +13,7 @@ import type {
   RackConsigner, CreateRackConsignerInput,
   RackStatus, Priority, DeliveryStatus, DeliveryType,
   UpdateRackInput, UpdateDeliveryInput,
+  Dumpster, DumpsterEntry, DumpsterEntryType, AddDumpsterEntryInput,
 } from "@/types";
 
 // ── DB row types (snake_case, nullable where Postgres allows NULL) ─────────────
@@ -88,6 +89,27 @@ export interface DeliveryPhotoRow {
   storage_path: string;
   caption: string | null;
   created_at: string;
+}
+
+export interface DumpsterRow {
+  id: string;
+  name: string;
+  fill_percent: number;
+  arrived_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Row shape returned by fetchDumpsterEntries — joins the linked delivery for display
+export interface DumpsterEntryRow {
+  id: string;
+  dumpster_id: string;
+  type: DumpsterEntryType;
+  percent: number;
+  delivery_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  deliveries: { consigner_name: string; delivery_code: string; consigner_j_number: string | null } | null;
 }
 
 // ── Row → app type mappers ────────────────────────────────────────────────────
@@ -178,9 +200,53 @@ export function toDeliveryPhoto(row: DeliveryPhotoRow, url?: string): DeliveryPh
   };
 }
 
+export function toDumpster(row: DumpsterRow): Dumpster {
+  return {
+    id:          row.id,
+    name:        row.name,
+    fillPercent: row.fill_percent,
+    arrivedAt:   row.arrived_at,
+    updatedAt:   row.updated_at,
+  };
+}
+
+export function toDumpsterEntry(row: DumpsterEntryRow): DumpsterEntry {
+  return {
+    id:            row.id,
+    dumpsterId:    row.dumpster_id,
+    type:          row.type,
+    percent:       row.percent,
+    deliveryId:       row.delivery_id ?? undefined,
+    consignerName:    row.deliveries?.consigner_name     ?? undefined,
+    deliveryCode:     row.deliveries?.delivery_code      ?? undefined,
+    consignerJNumber: row.deliveries?.consigner_j_number ?? undefined,
+    createdBy:        row.created_by ?? undefined,
+    createdAt:        row.created_at,
+  };
+}
+
 // ════════════════════════════════════════════════════════════════════════════
 // READS
 // ════════════════════════════════════════════════════════════════════════════
+
+export async function fetchDumpsters(): Promise<Dumpster[]> {
+  const { data, error } = await supabase
+    .from("dumpsters")
+    .select("*")
+    .order("name");
+  if (error) throw error;
+  return (data as DumpsterRow[]).map(toDumpster);
+}
+
+export async function fetchDumpsterEntries(): Promise<DumpsterEntry[]> {
+  const { data, error } = await supabase
+    .from("dumpster_entries")
+    .select("*, deliveries(consigner_name, delivery_code, consigner_j_number)")
+    .order("created_at", { ascending: false })
+    .limit(100);
+  if (error) throw error;
+  return (data as DumpsterEntryRow[]).map(toDumpsterEntry);
+}
 
 export async function fetchZones(): Promise<Zone[]> {
   const { data, error } = await supabase
@@ -683,4 +749,59 @@ export async function createZone(input: {
     .single();
   if (error) throw error;
   return toZone(data as ZoneRow);
+}
+
+// ── Dumpsters ────────────────────────────────────────────────────────────────
+
+export async function addDumpsterEntry(
+  input: AddDumpsterEntryInput
+): Promise<{ entry: DumpsterEntry; dumpster: Dumpster }> {
+  const { data: rpcData, error: rpcError } = await supabase.rpc("add_dumpster_entry", {
+    p_dumpster_id: input.dumpsterId,
+    p_delivery_id: input.deliveryId ?? null,
+    p_percent:     input.percent,
+  });
+  if (rpcError) throw rpcError;
+
+  const entryId = (rpcData as { id: string }).id;
+
+  const [entryRes, dumpsterRes] = await Promise.all([
+    supabase.from("dumpster_entries").select("*, deliveries(consigner_name, delivery_code, consigner_j_number)").eq("id", entryId).single(),
+    supabase.from("dumpsters").select("*").eq("id", input.dumpsterId).single(),
+  ]);
+  if (entryRes.error)    throw entryRes.error;
+  if (dumpsterRes.error) throw dumpsterRes.error;
+
+  return {
+    entry:    toDumpsterEntry(entryRes.data as DumpsterEntryRow),
+    dumpster: toDumpster(dumpsterRes.data as DumpsterRow),
+  };
+}
+
+export async function swapDumpster(
+  dumpsterId: string
+): Promise<{ entry: DumpsterEntry; dumpster: Dumpster }> {
+  const { data: rpcData, error: rpcError } = await supabase.rpc("swap_dumpster", {
+    p_dumpster_id: dumpsterId,
+  });
+  if (rpcError) throw rpcError;
+
+  const entryId = (rpcData as { id: string }).id;
+
+  const [entryRes, dumpsterRes] = await Promise.all([
+    supabase.from("dumpster_entries").select("*, deliveries(consigner_name, delivery_code, consigner_j_number)").eq("id", entryId).single(),
+    supabase.from("dumpsters").select("*").eq("id", dumpsterId).single(),
+  ]);
+  if (entryRes.error)    throw entryRes.error;
+  if (dumpsterRes.error) throw dumpsterRes.error;
+
+  return {
+    entry:    toDumpsterEntry(entryRes.data as DumpsterEntryRow),
+    dumpster: toDumpster(dumpsterRes.data as DumpsterRow),
+  };
+}
+
+export async function deleteDumpsterEntry(entryId: string): Promise<void> {
+  const { error } = await supabase.rpc("delete_dumpster_entry", { p_entry_id: entryId });
+  if (error) throw error;
 }

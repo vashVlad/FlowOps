@@ -49,16 +49,23 @@ export default function Header() {
           <nav className="hidden sm:flex items-center gap-1 ml-2">
             {navLinks.map(({ href, label }) => {
               const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+              const className = `relative px-2.5 py-1.5 rounded-md text-sm transition-colors ${
+                active
+                  ? "text-orange-600 font-medium bg-orange-50"
+                  : "text-stone-500 hover:text-stone-800 hover:bg-stone-50"
+              }`;
+              if (href === "/search") {
+                return (
+                  <Link key={href} href={href} aria-label="Search" className={className}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                      <circle cx="11" cy="11" r="7" />
+                      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                  </Link>
+                );
+              }
               return (
-                <Link
-                  key={href}
-                  href={href}
-                  className={`relative px-2.5 py-1.5 rounded-md text-sm transition-colors ${
-                    active
-                      ? "text-orange-600 font-medium bg-orange-50"
-                      : "text-stone-500 hover:text-stone-800 hover:bg-stone-50"
-                  }`}
-                >
+                <Link key={href} href={href} className={className}>
                   {label}
                 </Link>
               );

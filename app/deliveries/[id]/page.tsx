@@ -16,6 +16,7 @@ import PriorityPicker from "@/components/ui/PriorityPicker";
 import Select from "@/components/Select";
 import { StageStrip } from "@/app/racks/page";
 import { SectionLabel } from "@/components/ui/Card";
+import TrashIcon from "@/components/ui/TrashIcon";
 import { formatDate, timeAgo } from "@/lib/utils";
 import { FIXED_ZONE_LABELS } from "@/lib/zones";
 import {
@@ -97,7 +98,6 @@ export default function DeliveryDetailPage() {
   // ── Outcome ───────────────────────────────────────────────────────────────
   const [outcomeEditing, setOutcomeEditing] = useState(false);
   const [donationValue, setDonationValue]   = useState("");
-  const [trashValue, setTrashValue]         = useState("");
 
   const delivery = deliveries.find((d) => d.id === id);
 
@@ -147,7 +147,7 @@ const donationPct  = delivery.donationPercent ?? 0;
   const trashPct     = delivery.trashPercent    ?? 0;
   const sellablePct  = Math.max(0, 100 - donationPct - trashPct);
   const hasOutcome   = delivery.donationPercent != null || delivery.trashPercent != null;
-  const outcomeOverLimit = Number(donationValue || 0) + Number(trashValue || 0) > 100;
+  const outcomeOverLimit = Number(donationValue || 0) + trashPct > 100;
 
   async function handleAddRack() {
     const result = await addRack({
@@ -181,9 +181,8 @@ const donationPct  = delivery.donationPercent ?? 0;
   async function handleSaveOutcome() {
     const clamp = (v: string) => v === "" ? null : Math.min(100, Math.max(0, Math.round(Number(v) || 0)));
     const d = clamp(donationValue);
-    const t = clamp(trashValue);
-    if ((d ?? 0) + (t ?? 0) > 100) return;
-    const result = await updateDelivery(delivery!.id, { donationPercent: d, trashPercent: t });
+    if ((d ?? 0) + trashPct > 100) return;
+    const result = await updateDelivery(delivery!.id, { donationPercent: d });
     if (result.ok) { setOutcomeEditing(false); addToast("Outcome saved"); }
   }
 
@@ -296,9 +295,9 @@ const donationPct  = delivery.donationPercent ?? 0;
                     </button>
                   </div>
                 ) : isSupervisor ? (
-                  <button onClick={() => setDeleteConfirm(true)}
-                    className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50 transition-colors">
-                    Delete
+                  <button onClick={() => setDeleteConfirm(true)} aria-label="Delete delivery"
+                    className="flex items-center justify-center rounded-lg border border-red-200 p-2 text-red-500 hover:bg-red-50 transition-colors">
+                    <TrashIcon className="h-3.5 w-3.5" />
                   </button>
                 ) : null}
                 {nextStatus && (
@@ -479,7 +478,6 @@ const donationPct  = delivery.donationPercent ?? 0;
                   <button
                     onClick={() => {
                       setDonationValue(delivery.donationPercent != null ? String(delivery.donationPercent) : "");
-                      setTrashValue(delivery.trashPercent != null ? String(delivery.trashPercent) : "");
                       setOutcomeEditing(true);
                     }}
                     className="text-xs text-stone-400 hover:text-orange-600 transition-colors"
@@ -504,18 +502,15 @@ const donationPct  = delivery.donationPercent ?? 0;
                     />
                     <span className="text-xs text-stone-400">%</span>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="h-2 w-2 rounded-full bg-red-400 shrink-0" />
-                    <span className="text-xs text-stone-500">Trash</span>
-                    <input
-                      type="number" min="0" max="100"
-                      value={trashValue}
-                      onChange={(e) => setTrashValue(e.target.value)}
-                      placeholder="0"
-                      className="w-14 rounded border border-stone-200 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500"
-                    />
-                    <span className="text-xs text-stone-400">%</span>
-                  </div>
+                  {trashPct > 0 && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-red-400 shrink-0" />
+                      <span className="text-xs text-stone-500">
+                        Trash <span className="font-medium text-stone-700">{trashPct}%</span>{" "}
+                        <span className="text-stone-400">(set on Dumpsters page)</span>
+                      </span>
+                    </div>
+                  )}
                   {outcomeOverLimit && (
                     <span className="text-xs text-red-500">Total exceeds 100%</span>
                   )}
@@ -611,9 +606,10 @@ const donationPct  = delivery.donationPercent ?? 0;
                           <span className="text-[10px] text-stone-400">{timeAgo(note.createdAt)}</span>
                           <button
                             onClick={() => deleteNote(note.id)}
-                            className="text-[10px] text-stone-300 hover:text-red-400 transition-colors"
+                            aria-label="Delete note"
+                            className="text-stone-300 hover:text-red-400 transition-colors"
                           >
-                            ×
+                            <TrashIcon className="h-3.5 w-3.5" />
                           </button>
                         </div>
                       </div>

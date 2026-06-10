@@ -95,6 +95,40 @@ export interface UpdateDeliveryInput {
   trashPercent?: number | null;
 }
 
+// ── Dumpsters ────────────────────────────────────────────────────────────────
+// Two physical dumpsters (Gallery, Warehouse). Fill level is built up from
+// "add" entries linked to deliveries — each entry's percent also becomes that
+// delivery's trashPercent (read-only on the delivery page).
+
+export interface Dumpster {
+  id: string;
+  name: string;        // "Gallery" | "Warehouse"
+  fillPercent: number; // 0–100 current fill level
+  arrivedAt: string;   // YYYY-MM-DD — when the current dumpster was placed
+  updatedAt: string;
+}
+
+export type DumpsterEntryType = "add" | "swap";
+
+export interface DumpsterEntry {
+  id: string;
+  dumpsterId: string;
+  type: DumpsterEntryType;
+  percent: number;          // amount added (add) or final level archived (swap)
+  deliveryId?: string;
+  consignerName?: string;   // denormalized from the linked delivery
+  deliveryCode?: string;
+  consignerJNumber?: string;
+  createdBy?: string;
+  createdAt: string;
+}
+
+export interface AddDumpsterEntryInput {
+  dumpsterId: string;
+  deliveryId?: string; // omitted = operational/general use, not tied to a delivery
+  percent: number;
+}
+
 // ── Zone ─────────────────────────────────────────────────────────────────────
 
 export interface Zone {

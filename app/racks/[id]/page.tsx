@@ -12,6 +12,7 @@ import { useRackConsignersStore } from "@/store/rackConsigners";
 import { useAuthStore } from "@/store/auth";
 import StatusBadge from "@/components/StatusBadge";
 import { SectionLabel } from "@/components/ui/Card";
+import TrashIcon from "@/components/ui/TrashIcon";
 import CustomSelect from "@/components/ui/CustomSelect";
 import PriorityPicker from "@/components/ui/PriorityPicker";
 import { timeAgo, formatTime } from "@/lib/utils";
@@ -407,9 +408,10 @@ export default function RackDetailPage() {
                   ) : (
                     <button
                       onClick={() => setDeleteConfirm(true)}
-                      className="rounded-lg border border-red-200 px-3 py-3 text-xs font-medium text-red-500 hover:bg-red-50 transition-colors"
+                      aria-label="Delete rack"
+                      className="flex items-center justify-center rounded-lg border border-red-200 p-3 text-red-500 hover:bg-red-50 transition-colors"
                     >
-                      Delete
+                      <TrashIcon className="h-3.5 w-3.5" />
                     </button>
                   )
                 )}
@@ -539,9 +541,10 @@ export default function RackDetailPage() {
                         <span className="text-[10px] text-stone-400">{timeAgo(note.createdAt)}</span>
                         <button
                           onClick={() => deleteNote(note.id)}
-                          className="text-[10px] text-stone-300 hover:text-red-400 transition-colors"
+                          aria-label="Delete note"
+                          className="text-stone-300 hover:text-red-400 transition-colors"
                         >
-                          ×
+                          <TrashIcon className="h-3.5 w-3.5" />
                         </button>
                       </div>
                     </div>

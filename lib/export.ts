@@ -1,4 +1,4 @@
-import type { Rack, Delivery, Zone, HistoryEvent } from "@/types";
+import type { Rack, Delivery, Zone, HistoryEvent, Dumpster, DumpsterEntry } from "@/types";
 import { formatDuration } from "@/lib/utils";
 import {
   isRackNeedsAttention,
@@ -181,6 +181,30 @@ export function exportStageDurations(
   }
 
   downloadCSV(`flowops-stage-durations-${today()}.csv`, headers, rows);
+}
+
+/** Dumpster activity log — every add/swap entry, for trash-charge billing. */
+export function exportDumpsters(
+  dumpsters: Dumpster[],
+  entries:   DumpsterEntry[]
+): void {
+  const dumpsterMap = new Map(dumpsters.map((d) => [d.id, d.name]));
+
+  const headers = [
+    "Date", "Dumpster", "Type", "Consigner", "J-Number", "Percent", "Logged By",
+  ];
+
+  const rows = entries.map((e) => [
+    isoToLocal(e.createdAt),
+    dumpsterMap.get(e.dumpsterId) ?? "",
+    e.type,
+    e.type === "add" ? (e.consignerName ?? "Operational use") : "",
+    e.consignerJNumber ?? e.deliveryCode ?? "",
+    `${e.percent}%`,
+    e.createdBy ?? "",
+  ]);
+
+  downloadCSV(`flowops-dumpsters-${today()}.csv`, headers, rows);
 }
 
 function today(): string {
