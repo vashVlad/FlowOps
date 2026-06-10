@@ -40,17 +40,15 @@ export const ROLE_ROUTES: Record<Role, string[]> = {
   pickup:     ["/pickup", "/racks", "/search", "/scan"],
 };
 
-// Desktop + mobile nav links per role
+// Desktop top nav links per role
 export const ROLE_NAV: Record<Role, Array<{ href: string; label: string }>> = {
   admin: [
     { href: "/",            label: "Dashboard"  },
+    { href: "/zones",       label: "Zones"      },
     { href: "/racks",       label: "Racks"      },
-    { href: "/scan",        label: "Scan"       },
-    { href: "/search",      label: "Search"     },
     { href: "/deliveries",  label: "Deliveries" },
     { href: "/consigners",  label: "Consigners" },
-    { href: "/zones",       label: "Zones"      },
-    { href: "/lotting",     label: "Lotting"    },
+    { href: "/search",      label: "Search"     },
     { href: "/reports",     label: "Reports"    },
   ],
   front_desk: [
@@ -63,7 +61,38 @@ export const ROLE_NAV: Record<Role, Array<{ href: string; label: string }>> = {
     { href: "/unpack",  label: "Create Rack" },
     { href: "/racks",   label: "Racks"  },
     { href: "/search",  label: "Search" },
-    { href: "/scan",    label: "Scan"   },
+  ],
+  sorter: [
+    { href: "/unpack", label: "Create Rack" },
+    { href: "/racks",  label: "Racks"       },
+    { href: "/search", label: "Search"      },
+  ],
+  lotter: [
+    { href: "/lotting", label: "Lotting" },
+    { href: "/racks",   label: "Racks"   },
+    { href: "/search",  label: "Search"  },
+  ],
+  pickup: [
+    { href: "/pickup", label: "Pick-Up" },
+    { href: "/racks",  label: "Racks"   },
+    { href: "/search", label: "Search"  },
+  ],
+};
+
+// Mobile bottom nav links per role — includes Scan, which is mobile-only
+export const ROLE_NAV_MOBILE: Record<Role, Array<{ href: string; label: string }>> = {
+  admin: [
+    { href: "/",       label: "Dashboard" },
+    { href: "/racks",  label: "Racks"     },
+    { href: "/scan",   label: "Scan"      },
+    { href: "/search", label: "Search"    },
+  ],
+  front_desk: ROLE_NAV.front_desk,
+  unpacker: [
+    { href: "/unpack", label: "Create Rack" },
+    { href: "/racks",  label: "Racks"       },
+    { href: "/search", label: "Search"      },
+    { href: "/scan",   label: "Scan"        },
   ],
   sorter: [
     { href: "/unpack", label: "Create Rack" },
@@ -71,11 +100,7 @@ export const ROLE_NAV: Record<Role, Array<{ href: string; label: string }>> = {
     { href: "/search", label: "Search"      },
     { href: "/scan",   label: "Scan"        },
   ],
-  lotter: [
-    { href: "/lotting", label: "Lotting" },
-    { href: "/racks",   label: "Racks"   },
-    { href: "/search",  label: "Search"  },
-  ],
+  lotter: ROLE_NAV.lotter,
   pickup: [
     { href: "/pickup", label: "Pick-Up" },
     { href: "/racks",  label: "Racks"   },

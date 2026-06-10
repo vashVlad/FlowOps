@@ -36,13 +36,13 @@ type RackFilter = "all" | "needs_attention" | "held" | RackStatus;
 
 const FILTER_OPTIONS: { key: RackFilter; label: string }[] = [
   { key: "all",               label: "All"                  },
-  { key: "needs_attention",   label: "Needs Attention"      },
-  { key: "held",              label: "Held"                 },
   { key: "unpacking_sorting", label: "Unpacking & Sorting"  },
   { key: "sorted",            label: "Sorted"               },
   { key: "lotting",           label: "Lotting"              },
   { key: "ready",             label: "Ready"                },
   { key: "pickup",            label: "Pickup"               },
+  { key: "needs_attention",   label: "Needs Attention"      },
+  { key: "held",              label: "Held"                 },
 ];
 
 const STAGE_STEPS = PIPELINE_STAGES.map((s) => s.status);

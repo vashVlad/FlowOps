@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth";
-import { ROLE_NAV, ROLE_LABELS, ROLE_HOME, type Role } from "@/lib/roles";
+import { ROLE_NAV_MOBILE, ROLE_LABELS, ROLE_HOME, type Role } from "@/lib/roles";
 
 // Icons keyed by route href
 const NAV_ICONS: Record<string, React.ReactNode> = {
@@ -116,7 +116,7 @@ export default function BottomNav() {
   const pathname   = usePathname();
   const router     = useRouter();
   const { activeRole, roles, setActiveRole } = useAuthStore();
-  const links      = activeRole ? ROLE_NAV[activeRole] : [];
+  const links      = activeRole ? ROLE_NAV_MOBILE[activeRole] : [];
   const [roleOpen, setRoleOpen] = useState(false);
 
   const hasMultipleRoles = roles.length > 1;
