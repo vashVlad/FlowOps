@@ -398,6 +398,13 @@ function RackCreateForm({
           type="text"
           value={customCode}
           onChange={(e) => { setCustomCode(e.target.value.toUpperCase()); setDuplicateRack(null); setError(null); }}
+          onKeyDown={(e) => {
+            if (e.key !== " ") return;
+            e.preventDefault();
+            setCustomCode((prev) => prev + ((prev.match(/\//g) ?? []).length < 2 ? "/" : " "));
+            setDuplicateRack(null);
+            setError(null);
+          }}
           placeholder="e.g. Yellow/Red"
           className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-sm font-mono text-stone-900 placeholder-stone-300 focus:outline-none focus:ring-2 focus:ring-orange-500"
         />

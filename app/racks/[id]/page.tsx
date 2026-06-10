@@ -203,7 +203,14 @@ export default function RackDetailPage() {
               <form onSubmit={handleEditSave} className="rounded-lg border border-stone-200 bg-stone-50 p-4 space-y-2.5">
                 <p className="text-xs font-semibold text-stone-700">Edit rack</p>
                 <input type="text" placeholder="Rack ID (e.g. RC-0042)" value={editRackCode}
-                  onChange={(e) => { setEditRackCode(e.target.value); setEditError(""); }} className={inputCls} autoFocus />
+                  onChange={(e) => { setEditRackCode(e.target.value.toUpperCase()); setEditError(""); }}
+                  onKeyDown={(e) => {
+                    if (e.key !== " ") return;
+                    e.preventDefault();
+                    setEditRackCode((prev) => prev + ((prev.match(/\//g) ?? []).length < 2 ? "/" : " "));
+                    setEditError("");
+                  }}
+                  className={inputCls} autoFocus />
                 <select
                   value={editDeliveryId}
                   onChange={(e) => setEditDeliveryId(e.target.value)}
