@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDeliveriesStore } from "@/store/deliveries";
 import { useRacksStore } from "@/store/racks";
+import { useRackConsignersStore } from "@/store/rackConsigners";
 import PageHeader from "@/components/ui/PageHeader";
 import { LoadingCards } from "@/components/LoadingCards";
 import { buildConsignerProfiles, type ConsignerProfile } from "@/lib/consigners";
@@ -112,6 +113,7 @@ function ConsignersContent() {
   const searchParams = useSearchParams();
   const { deliveries, loading: dLoading } = useDeliveriesStore();
   const { racks,      loading: rLoading } = useRacksStore();
+  const rackConsigners = useRackConsignersStore((s) => s.consigners);
 
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [sort, setSort]   = useState<SortKey>((searchParams.get("sort") as SortKey) ?? "active");
@@ -124,8 +126,8 @@ function ConsignersContent() {
   }, [query, sort]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const profiles = useMemo(
-    () => buildConsignerProfiles(deliveries, racks),
-    [deliveries, racks]
+    () => buildConsignerProfiles(deliveries, racks, rackConsigners),
+    [deliveries, racks, rackConsigners]
   );
 
   const filtered = useMemo(() => {

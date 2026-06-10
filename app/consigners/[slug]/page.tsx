@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useDeliveriesStore } from "@/store/deliveries";
 import { useRacksStore } from "@/store/racks";
+import { useRackConsignersStore } from "@/store/rackConsigners";
 import { useNotesStore } from "@/store/notes";
 import { useZonesStore } from "@/store/zones";
 import { useAuthStore } from "@/store/auth";
@@ -38,6 +39,7 @@ export default function ConsignerDetailPage() {
   const router    = useRouter();
   const { deliveries } = useDeliveriesStore();
   const { racks, history, advanceStatus } = useRacksStore();
+  const rackConsigners = useRackConsignersStore((s) => s.consigners);
   const { notes, addNote, deleteNote } = useNotesStore();
   const { zones } = useZonesStore();
   const user = useAuthStore((s) => s.user);
@@ -49,8 +51,8 @@ export default function ConsignerDetailPage() {
   const decodedName = decodeURIComponent(slug);
 
   const profiles = useMemo(
-    () => buildConsignerProfiles(deliveries, racks),
-    [deliveries, racks]
+    () => buildConsignerProfiles(deliveries, racks, rackConsigners),
+    [deliveries, racks, rackConsigners]
   );
 
   const profile = profiles.find(
@@ -79,7 +81,10 @@ export default function ConsignerDetailPage() {
   const activeDeliveries    = myDeliveries.filter((d) => d.status !== "complete");
   const completedDeliveries = myDeliveries.filter((d) => d.status === "complete");
 
-  const myRacks     = racks.filter((r) => deliverySet.has(r.deliveryId));
+  const myRacks     = racks.filter((r) =>
+    deliverySet.has(r.deliveryId) ||
+    (!deliveries.some((d) => d.id === r.deliveryId) && r.consignerName.trim().toLowerCase() === profile.key)
+  );
   const rackIdSet   = new Set(myRacks.map((r) => r.id));
   const activeRacks = myRacks.filter((r) => r.status !== "completed")
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());

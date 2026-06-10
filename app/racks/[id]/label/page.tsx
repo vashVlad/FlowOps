@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useRacksStore } from "@/store/racks";
 import { useDeliveriesStore } from "@/store/deliveries";
 import { usePrintQueueStore } from "@/store/printQueue";
+import { useRackConsignersStore } from "@/store/rackConsigners";
 import { RackLabel } from "@/components/RackLabel";
 
 function RackLabelContent() {
@@ -14,6 +15,7 @@ function RackLabelContent() {
   const { racks }      = useRacksStore();
   const { deliveries } = useDeliveriesStore();
   const { has, add, remove } = usePrintQueueStore();
+  const rackConsigners = useRackConsignersStore((s) => s.consigners);
 
   const [rackUrl, setRackUrl] = useState("");
   useEffect(() => {
@@ -29,6 +31,12 @@ function RackLabelContent() {
   const jnumberParam   = searchParams.get("jnumber");
   const consignerOverride = consignerParam
     ? { name: consignerParam, jNumber: jnumberParam ?? undefined }
+    : undefined;
+
+  const rackConsignerJNumber = rack
+    ? rackConsigners.find(
+        (c) => c.rackId === rack.id && c.consignerName.trim().toLowerCase() === rack.consignerName.trim().toLowerCase()
+      )?.jNumber
     : undefined;
 
   if (!rack) {
@@ -86,6 +94,7 @@ function RackLabelContent() {
           rackUrl={rackUrl}
           printDate={printDate}
           consignerOverride={consignerOverride}
+          rackConsignerJNumber={rackConsignerJNumber}
         />
       </div>
     </>

@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useDeliveriesStore } from "@/store/deliveries";
 import { useRacksStore } from "@/store/racks";
 import { usePrintQueueStore } from "@/store/printQueue";
+import { useRackConsignersStore } from "@/store/rackConsigners";
 import PageHeader from "@/components/ui/PageHeader";
 import Card from "@/components/ui/Card";
 import AuctionColorPicker from "@/components/ui/AuctionColorPicker";
@@ -228,6 +229,7 @@ function RackCreateForm({
   const addRack      = useRacksStore((s) => s.addRack);
   const racks        = useRacksStore((s) => s.racks);
   const addToQueue   = usePrintQueueStore((s) => s.add);
+  const addConsigner = useRackConsignersStore((s) => s.add);
 
   const [auctionColor,  setAuctionColor]  = useState("");
   const [customCode,    setCustomCode]    = useState("");
@@ -262,6 +264,13 @@ function RackCreateForm({
         throw new Error(result.error);
       }
       addToQueue(result.data.id);
+      if (customConsigner?.jNumber) {
+        addConsigner({
+          rackId:        result.data.id,
+          consignerName: customConsigner.name,
+          jNumber:       customConsigner.jNumber,
+        });
+      }
       onCreated(result.data.id, result.data.rackCode);
       setCustomCode("");
     } catch (e) {

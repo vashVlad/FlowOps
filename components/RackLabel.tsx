@@ -14,15 +14,17 @@ export function RackLabel({
   rackUrl,
   printDate,
   consignerOverride,
+  rackConsignerJNumber,
 }: {
   rack: Rack;
   delivery?: Delivery;
   rackUrl: string;
   printDate: string;
   consignerOverride?: { name: string; jNumber?: string };
+  rackConsignerJNumber?: string;
 }) {
   const displayName    = consignerOverride?.name    ?? rack.consignerName;
-  const displayJNumber = consignerOverride?.jNumber ?? delivery?.consignerJNumber;
+  const displayJNumber = consignerOverride?.jNumber ?? delivery?.consignerJNumber ?? rackConsignerJNumber;
 
   return (
     <div

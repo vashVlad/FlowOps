@@ -89,11 +89,12 @@ export function StageStrip({ status }: { status: RackStatus }) {
 // ── Rack card ─────────────────────────────────────────────────────────────────
 
 function RackCard({
-  rack, delivery, zone, needsAttention, timeInStage, noteCount, isMixed, onAdvance, onClick, canAdvance = true,
+  rack, delivery, zone, jNumber, needsAttention, timeInStage, noteCount, isMixed, onAdvance, onClick, canAdvance = true,
 }: {
   rack: Rack;
   delivery?: Delivery;
   zone?: Zone;
+  jNumber?: string;
   needsAttention: boolean;
   timeInStage: number;
   noteCount: number;
@@ -168,8 +169,8 @@ function RackCard({
       <div className="px-4 pb-1.5">
         <p className="text-xs text-stone-400 truncate">
           {rack.consignerName}
-          {delivery?.consignerJNumber && (
-            <span className="font-mono ml-1.5">{delivery.consignerJNumber}</span>
+          {jNumber && (
+            <span className="font-mono ml-1.5">{jNumber}</span>
           )}
         </p>
       </div>
@@ -399,13 +400,20 @@ function RacksContent() {
             const delivery    = deliveries.find((d) => d.id === rack.deliveryId);
             const zone        = zones.find((z) => z.id === rack.zoneId);
             const noteCount   = notes.filter((n) => n.rackId === rack.id).length;
-            const isMixed     = rackConsigners.some((c) => c.rackId === rack.id);
+            const sameNameLower = rack.consignerName.trim().toLowerCase();
+            const isMixed     = rackConsigners.some(
+              (c) => c.rackId === rack.id && c.consignerName.trim().toLowerCase() !== sameNameLower
+            );
+            const jNumber     = delivery?.consignerJNumber ?? rackConsigners.find(
+              (c) => c.rackId === rack.id && c.consignerName.trim().toLowerCase() === sameNameLower
+            )?.jNumber;
             return (
               <RackCard
                 key={rack.id}
                 rack={rack}
                 delivery={delivery}
                 zone={zone}
+                jNumber={jNumber}
                 needsAttention={attention}
                 timeInStage={timeInStage}
                 noteCount={noteCount}

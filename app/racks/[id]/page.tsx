@@ -88,6 +88,9 @@ export default function RackDetailPage() {
 
   const rackNotes      = notes.filter((n) => n.rackId === id);
   const rackConsigners = allConsigners.filter((c) => c.rackId === id);
+  const extraConsigners = rackConsigners.filter(
+    (c) => c.consignerName.trim().toLowerCase() !== rack?.consignerName.trim().toLowerCase()
+  );
 
   if (!rack) {
     return (
@@ -106,6 +109,9 @@ export default function RackDetailPage() {
   const inQueue          = queueHas(rack.id);
   const rackHistory      = history.filter((e) => e.rackId === rack.id).slice().reverse();
   const delivery         = deliveries.find((d) => d.id === rack.deliveryId);
+  const primaryJNumber   = delivery?.consignerJNumber ?? rackConsigners.find(
+    (c) => c.consignerName.trim().toLowerCase() === rack.consignerName.trim().toLowerCase()
+  )?.jNumber;
   const needsAttention   = isRackNeedsAttention(rack, history);
   const isHeld           = !!rack.holdReason;
   const isCritical       = needsAttention && !isHeld && rack.priority === "high";
@@ -294,11 +300,11 @@ export default function RackDetailPage() {
                     </span>
                   ) : null}
                 </div>
-                <p className="mt-1 text-sm text-stone-400">{rack.consignerName}</p>
-                <p className="mt-0.5 text-[11px] text-stone-300">{timeAgo(rack.createdAt)}</p>
-                {delivery?.consignerJNumber && (
-                  <p className="mt-0.5 text-xs text-stone-400 font-mono">{delivery.consignerJNumber}</p>
+                <p className="mt-1 text-base font-semibold text-stone-700">{rack.consignerName}</p>
+                {primaryJNumber && (
+                  <p className="mt-0.5 text-base font-mono font-semibold text-stone-600">{primaryJNumber}</p>
                 )}
+                <p className="mt-0.5 text-[11px] text-stone-300">{timeAgo(rack.createdAt)}</p>
               </div>
               {!editOpen && (
                 <button
@@ -597,21 +603,21 @@ export default function RackDetailPage() {
                   <button
                     onClick={() => { setConsignerDropOpen((v) => !v); setConsignerError(""); }}
                     className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
-                      consignerDropOpen || rackConsigners.length > 0
+                      consignerDropOpen || extraConsigners.length > 0
                         ? "border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100"
                         : "border-stone-200 text-stone-500 hover:bg-stone-50"
                     }`}
                   >
-                    Consigner{rackConsigners.length > 0 ? ` (${rackConsigners.length})` : " +"}
+                    Consigner{extraConsigners.length > 0 ? ` (${extraConsigners.length})` : " +"}
                   </button>
                   {consignerDropOpen && (
                     <>
                       <div className="fixed inset-0 z-30" onClick={() => { setConsignerDropOpen(false); setConsignerSearch(""); }} />
                       <div className="absolute left-0 bottom-full mb-1.5 z-40 w-72 rounded-xl border border-stone-200 bg-white shadow-lg overflow-hidden">
                         {/* Already added */}
-                        {rackConsigners.length > 0 && (
+                        {extraConsigners.length > 0 && (
                           <div className="border-b border-stone-100">
-                            {rackConsigners.map((c) => (
+                            {extraConsigners.map((c) => (
                               <div key={c.id} className="flex items-center justify-between gap-3 px-3 py-2 bg-violet-50">
                                 <div className="min-w-0">
                                   <p className="text-xs font-medium text-violet-700 truncate">{c.consignerName}</p>

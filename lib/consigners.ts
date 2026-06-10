@@ -1,4 +1,4 @@
-import type { Delivery, Rack } from "@/types";
+import type { Delivery, Rack, RackConsigner } from "@/types";
 import { formatDate } from "@/lib/utils";
 
 // ── Consigner profile ─────────────────────────────────────────────────────────
@@ -25,7 +25,8 @@ export interface QualityTag {
 
 export function buildConsignerProfiles(
   deliveries: Delivery[],
-  racks: Rack[]
+  racks: Rack[],
+  rackConsigners: RackConsigner[] = []
 ): ConsignerProfile[] {
   const grouped = new Map<string, Delivery[]>();
 
@@ -85,6 +86,48 @@ export function buildConsignerProfiles(
       lastDeliveryDate:     mostRecent.scheduledDate,
       avgProcessingDays,
       qualityTags:          tags,
+    });
+  }
+
+  // ── Consigners that exist only via racks (no linked delivery) ────────────────
+  const deliveryIdSet = new Set(deliveries.map((d) => d.id));
+  const racksWithoutDelivery = racks.filter(
+    (r) => r.consignerName.trim() && (!r.deliveryId || !deliveryIdSet.has(r.deliveryId))
+  );
+
+  const rackGroups = new Map<string, Rack[]>();
+  for (const r of racksWithoutDelivery) {
+    const key = r.consignerName.trim().toLowerCase();
+    if (grouped.has(key)) continue; // already covered by a delivery-based profile
+    if (!rackGroups.has(key)) rackGroups.set(key, []);
+    rackGroups.get(key)!.push(r);
+  }
+
+  for (const [key, rs] of rackGroups) {
+    const sorted = [...rs].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    const mostRecent = sorted[0];
+
+    const jNumber = rackConsigners.find(
+      (c) => c.consignerName.trim().toLowerCase() === key && c.jNumber
+    )?.jNumber;
+
+    const activeRacks = rs.filter((r) => r.status !== "completed").length;
+
+    profiles.push({
+      key,
+      name:                 mostRecent.consignerName,
+      jNumber,
+      deliveryIds:          [],
+      totalDeliveries:      0,
+      activeDeliveries:     0,
+      processingDeliveries: 0,
+      totalRacks:           rs.length,
+      activeRacks,
+      lastDeliveryDate:     mostRecent.createdAt,
+      avgProcessingDays:    null,
+      qualityTags:          [],
     });
   }
 
