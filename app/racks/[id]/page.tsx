@@ -222,7 +222,7 @@ export default function RackDetailPage() {
                   onKeyDown={(e) => {
                     if (e.key !== " ") return;
                     e.preventDefault();
-                    setEditRackCode((prev) => prev + ((prev.match(/\//g) ?? []).length < 2 ? "/" : " "));
+                    setEditRackCode((prev) => prev.endsWith("/") ? prev.slice(0, -1) + " " : prev + ((prev.match(/\//g) ?? []).length < 2 ? "/" : " "));
                     setEditError("");
                   }}
                   className={inputCls} autoFocus />

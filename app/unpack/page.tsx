@@ -427,7 +427,7 @@ function RackCreateForm({
           onKeyDown={(e) => {
             if (e.key !== " ") return;
             e.preventDefault();
-            setCustomCode((prev) => prev + ((prev.match(/\//g) ?? []).length < 2 ? "/" : " "));
+            setCustomCode((prev) => prev.endsWith("/") ? prev.slice(0, -1) + " " : prev + ((prev.match(/\//g) ?? []).length < 2 ? "/" : " "));
             setDuplicateRack(null);
             setError(null);
           }}
