@@ -131,6 +131,40 @@ export function buildConsignerProfiles(
     });
   }
 
+  // ── Standalone consigners (no rack and no delivery) ──────────────────────────
+  const coveredKeys = new Set(profiles.map((p) => p.key));
+  const standaloneGroups = new Map<string, RackConsigner[]>();
+  for (const c of rackConsigners) {
+    if (c.rackId) continue;
+    const key = c.consignerName.trim().toLowerCase();
+    if (coveredKeys.has(key)) continue;
+    if (!standaloneGroups.has(key)) standaloneGroups.set(key, []);
+    standaloneGroups.get(key)!.push(c);
+  }
+
+  for (const [key, cs] of standaloneGroups) {
+    const sorted = [...cs].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    const mostRecent = sorted[0];
+    const jNumber = sorted.find((c) => c.jNumber)?.jNumber;
+
+    profiles.push({
+      key,
+      name:                 mostRecent.consignerName,
+      jNumber,
+      deliveryIds:          [],
+      totalDeliveries:      0,
+      activeDeliveries:     0,
+      processingDeliveries: 0,
+      totalRacks:           0,
+      activeRacks:          0,
+      lastDeliveryDate:     mostRecent.createdAt,
+      avgProcessingDays:    null,
+      qualityTags:          [],
+    });
+  }
+
   return profiles;
 }
 

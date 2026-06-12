@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, Suspense } from "react";
 import Link from "next/link";
+import { AnimatePresence, motion } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDeliveriesStore } from "@/store/deliveries";
 import { useRacksStore } from "@/store/racks";
@@ -114,9 +115,29 @@ function ConsignersContent() {
   const { deliveries, loading: dLoading } = useDeliveriesStore();
   const { racks,      loading: rLoading } = useRacksStore();
   const rackConsigners = useRackConsignersStore((s) => s.consigners);
+  const addConsigner   = useRackConsignersStore((s) => s.add);
 
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [sort, setSort]   = useState<SortKey>((searchParams.get("sort") as SortKey) ?? "active");
+
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addName,     setAddName]     = useState("");
+  const [addJNumber,  setAddJNumber]  = useState("");
+  const [addError,    setAddError]    = useState("");
+  const [addSaving,   setAddSaving]   = useState(false);
+
+  async function handleAddConsigner() {
+    const name = addName.trim();
+    if (!name) return;
+    setAddSaving(true);
+    setAddError("");
+    const result = await addConsigner({ consignerName: name, jNumber: addJNumber.trim() || undefined });
+    setAddSaving(false);
+    if (!result.ok) { setAddError(result.error); return; }
+    setAddName("");
+    setAddJNumber("");
+    setShowAddForm(false);
+  }
 
   useEffect(() => {
     const p = new URLSearchParams();
@@ -157,23 +178,76 @@ function ConsignersContent() {
       />
 
       {!isLoading && (
-        <div className="flex gap-2">
-          <input
-            type="text"
-            placeholder="Search consigners or J-numbers…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className={inputCls}
-          />
-          <select
-            value={sort}
-            onChange={(e) => setSort(e.target.value as SortKey)}
-            className="shrink-0 rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
-          >
-            {SORT_OPTIONS.map(({ key, label }) => (
-              <option key={key} value={key}>{label}</option>
-            ))}
-          </select>
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="Search consigners or J-numbers…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className={inputCls}
+            />
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as SortKey)}
+              className="shrink-0 rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+            >
+              {SORT_OPTIONS.map(({ key, label }) => (
+                <option key={key} value={key}>{label}</option>
+              ))}
+            </select>
+            <button
+              onClick={() => { setShowAddForm((v) => !v); setAddError(""); }}
+              className={`shrink-0 flex items-center gap-1.5 rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors ${
+                showAddForm
+                  ? "border-orange-300 bg-orange-50 text-orange-700"
+                  : "border-stone-200 bg-white text-stone-600 hover:bg-stone-50"
+              }`}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5 shrink-0">
+                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              <span className="hidden sm:inline">New consigner</span>
+            </button>
+          </div>
+
+          <AnimatePresence initial={false}>
+            {showAddForm && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
+                className="overflow-hidden"
+              >
+                <div className="rounded-lg border border-orange-200 bg-orange-50 p-3 space-y-2">
+                  <input
+                    type="text"
+                    value={addName}
+                    onChange={(e) => { setAddName(e.target.value); setAddError(""); }}
+                    placeholder="Consigner name"
+                    className="w-full rounded-md border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    autoFocus
+                  />
+                  <input
+                    type="text"
+                    value={addJNumber}
+                    onChange={(e) => setAddJNumber(e.target.value)}
+                    placeholder="J number (optional)"
+                    className="w-full rounded-md border border-stone-200 bg-white px-3 py-2 text-sm font-mono text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                  {addError && <p className="text-xs text-red-500">{addError}</p>}
+                  <button
+                    onClick={handleAddConsigner}
+                    disabled={!addName.trim() || addSaving}
+                    className="w-full rounded-md bg-orange-600 px-3 py-2 text-sm font-semibold text-white hover:bg-orange-700 disabled:opacity-40 transition-colors"
+                  >
+                    {addSaving ? "Adding…" : "Add consigner"}
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
 

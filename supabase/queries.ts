@@ -688,7 +688,7 @@ export async function deleteDelivery(deliveryId: string): Promise<void> {
 
 interface RackConsignerRow {
   id: string;
-  rack_id: string;
+  rack_id: string | null;
   consigner_name: string;
   j_number: string | null;
   created_at: string;
@@ -697,7 +697,7 @@ interface RackConsignerRow {
 function toRackConsigner(row: RackConsignerRow): RackConsigner {
   return {
     id:            row.id,
-    rackId:        row.rack_id,
+    rackId:        row.rack_id ?? undefined,
     consignerName: row.consigner_name,
     jNumber:       row.j_number ?? undefined,
     createdAt:     row.created_at,
@@ -717,7 +717,7 @@ export async function createRackConsigner(input: CreateRackConsignerInput): Prom
   const { data, error } = await supabase
     .from("rack_consigners")
     .insert({
-      rack_id:        input.rackId,
+      rack_id:        input.rackId ?? null,
       consigner_name: input.consignerName.trim(),
       j_number:       input.jNumber?.trim() || null,
     })

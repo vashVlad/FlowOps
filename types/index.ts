@@ -159,14 +159,14 @@ export interface CreateDeliveryInput {
 
 export interface RackConsigner {
   id: string;
-  rackId: string;
+  rackId?: string;
   consignerName: string;
   jNumber?: string;
   createdAt: string;
 }
 
 export interface CreateRackConsignerInput {
-  rackId: string;
+  rackId?: string;
   consignerName: string;
   jNumber?: string;
 }

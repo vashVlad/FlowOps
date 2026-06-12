@@ -36,6 +36,9 @@ function DeliveryPicker({
   onDeselect: () => void;
 }) {
   const deliveries = useDeliveriesStore((s) => s.deliveries);
+  const dLoading   = useDeliveriesStore((s) => s.loading);
+  const dError     = useDeliveriesStore((s) => s.error);
+  const retryHydrate = useDeliveriesStore((s) => s.hydrate);
   const [query,       setQuery]       = useState("");
   const [showForm,    setShowForm]    = useState(false);
   const [addName,     setAddName]     = useState("");
@@ -155,7 +158,21 @@ function DeliveryPicker({
         </AnimatePresence>
 
         {filtered.length === 0 && (
-          <p className="text-sm text-stone-400 text-center py-6">No active deliveries found</p>
+          dLoading ? (
+            <p className="text-sm text-stone-400 text-center py-6">Loading deliveries…</p>
+          ) : dError ? (
+            <div className="text-center py-6 space-y-2">
+              <p className="text-sm text-red-500">Couldn&apos;t load deliveries: {dError}</p>
+              <button
+                onClick={() => retryHydrate()}
+                className="text-sm font-medium text-orange-600 hover:underline"
+              >
+                Retry
+              </button>
+            </div>
+          ) : (
+            <p className="text-sm text-stone-400 text-center py-6">No active deliveries found</p>
+          )
         )}
         {filtered.map((d) => {
           const isToday = d.scheduledDate === todayStr;

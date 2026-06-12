@@ -54,6 +54,7 @@ export default function RackDetailPage() {
   const [editPriority,     setEditPriority]     = useState<Priority>("normal");
   const [editDeliveryId,   setEditDeliveryId]   = useState("");
   const [editAuctionColor, setEditAuctionColor] = useState("");
+  const [editDeliveryFilter, setEditDeliveryFilter] = useState("");
   const [editError,        setEditError]        = useState("");
   const [deleteConfirm,  setDeleteConfirm]  = useState(false);
 
@@ -143,8 +144,9 @@ export default function RackDetailPage() {
   function openEdit() {
     setEditRackCode(rack!.rackCode);
     setEditPriority(rack!.priority);
-    setEditDeliveryId(rack!.deliveryId);
+    setEditDeliveryId(rack!.deliveryId ?? "");
     setEditAuctionColor(rack!.auctionColor ?? "");
+    setEditDeliveryFilter("");
     setEditError("");
     setEditOpen(true);
   }
@@ -156,7 +158,7 @@ export default function RackDetailPage() {
     const result = await updateRack(rack!.id, {
       rackCode:     editRackCode.trim(),
       priority:     editPriority,
-      deliveryId:   editDeliveryId,
+      ...(editDeliveryId ? { deliveryId: editDeliveryId } : {}),
       auctionColor: editAuctionColor || null,
     });
     if (!result.ok) { setEditError(result.error); return; }
@@ -208,6 +210,13 @@ export default function RackDetailPage() {
             {editOpen && (
               <form onSubmit={handleEditSave} className="rounded-lg border border-stone-200 bg-stone-50 p-4 space-y-2.5">
                 <p className="text-xs font-semibold text-stone-700">Edit rack</p>
+                <div className="rounded-md border border-stone-200 bg-white px-3 py-2">
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-stone-400">Current consigner</p>
+                  <p className="text-sm font-medium text-stone-800">
+                    {rack.consignerName}
+                    {primaryJNumber && <span className="ml-1.5 font-mono text-stone-400">{primaryJNumber}</span>}
+                  </p>
+                </div>
                 <input type="text" placeholder="Rack ID (e.g. RC-0042)" value={editRackCode}
                   onChange={(e) => { setEditRackCode(e.target.value.toUpperCase()); setEditError(""); }}
                   onKeyDown={(e) => {
@@ -217,16 +226,36 @@ export default function RackDetailPage() {
                     setEditError("");
                   }}
                   className={inputCls} autoFocus />
+                <input
+                  type="text"
+                  placeholder="Filter deliveries by consigner, J-number, or code…"
+                  value={editDeliveryFilter}
+                  onChange={(e) => setEditDeliveryFilter(e.target.value)}
+                  className={inputCls}
+                />
                 <select
                   value={editDeliveryId}
                   onChange={(e) => setEditDeliveryId(e.target.value)}
                   className={inputCls}
                 >
-                  {deliveries.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.consignerJNumber ?? d.deliveryCode} — {d.consignerName}
-                    </option>
-                  ))}
+                  {!editDeliveryId && (
+                    <option value="">— Custom consigner (no delivery) —</option>
+                  )}
+                  {deliveries
+                    .filter((d) => {
+                      const q = editDeliveryFilter.trim().toLowerCase();
+                      if (!q) return true;
+                      return (
+                        d.consignerName.toLowerCase().includes(q) ||
+                        (d.consignerJNumber?.toLowerCase().includes(q) ?? false) ||
+                        d.deliveryCode.toLowerCase().includes(q)
+                      );
+                    })
+                    .map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.consignerJNumber ?? d.deliveryCode} — {d.consignerName}
+                      </option>
+                    ))}
                 </select>
                 {editError && <p className="text-xs text-red-500">{editError}</p>}
                 <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2">

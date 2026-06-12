@@ -33,11 +33,11 @@ export const ROLE_HOME: Record<Role, string> = {
 // Allowed route prefixes per role. "*" means unrestricted.
 export const ROLE_ROUTES: Record<Role, string[]> = {
   admin:      ["*"],
-  front_desk: ["/front-desk", "/deliveries", "/consigners", "/racks", "/search"],
-  unpacker:   ["/unpack", "/racks", "/labels", "/search", "/scan"],
-  sorter:     ["/racks", "/unpack", "/search", "/scan"],
-  lotter:     ["/lotting", "/racks", "/unpack", "/search", "/scan"],
-  pickup:     ["/pickup", "/racks", "/search", "/scan"],
+  front_desk: ["/front-desk", "/deliveries", "/consigners", "/racks", "/zones", "/labels", "/search"],
+  unpacker:   ["/unpack", "/racks", "/zones", "/deliveries", "/labels", "/search", "/scan"],
+  sorter:     ["/racks", "/unpack", "/zones", "/deliveries", "/labels", "/search", "/scan"],
+  lotter:     ["/lotting", "/racks", "/unpack", "/zones", "/labels", "/deliveries", "/search", "/scan"],
+  pickup:     ["/pickup", "/zones", "/racks", "/deliveries", "/labels", "/search", "/scan"],
 };
 
 // Desktop top nav links per role
