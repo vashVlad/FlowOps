@@ -31,7 +31,6 @@ export interface RackRow {
   auction_color: string | null;
   auction_date: string | null;
   pu_position: string | null;
-  is_archived: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -128,7 +127,6 @@ export function toRack(row: RackRow): Rack {
     auctionColor:   row.auction_color   ?? undefined,
     auctionDate:    row.auction_date    ?? undefined,
     puPosition:     row.pu_position     ?? undefined,
-    isArchived:     row.is_archived,
     createdAt:      row.created_at,
     updatedAt:      row.updated_at,
   };
@@ -270,7 +268,6 @@ export async function fetchRacks(): Promise<Rack[]> {
   const { data, error } = await supabase
     .from("racks")
     .select("*")
-    .eq("is_archived", false)
     .order("created_at", { ascending: false });
   if (error) throw error;
   return (data as RackRow[]).map(toRack);
@@ -651,17 +648,6 @@ export async function assignMissingLottingColors(color: string): Promise<void> {
     .eq("status", "lotting")
     .is("auction_color", null);
   if (error) throw error;
-}
-
-export async function archiveCompletedRacks(): Promise<number> {
-  const { data, error } = await supabase
-    .from("racks")
-    .update({ is_archived: true })
-    .eq("status", "completed")
-    .eq("is_archived", false)
-    .select("id");
-  if (error) throw error;
-  return (data as { id: string }[]).length;
 }
 
 export async function deleteRack(rackId: string): Promise<void> {

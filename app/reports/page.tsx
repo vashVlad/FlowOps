@@ -60,21 +60,17 @@ function ExportCard({ title, description, detail, onExport, count, countLabel, u
 }
 
 export default function ReportsPage() {
-  const { racks, history, closeAuctionCycle } = useRacksStore();
+  const { racks, history }                    = useRacksStore();
   const { deliveries }                        = useDeliveriesStore();
   const { zones }                             = useZonesStore();
   const { dumpsters, entries: dumpsterEntries } = useDumpstersStore();
 
   const activeRacks      = racks.filter((r) => r.status !== "completed").length;
   const activeDeliveries = deliveries.filter((d) => d.status !== "complete").length;
-  const completedRacks   = racks.filter((r) => r.status === "completed").length;
 
   const roleLoading   = useAuthStore((s) => s.roleLoading);
   const role          = useAuthStore((s) => s.activeRole);
   const router        = useRouter();
-  const [cycleConfirm, setCycleConfirm] = useState(false);
-  const [cycleLoading, setCycleLoading] = useState(false);
-  const [cycleResult,  setCycleResult]  = useState<string | null>(null);
 
   const [backupLoading, setBackupLoading] = useState(false);
   const [backupError,   setBackupError]   = useState<string | null>(null);
@@ -133,20 +129,6 @@ export default function ReportsPage() {
     setFileInputKey((k) => k + 1);
   }
 
-  async function handleCloseAuctionCycle() {
-    setCycleLoading(true);
-    const result = await closeAuctionCycle();
-    setCycleLoading(false);
-    setCycleConfirm(false);
-    if (result.ok) {
-      setCycleResult(
-        result.data === 0
-          ? "No completed racks to archive."
-          : `Auction cycle closed — ${result.data} rack${result.data === 1 ? "" : "s"} archived.`
-      );
-    }
-  }
-
   useEffect(() => {
     if (!roleLoading && role !== "admin") router.replace("/");
   }, [role, roleLoading]);
@@ -202,64 +184,29 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      {/* Cycle management */}
+      {/* User guide */}
       <div>
-        <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-stone-400">Cycle Management</h2>
+        <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-stone-400">Help</h2>
         <div className="rounded-xl border border-stone-200 bg-white shadow-sm overflow-hidden">
-          <div className="h-0.5 bg-stone-300" />
-          <div className="p-5 space-y-3">
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-sm font-bold text-stone-900">Close Auction Cycle</p>
-                  {completedRacks > 0 && (
-                    <span className="rounded-full bg-stone-100 px-2 py-0.5 text-xs font-semibold text-stone-600">
-                      {completedRacks} completed
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-stone-500">
-                  Archives all completed racks, clearing them from active operational views.
-                  Archived racks are preserved for historical reporting.
-                </p>
-                <p className="text-xs text-stone-400">
-                  Run this at the end of each weekly auction cycle.
-                </p>
-              </div>
-              {!cycleConfirm && (
-                <button
-                  onClick={() => { setCycleConfirm(true); setCycleResult(null); }}
-                  className="shrink-0 rounded-lg border border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50 transition-colors"
-                >
-                  Close cycle
-                </button>
-              )}
+          <div className="h-0.5 bg-orange-500" />
+          <div className="px-5 py-4 flex items-center justify-between gap-4">
+            <div className="min-w-0 space-y-1">
+              <p className="text-sm font-semibold text-stone-800">User Guide</p>
+              <p className="text-xs text-stone-500">
+                Full training guide covering every page, role, and daily workflow in FlowOps.
+              </p>
             </div>
-
-            {cycleConfirm && (
-              <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
-                <p className="text-xs text-amber-800 flex-1">
-                  Archive {completedRacks} completed rack{completedRacks !== 1 ? "s" : ""}? This cannot be undone.
-                </p>
-                <button
-                  onClick={handleCloseAuctionCycle}
-                  disabled={cycleLoading}
-                  className="shrink-0 rounded-md bg-stone-800 px-3 py-1 text-xs font-medium text-white hover:bg-stone-900 transition-colors disabled:opacity-50"
-                >
-                  {cycleLoading ? "Archiving…" : "Confirm"}
-                </button>
-                <button
-                  onClick={() => setCycleConfirm(false)}
-                  className="shrink-0 text-xs text-stone-500 hover:text-stone-700"
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
-
-            {cycleResult && (
-              <p className="text-xs text-emerald-700 font-medium">{cycleResult}</p>
-            )}
+            <a
+              href="/FlowOps-User-Guide.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="shrink-0 flex items-center gap-1.5 rounded-lg bg-orange-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-700 transition-colors"
+            >
+              <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+              </svg>
+              Open guide
+            </a>
           </div>
         </div>
       </div>

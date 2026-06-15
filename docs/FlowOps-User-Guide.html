@@ -220,7 +220,7 @@
   <tr><td>Better customer service</td><td>Front desk can answer "where are my items?" in seconds via Consigner lookup, without calling the warehouse floor.</td></tr>
   <tr><td>Accountability &amp; audit trail</td><td>Every status change, hold, and note is logged with who did it and when.</td></tr>
   <tr><td>Data-driven decisions</td><td>Reports page exports CSVs for deliveries, racks, stage durations, and dumpster billing — used for staffing and billing decisions.</td></tr>
-  <tr><td>Smooth weekly auction cycles</td><td>Auction colors and dates tie racks to specific auction runs; "Close Auction Cycle" archives completed work cleanly each week.</td></tr>
+  <tr><td>Smooth weekly auction cycles</td><td>Auction colors and dates tie racks to specific auction runs, so staff always know which week's work they're looking at.</td></tr>
   <tr><td>Works everywhere</td><td>Desktop for office staff, phone/tablet with camera scanning for warehouse floor staff.</td></tr>
 </table>
 
@@ -236,7 +236,7 @@
   <tr><td><b>Lotting</b></td><td><span class="badge b-amber">Lotting</span></td><td>Items are being organized into auction lots</td><td>Lotter</td><td>16 business hours (~2 days)</td></tr>
   <tr><td><b>Ready</b></td><td><span class="badge b-emerald">Ready</span></td><td>Lotted and waiting for its auction date (a "waiting" stage — expected to sit)</td><td>—</td><td>14 business days</td></tr>
   <tr><td><b>Pickup</b></td><td><span class="badge b-violet">Pickup</span></td><td>Staged in the Pick-Up zone for the auction floor (a "waiting" stage)</td><td>Pickup</td><td>7 business days</td></tr>
-  <tr><td><b>Completed</b></td><td><span class="badge b-stone">Completed</span></td><td>Rack's job is done. Cleared at the next "Close Auction Cycle"</td><td>—</td><td>—</td></tr>
+  <tr><td><b>Completed</b></td><td><span class="badge b-stone">Completed</span></td><td>Rack's job is done — left the building for the auction floor</td><td>—</td><td>—</td></tr>
 </table>
 <p><b>Ready</b> and <b>Pickup</b> are called "waiting stages" — sitting in them is normal (the items are waiting for their scheduled auction), so they are excluded from bottleneck and overdue warnings. Every other stage has a time limit; exceeding it triggers a <b>Needs Attention</b> flag.</p>
 
@@ -306,7 +306,7 @@
   <tr><td>Delete a delivery</td><td>✔</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
   <tr><td>Consigners directory</td><td>✔</td><td>✔</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
   <tr><td>Dumpsters</td><td>✔</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-  <tr><td>Reports (CSV exports, close cycle)</td><td>✔</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr><td>Reports (CSV exports, backup &amp; restore)</td><td>✔</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
   <tr><td>User Management</td><td>✔</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
   <tr><td>Search, Scan, Labels</td><td>✔</td><td>Search only</td><td>✔</td><td>✔</td><td>✔</td><td>✔</td></tr>
 </table>
@@ -372,8 +372,8 @@
 <p>Managers also use the <b>Admin</b> role, with a focus on business-level oversight rather than moment-to-moment floor operations.</p>
 <ul>
   <li><b>Home page:</b> Dashboard (<code>/</code>).</li>
-  <li><b>Primary screens:</b> Dashboard (KPIs, stage efficiency), Reports (CSV exports, weekly cycle close), Consigners (activity, quality flags), Dumpsters (trash billing).</li>
-  <li><b>Typical weekly tasks:</b> Export CSV reports for billing/analysis, review consigner "Frequently held" / "Slow to process" flags, close the auction cycle once a week's completed racks are archived.</li>
+  <li><b>Primary screens:</b> Dashboard (KPIs, stage efficiency), Reports (CSV exports, backup &amp; restore), Consigners (activity, quality flags), Dumpsters (trash billing).</li>
+  <li><b>Typical weekly tasks:</b> Export CSV reports for billing/analysis, review consigner "Frequently held" / "Slow to process" flags, take a data backup (4.22).</li>
 </ul>
 
 <h2 id="s2-6">2.6 Administrators</h2>
@@ -516,7 +516,7 @@
 <h3>Troubleshooting</h3>
 <ul>
   <li><b>Connection shows "Offline" or "Connecting":</b> check your internet connection; the Dashboard will reconnect automatically and refresh data once back online.</li>
-  <li><b>A KPI number looks wrong / doesn't match what you see on the floor:</b> remember KPIs count <i>active</i> (non-archived, non-completed where noted) racks/deliveries only — completed racks from a prior cycle that haven't been archived yet via "Close Auction Cycle" can skew counts. See Section 4.17.</li>
+  <li><b>A KPI number looks wrong / doesn't match what you see on the floor:</b> remember KPIs count <i>active</i> (non-completed, where noted) racks/deliveries only — a rack or delivery marked <span class="badge b-stone">Completed</span> drops out of those counts.</li>
   <li><b>Auction date alert isn't firing:</b> confirm the auction color is set on the Dashboard's Auction Dates panel AND the relevant delivery/rack has that auction color assigned.</li>
 </ul>
 
@@ -1085,7 +1085,7 @@
 <div class="meta-box"><b>URL:</b> <code>/reports</code> &nbsp; <b>Who uses it:</b> Admin only (Managers/Administrators) — others are redirected away</div>
 
 <h3>Overview</h3>
-<p>The CSV export hub and weekly auction-cycle management page.</p>
+<p>The CSV export hub, plus the link to this User Guide and the full data backup/restore tools.</p>
 
 <h3>Main Functions — Operational Exports</h3>
 <table>
@@ -1102,25 +1102,13 @@
 </table>
 <p>Click <b>"Export"</b> on any card to download its CSV.</p>
 
-<h3>Main Functions — Cycle Management</h3>
-<ul>
-  <li><b>"Close Auction Cycle" card</b> shows a "N completed" badge if any racks are completed.</li>
-  <li>Description: "Archives all completed racks, clearing them from active operational views. Archived racks are preserved for historical reporting. Run this at the end of each weekly auction cycle."</li>
-  <li><b>"Close cycle"</b> → amber confirmation bar: "Archive N completed rack(s)? This cannot be undone." with <b>"Confirm"</b> / "Cancel."</li>
-  <li>After confirming: green success message "Auction cycle closed — N rack(s) archived." (or "No completed racks to archive.")</li>
-</ul>
-
 <h3>Step-by-Step: Weekly Reporting Routine</h3>
 <ol>
-  <li>Before closing the cycle, export <b>"All Racks"</b> and <b>"Stage Durations"</b> for the week's performance review.</li>
+  <li>Export <b>"All Racks"</b> and <b>"Stage Durations"</b> for the week's performance review.</li>
   <li>Export <b>"Dumpsters"</b> for billing.</li>
   <li>Export <b>"All Deliveries"</b> if needed for customer-facing summaries.</li>
-  <li>Once all of the week's completed racks have been reviewed/exported, click <b>"Close cycle"</b> → <b>"Confirm"</b> to archive them.</li>
+  <li>Take a data backup (Section 4.22) once the week's exports are done.</li>
 </ol>
-
-<div class="callout fix"><span class="label">Important</span>Closing the auction cycle <b>cannot be undone</b>. Export any reports you need <i>before</i> confirming — archived racks no longer appear in active dashboards/exports of "active" data, though they remain in the database for historical reporting.</div>
-
-<div class="callout mistake"><span class="label">Common Mistake</span>Closing the cycle mid-week because the "N completed" badge looks high. Completed racks don't cause problems sitting in the active view — only close the cycle on your normal weekly schedule, after exporting whatever reports you need for that week.</div>
 
 <h2 class="feature" id="s4-18"><span class="feature-num">4.18</span> Search</h2>
 <div class="meta-box"><b>URL:</b> <code>/search</code> &nbsp; <b>Who uses it:</b> Everyone</div>
@@ -1284,13 +1272,13 @@
 <h3>What's Backed Up — and What Isn't</h3>
 <table>
   <tr><th>Included</th><th>Not Included</th></tr>
-  <tr><td>Zones, deliveries, racks (including archived), status history, notes, consigner records, dumpsters &amp; entries, auction colors</td><td>Delivery photos (image files live in cloud storage — back those up separately if needed)</td></tr>
+  <tr><td>Zones, deliveries, racks, status history, notes, consigner records, dumpsters &amp; entries, auction colors</td><td>Delivery photos (image files live in cloud storage — back those up separately if needed)</td></tr>
   <tr><td></td><td>User accounts and role assignments (managed on <b>User Management</b>, 4.21)</td></tr>
 </table>
 
 <h3>Step-by-Step: Making "Smart" Backups a Habit</h3>
 <ol>
-  <li>Pick a cadence that matches how much you'd hate to redo it — daily for a busy warehouse, weekly or biweekly for lighter operations. Many sites tie it to an existing routine, e.g. <b>right before the weekly "Close cycle"</b> (4.17).</li>
+  <li>Pick a cadence that matches how much you'd hate to redo it — daily for a busy warehouse, weekly or biweekly for lighter operations. Many sites tie it to an existing routine, e.g. <b>right after the weekly reporting exports</b> (4.17).</li>
   <li>Click <b>"Back up now"</b> and save the downloaded file somewhere durable — a shared drive or cloud storage folder, not just one laptop's downloads folder.</li>
   <li>Name/organize files by date (the filename already includes a timestamp) and keep a few recent backups, not just the latest one — that way a bad restore or a mistake noticed a few days later can still be recovered from an earlier point.</li>
 </ol>
@@ -1305,7 +1293,7 @@
 
 <div class="callout fix"><span class="label">Important</span>Restoring overwrites any current record that shares an ID with the backup — if changes were made <i>after</i> the backup was taken, those changes are lost for that record. Restore is for recovering from data loss, not for everyday undo.</div>
 
-<div class="callout practice"><span class="label">Best Practice</span>A backup taken right before a risky action (like "Close Auction Cycle," 4.17) gives you a clean rollback point if something looks wrong afterward.</div>
+<div class="callout practice"><span class="label">Best Practice</span>A backup taken before a risky bulk change (e.g. a big import or cleanup) gives you a clean rollback point if something looks wrong afterward.</div>
 
 <!-- ============ PART 5 ============ -->
 <h1 class="part" id="part5"><span class="part-label">Part 5</span>Daily Workflows</h1>
@@ -1369,7 +1357,6 @@
   <li><b>Per rack:</b> as work finishes at each stage, staff click <b>"Move to {Next Stage} →"</b> (from the Racks queue, Rack Detail, or Lotting Queue's "Start lotting"/"Mark ready" buttons) until the rack reaches <span class="badge b-stone">Completed</span> (typically via "Complete" in the Pick-Up layout, 4.13).</li>
   <li><b>Per delivery:</b> once every rack from a delivery has moved past Unpacking &amp; Sorting, click <b>"Mark complete"</b> on the delivery (4.3/4.4). If any racks are still in Unpacking &amp; Sorting, FlowOps blocks this with a warning — finish those first.</li>
   <li><b>Record the outcome:</b> on the completed delivery, use <b>"Set outcome"</b> to enter Donation % (Trash % comes from the Dumpsters page) — this gives Managers a Sellable % for reporting.</li>
-  <li><b>Per auction cycle (weekly):</b> once a week's worth of racks have reached Completed and been reviewed/exported, an Admin runs <b>"Close cycle"</b> on the Reports page (4.17) to archive them.</li>
 </ol>
 
 <h2 id="s5-7">5.7 Reviewing Metrics</h2>
@@ -1379,7 +1366,7 @@
   <li>Export <b>"Dumpsters"</b> for trash billing reconciliation.</li>
   <li>Export <b>"All Deliveries"</b> for a cycle summary.</li>
   <li>Cross-reference with the <b>Consigners directory (4.5)</b> — review "Frequently held" and "Slow to process" tags for any consigner-specific process issues.</li>
-  <li>Once exports are done, run <b>"Close cycle"</b> to archive the week's completed racks (4.17).</li>
+  <li>Once exports are done, take a data backup (4.22).</li>
 </ol>
 
 <!-- ============ PART 6 ============ -->
@@ -1433,9 +1420,6 @@
 <h3>Q: Can Front Desk staff move racks between stages?</h3>
 <p>No. Front Desk has view-only access to racks — no "Move to...", revert, hold, or delete buttons appear for them. They can still create/edit deliveries, add zones, notes, and photos.</p>
 
-<h3>Q: What does "Close Auction Cycle" actually do, and is it reversible?</h3>
-<p>It archives every <span class="badge b-stone">Completed</span> rack, removing them from active dashboards/lists while preserving them for historical reporting. <b>It cannot be undone</b> — export any CSVs you need first (4.17).</p>
-
 <h3>Q: How do I get a new employee set up?</h3>
 <p>An Administrator goes to User Management (4.21), clicks "Invite user," enters their email, selects the role(s) matching their job, and sends the invite. The employee receives a magic-link email to set their password.</p>
 
@@ -1457,17 +1441,15 @@
   <tr><td>Can't save an Outcome on a delivery</td><td>Donation % + Trash % exceeds 100</td><td>Check the Trash % already logged on Dumpsters (4.16) before entering Donation % (4.4).</td></tr>
   <tr><td>Can't add a zone to a delivery ("+ Add zone" dropdown is empty/missing the zone I want)</td><td>The zone is already assigned to another delivery, or only Arrived/Processing deliveries are eligible for "Active delivery" assignment</td><td>Free up the zone via "Clear purpose" on its Zone Detail page (4.13), or pick a different zone.</td></tr>
   <tr><td>A rack stuck "Needs attention" but the work is genuinely in progress</td><td>The time limit counts from when the rack entered its current stage, not active work time</td><td>Apply a Hold with an accurate reason so it's clear to everyone why it's delayed (4.9, 4.11).</td></tr>
-  <tr><td>Dashboard KPI numbers look too high / don't match the floor</td><td>Completed racks from a prior cycle haven't been archived yet</td><td>An Administrator should run "Close Auction Cycle" on Reports once that cycle's reporting is done (4.17).</td></tr>
   <tr><td>Pick-Up zone (PU) page says "Pick-Up zone not found"</td><td>No zone named exactly <code>PU</code> exists yet</td><td>An Administrator creates a zone with code <code>PU</code> on the Zones page (4.12, 4.15).</td></tr>
   <tr><td>Dragging a rack in the Pick-Up Layout replaced another rack unexpectedly</td><td>Dropping onto an occupied slot evicts the previous rack</td><td>Check the slot is empty before dropping, or re-drag the evicted rack back into place (4.13).</td></tr>
   <tr><td>"Invite sent!" but the new employee never received an email</td><td>Email typo, or it landed in spam</td><td>Verify the email address in User Management and re-send if needed (4.21).</td></tr>
-  <tr><td>Closed the auction cycle but now need a report from before</td><td>"Close Auction Cycle" is irreversible — archived racks no longer appear in active views/exports</td><td>Always export CSVs <i>before</i> closing the cycle (4.17). Archived data is preserved in the database for historical reporting — contact an Administrator for recovery needs.</td></tr>
   <tr><td>Data was deleted or badly corrupted by mistake</td><td>No regular full-data backups were being taken, or the most recent one is out of date</td><td>An Administrator restores the most recent <b>Backup &amp; Restore (4.22)</b> file on Reports. Going forward, back up on a regular schedule.</td></tr>
 </table>
 
 <!-- ============ PART 8 ============ -->
 <h1 class="part" id="part8"><span class="part-label">Part 8</span>Administrator Guide</h1>
-<p>This part is for Administrators — the people responsible for accounts, system-wide setup, and weekly cycle maintenance. It assumes familiarity with Parts 1-5.</p>
+<p>This part is for Administrators — the people responsible for accounts, system-wide setup, and data backups. It assumes familiarity with Parts 1-5.</p>
 
 <h2>8.1 Managing Users &amp; Roles</h2>
 <p>All user/role management happens on <b>User Management (4.21)</b>, restricted to Admin accounts.</p>
@@ -1510,10 +1492,9 @@
   <li>Export <b>All Deliveries</b> if a customer-facing or management summary is needed.</li>
   <li>Review <b>Consigners</b> "Frequently held" / "Slow to process" flags for any process follow-ups.</li>
   <li>Update <b>Auction Dates</b> (8.3) for the next cycle's colors.</li>
-  <li>Click <b>"Close cycle" → "Confirm"</b> on Reports to archive this cycle's completed racks.</li>
+  <li>Take a data backup (4.22) once this cycle's exports are done.</li>
   <li>Audit and clear stale <b>Zone</b> purposes (8.2) so the floor map is accurate for the new cycle.</li>
 </ol>
-<div class="callout fix"><span class="label">Important</span>Steps 2-5 (exports/reviews) must happen <i>before</i> step 7 (close cycle) — closing the cycle is irreversible and archived racks no longer appear in the active "All Racks"/"Stage Durations" exports.</div>
 
 <h2>8.5 Data Model Overview (for Advanced Troubleshooting)</h2>
 <p>Understanding how records relate to each other helps diagnose unusual situations:</p>
@@ -1532,7 +1513,7 @@
 <table>
   <tr><th>Cadence</th><th>When it fits</th></tr>
   <tr><td>Daily</td><td>Busy warehouses with high volume — minimizes how much work could be lost if something goes wrong overnight or mid-week.</td></tr>
-  <tr><td>Weekly</td><td>Pairs naturally with the cycle close-out checklist (8.4) — back up <i>before</i> running "Close cycle," since that step is irreversible.</td></tr>
+  <tr><td>Weekly</td><td>Pairs naturally with the cycle close-out checklist (8.4) — back up once that week's exports and reviews are done.</td></tr>
   <tr><td>Biweekly</td><td>Lighter operations where data changes slowly; still gives a recovery point within a couple weeks of any incident.</td></tr>
 </table>
 <ul>
@@ -1610,7 +1591,7 @@
       <li>Reports → export CSVs (Deliveries, Racks, Stage Durations, Dumpsters)</li>
       <li>Consigners → review "Frequently held" / "Slow to process" tags</li>
       <li>Dumpsters → log trash %, track billing</li>
-      <li>Weekly: run "Close cycle" after exports are done</li>
+      <li>Weekly: take a data backup after exports are done (4.22)</li>
     </ul>
   </div>
   <div class="cheat-card">
@@ -1634,7 +1615,7 @@
   <tr><td><span class="badge b-amber">Lotting</span></td><td>Pipeline stage 3 — lots being built</td></tr>
   <tr><td><span class="badge b-emerald">Ready</span></td><td>Pipeline stage 4 — waiting for auction date (normal to wait)</td></tr>
   <tr><td><span class="badge b-violet">Pickup</span></td><td>Pipeline stage 5 — staged for auction floor (normal to wait)</td></tr>
-  <tr><td><span class="badge b-stone">Completed</span></td><td>Pipeline stage 6 — done, archived at cycle close</td></tr>
+  <tr><td><span class="badge b-stone">Completed</span></td><td>Pipeline stage 6 — done, left the building for the auction floor</td></tr>
   <tr><td><span class="badge b-blue">HOLD</span></td><td>Intentionally paused, with a reason</td></tr>
   <tr><td><span class="badge b-amber">high</span></td><td>High priority</td></tr>
   <tr><td><span class="badge b-gray">low</span></td><td>Low priority</td></tr>

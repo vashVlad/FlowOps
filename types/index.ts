@@ -23,7 +23,6 @@ export interface Rack {
   auctionColor?: string;   // hex color — auction run identifier
   auctionDate?: string;    // YYYY-MM-DD — auction date for this rack
   puPosition?: string;     // slot id within the PU floor plan (e.g. "r3-2")
-  isArchived: boolean;
   createdAt: string;       // ISO 8601
   updatedAt: string;       // ISO 8601
 }

@@ -14,7 +14,6 @@ import {
   deleteRack as dbDelete,
   advanceRackStatus as dbAdvance,
   moveRackToZone as dbMoveToZone,
-  archiveCompletedRacks as dbArchiveCompleted,
   assignMissingLottingColors as dbAssignLottingColors,
 } from "@/supabase/queries";
 
@@ -31,7 +30,6 @@ interface RacksStore {
   revertStatus:       (id: string) => Promise<MutationResult<undefined>>;
   advanceToSorted:    (id: string, priority: Priority) => Promise<MutationResult<undefined>>;
   moveToZone:         (rackId: string, zoneId: string | undefined) => Promise<MutationResult<undefined>>;
-  closeAuctionCycle:  () => Promise<MutationResult<number>>;
   setHold:            (id: string, reason: string) => Promise<MutationResult<Rack>>;
   clearHold:          (id: string) => Promise<MutationResult<Rack>>;
   // ── Subscription callbacks (realtime — do not call directly) ──────────────
@@ -269,21 +267,6 @@ export const useRacksStore = create<RacksStore>()((set, get) => ({
     }
   },
 
-  closeAuctionCycle: async () => {
-    set({ error: null });
-    try {
-      const count = await dbArchiveCompleted();
-      set((state) => ({
-        racks: state.racks.filter((r) => r.status !== "completed"),
-      }));
-      return ok(count);
-    } catch (e) {
-      const message = logMutationError("closeAuctionCycle", e);
-      set({ error: message });
-      return err(message);
-    }
-  },
-
   advanceToSorted: async (id, priority) => {
     set({ error: null });
     const { racks, history } = get();
@@ -338,10 +321,6 @@ export const useRacksStore = create<RacksStore>()((set, get) => ({
 
   upsertRack: (rack) => {
     set((state) => {
-      // Archived rack arriving via realtime — evict from active store
-      if (rack.isArchived) {
-        return { racks: state.racks.filter((r) => r.id !== rack.id) };
-      }
       const exists = state.racks.some((r) => r.id === rack.id);
       return {
         racks: exists
