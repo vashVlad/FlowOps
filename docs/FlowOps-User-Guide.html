@@ -1,0 +1,1651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>FlowOps User Guide</title>
+<style>
+  @page { size: A4; margin: 20mm 18mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Calibri, Arial, sans-serif;
+    color: #292524;
+    font-size: 10.5pt;
+    line-height: 1.5;
+    margin: 0;
+  }
+  h1, h2, h3, h4 { font-family: 'Segoe UI', Calibri, Arial, sans-serif; color: #1c1917; }
+  h1.part {
+    page-break-before: always;
+    font-size: 26pt;
+    border-bottom: 4px solid #ea580c;
+    padding-bottom: 8px;
+    margin-top: 0;
+    margin-bottom: 4px;
+  }
+  h1.part .part-label {
+    display: block;
+    font-size: 11pt;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #ea580c;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  h2 {
+    font-size: 15pt;
+    color: #ea580c;
+    border-bottom: 1px solid #e7e5e4;
+    padding-bottom: 3px;
+    margin-top: 22px;
+  }
+  h2.feature { page-break-before: always; color: #1c1917; border-bottom: 2px solid #ea580c; }
+  h2.feature .feature-num { color: #ea580c; }
+  h3 { font-size: 12pt; margin-top: 16px; color: #44403c; }
+  h4 { font-size: 10.5pt; margin-top: 10px; margin-bottom: 4px; color: #57534e; text-transform: uppercase; letter-spacing: 0.5px; }
+  p { margin: 6px 0; }
+  ul, ol { margin: 6px 0; padding-left: 22px; }
+  li { margin: 3px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 9.5pt; }
+  th, td { border: 1px solid #d6d3d1; padding: 5px 8px; text-align: left; vertical-align: top; }
+  th { background: #f5f5f4; color: #44403c; font-weight: 600; }
+  tr:nth-child(even) td { background: #fafaf9; }
+  code { background: #f5f5f4; border: 1px solid #e7e5e4; border-radius: 3px; padding: 1px 5px; font-size: 9pt; font-family: Consolas, monospace; }
+
+  /* Cover page */
+  .cover {
+    height: 257mm;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    page-break-after: always;
+  }
+  .cover .tag {
+    color: #ea580c; font-weight: 700; letter-spacing: 4px; text-transform: uppercase; font-size: 12pt; margin-bottom: 16px;
+  }
+  .cover h1 { font-size: 44pt; margin: 0; line-height: 1.1; }
+  .cover .sub { font-size: 16pt; color: #57534e; margin-top: 10px; }
+  .cover .bar { width: 120px; height: 6px; background: #ea580c; margin: 28px 0; }
+  .cover .meta { margin-top: 60px; font-size: 11pt; color: #78716c; }
+  .cover .meta div { margin: 3px 0; }
+
+  /* TOC */
+  .toc { page-break-after: always; }
+  .toc h1 { font-size: 22pt; border-bottom: 4px solid #ea580c; padding-bottom: 8px; }
+  .toc-part { font-weight: 700; margin-top: 14px; font-size: 11.5pt; color: #1c1917; }
+  .toc-part a { color: inherit; text-decoration: none; }
+  .toc-item { display: flex; justify-content: space-between; padding: 2px 0 2px 16px; font-size: 10pt; color: #44403c; border-bottom: 1px dotted #e7e5e4; }
+  .toc-item a { color: inherit; text-decoration: none; display: block; width: 100%; }
+  .toc-item a:hover, .toc-part a:hover { color: #ea580c; }
+
+  /* Callouts */
+  .callout { border-radius: 6px; padding: 8px 12px; margin: 8px 0; font-size: 9.5pt; }
+  .callout .label { font-weight: 700; text-transform: uppercase; font-size: 8.5pt; letter-spacing: 0.5px; display: block; margin-bottom: 3px; }
+  .callout.practice { background: #ecfdf5; border-left: 4px solid #10b981; }
+  .callout.practice .label { color: #047857; }
+  .callout.mistake { background: #fef2f2; border-left: 4px solid #ef4444; }
+  .callout.mistake .label { color: #b91c1c; }
+  .callout.example { background: #f0f9ff; border-left: 4px solid #0ea5e9; }
+  .callout.example .label { color: #0369a1; }
+  .callout.tip { background: #fffbeb; border-left: 4px solid #f59e0b; }
+  .callout.tip .label { color: #b45309; }
+  .callout.fix { background: #faf5ff; border-left: 4px solid #8b5cf6; }
+  .callout.fix .label { color: #6d28d9; }
+
+  /* Badges matching app stage colors */
+  .badge { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 8.5pt; font-weight: 600; color: #fff; }
+  .b-sky { background: #0ea5e9; }
+  .b-teal { background: #0d9488; }
+  .b-amber { background: #d97706; }
+  .b-emerald { background: #10b981; }
+  .b-violet { background: #8b5cf6; }
+  .b-stone { background: #78716c; }
+  .b-red { background: #dc2626; }
+  .b-blue { background: #2563eb; }
+  .b-orange { background: #ea580c; }
+  .b-gray { background: #a8a29e; }
+
+  .meta-box { background: #f5f5f4; border: 1px solid #e7e5e4; border-radius: 6px; padding: 8px 12px; margin: 8px 0; font-size: 9.5pt; }
+  .meta-box b { color: #44403c; }
+
+  .footer-note { font-size: 8.5pt; color: #a8a29e; text-align: center; margin-top: 30px; }
+
+  .cheat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .cheat-card { border: 1px solid #e7e5e4; border-radius: 6px; padding: 8px 10px; }
+  .cheat-card h4 { margin-top: 0; color: #ea580c; }
+</style>
+</head>
+<body>
+
+<!-- ============ COVER ============ -->
+<div class="cover">
+  <div class="tag">Employee Training &amp; Reference Manual</div>
+  <h1>FlowOps</h1>
+  <div class="sub">Operations Management Platform — User Guide</div>
+  <div class="bar"></div>
+  <div class="meta">
+    <div><b>Prepared for:</b> Quinn's Auction House — all warehouse and office staff</div>
+    <div><b>Audience:</b> Warehouse Staff, Coordinators, Supervisors, Managers, Administrators</div>
+    <div><b>Purpose:</b> Learn and operate FlowOps without developer assistance</div>
+    <div><b>Document version:</b> 1.0 — June 2026</div>
+  </div>
+</div>
+
+<!-- ============ TOC ============ -->
+<div class="toc">
+<h1>Contents</h1>
+
+<div class="toc-part"><a href="#part1">Part 1 — Introduction</a></div>
+<div class="toc-item"><a href="#s1-1">1.1 What FlowOps Is</a></div>
+<div class="toc-item"><a href="#s1-2">1.2 Why FlowOps Exists</a></div>
+<div class="toc-item"><a href="#s1-3">1.3 Benefits to Quinn's</a></div>
+<div class="toc-item"><a href="#s1-4">1.4 Core Concepts</a></div>
+
+<div class="toc-part"><a href="#part2">Part 2 — User Roles</a></div>
+<div class="toc-item"><a href="#s2-1">2.1 Role Overview &amp; Permission Matrix</a></div>
+<div class="toc-item"><a href="#s2-2">2.2 Warehouse Staff (Unpacker / Sorter / Lotter / Pickup)</a></div>
+<div class="toc-item"><a href="#s2-3">2.3 Coordinators (Front Desk)</a></div>
+<div class="toc-item"><a href="#s2-4">2.4 Supervisors</a></div>
+<div class="toc-item"><a href="#s2-5">2.5 Managers</a></div>
+<div class="toc-item"><a href="#s2-6">2.6 Administrators</a></div>
+
+<div class="toc-part"><a href="#part3">Part 3 — System Navigation</a></div>
+<div class="toc-item"><a href="#s3-1">3.1 Logging In &amp; Switching Roles</a></div>
+<div class="toc-item"><a href="#s3-2">3.2 The Dashboard at a Glance</a></div>
+<div class="toc-item"><a href="#s3-3">3.3 Navigation Structure (Header, Bottom Nav, Menus)</a></div>
+<div class="toc-item"><a href="#s3-4">3.4 Search &amp; Filtering</a></div>
+
+<div class="toc-part"><a href="#part4">Part 4 — Feature Documentation (every page)</a></div>
+<div class="toc-item"><a href="#s4-1">4.1 Dashboard (Home)</a></div>
+<div class="toc-item"><a href="#s4-2">4.2 Front Desk Home</a></div>
+<div class="toc-item"><a href="#s4-3">4.3 Deliveries (List)</a></div>
+<div class="toc-item"><a href="#s4-4">4.4 Delivery Detail</a></div>
+<div class="toc-item"><a href="#s4-5">4.5 Consigners (Directory)</a></div>
+<div class="toc-item"><a href="#s4-6">4.6 Consigner Profile</a></div>
+<div class="toc-item"><a href="#s4-7">4.7 Create Rack (Unpack)</a></div>
+<div class="toc-item"><a href="#s4-8">4.8 Racks (Queue)</a></div>
+<div class="toc-item"><a href="#s4-9">4.9 Rack Detail</a></div>
+<div class="toc-item"><a href="#s4-10">4.10 Print Label</a></div>
+<div class="toc-item"><a href="#s4-11">4.11 Needs Attention</a></div>
+<div class="toc-item"><a href="#s4-12">4.12 Zones (Floor Plan)</a></div>
+<div class="toc-item"><a href="#s4-13">4.13 Zone Detail &amp; Pick-Up Layout</a></div>
+<div class="toc-item"><a href="#s4-14">4.14 Lotting Queue</a></div>
+<div class="toc-item"><a href="#s4-15">4.15 Pick-Up Page</a></div>
+<div class="toc-item"><a href="#s4-16">4.16 Dumpsters</a></div>
+<div class="toc-item"><a href="#s4-17">4.17 Reports</a></div>
+<div class="toc-item"><a href="#s4-18">4.18 Search</a></div>
+<div class="toc-item"><a href="#s4-19">4.19 Scan</a></div>
+<div class="toc-item"><a href="#s4-20">4.20 Label Print Queue</a></div>
+<div class="toc-item"><a href="#s4-21">4.21 User Management (Admin)</a></div>
+<div class="toc-item"><a href="#s4-22">4.22 Backup &amp; Restore</a></div>
+
+<div class="toc-part"><a href="#part5">Part 5 — Daily Workflows</a></div>
+<div class="toc-item"><a href="#s5-1">5.1 Starting a Workday</a></div>
+<div class="toc-item"><a href="#s5-2">5.2 Assigning Deliveries</a></div>
+<div class="toc-item"><a href="#s5-3">5.3 Assigning Racks</a></div>
+<div class="toc-item"><a href="#s5-4">5.4 Managing Zones</a></div>
+<div class="toc-item"><a href="#s5-5">5.5 Monitoring Progress</a></div>
+<div class="toc-item"><a href="#s5-6">5.6 Completing Work</a></div>
+<div class="toc-item"><a href="#s5-7">5.7 Reviewing Metrics</a></div>
+
+<div class="toc-part"><a href="#part6">Part 6 — Frequently Asked Questions</a></div>
+<div class="toc-part"><a href="#part7">Part 7 — Troubleshooting Guide</a></div>
+<div class="toc-part"><a href="#part8">Part 8 — Administrator Guide</a></div>
+<div class="toc-part"><a href="#part9">Part 9 — Quick Start Cheat Sheet</a></div>
+
+</div>
+
+<!-- ============ PART 1 ============ -->
+<h1 class="part" id="part1"><span class="part-label">Part 1</span>Introduction</h1>
+
+<h2 id="s1-1">1.1 What FlowOps Is</h2>
+<p>FlowOps is Quinn's operations management platform for tracking inventory as it moves through the warehouse — from the moment a consigner's truck arrives, through unpacking, sorting, lotting, and final auction pickup. It is a web application that works on desktop computers at front desk and office stations, and on tablets/phones on the warehouse floor (it can be installed as a mobile app — a PWA).</p>
+<p>Every physical rack of goods gets a digital record in FlowOps: a rack code, a QR label, a current stage, a location (zone), and a full history of everything that has happened to it. Every truck that arrives becomes a "delivery" record. Every customer who consigns goods becomes a "consigner" record. All of this is shared in real time — when one person updates something, everyone else sees the change immediately, with no refresh needed.</p>
+
+<h2 id="s1-2">1.2 Why FlowOps Exists</h2>
+<p>Before FlowOps, tracking a rack's progress depended on paper tags, whiteboards, and people remembering where things were. That worked when the warehouse was small and quiet — it breaks down fast once volume grows, multiple auctions run in parallel, and staff change shifts. FlowOps exists to solve specific, recurring problems:</p>
+<ul>
+  <li><b>"Where is this consigner's stuff?"</b> — Front desk and management can look up any consigner and instantly see every delivery, every rack, and its current stage and location.</li>
+  <li><b>"Why hasn't this been lotted yet?"</b> — Every rack's time-in-stage is tracked automatically. Racks that sit too long are automatically flagged on the <b>Needs Attention</b> page.</li>
+  <li><b>"Are we about to miss an auction deadline?"</b> — Auction dates are attached to deliveries and auction colors. The Dashboard warns when racks won't be Ready in time.</li>
+  <li><b>"Who moved this and when?"</b> — Every status change is logged with a timestamp and the user who made it, visible on the rack's History panel.</li>
+  <li><b>"Is the lotting room overloaded?"</b> — Stage Pressure and Stage Velocity panels show which stage of the pipeline is becoming a bottleneck before it causes a backlog.</li>
+</ul>
+
+<h2 id="s1-3">1.3 Benefits to Quinn's</h2>
+<table>
+  <tr><th>Benefit</th><th>How FlowOps delivers it</th></tr>
+  <tr><td>Faster turnaround</td><td>Bottlenecks (Lotting queue, Pickup capacity, stuck racks) are surfaced automatically instead of discovered too late.</td></tr>
+  <tr><td>Fewer lost or misplaced items</td><td>Every rack has a unique code and printable QR label; scanning it opens its full record instantly.</td></tr>
+  <tr><td>Better customer service</td><td>Front desk can answer "where are my items?" in seconds via Consigner lookup, without calling the warehouse floor.</td></tr>
+  <tr><td>Accountability &amp; audit trail</td><td>Every status change, hold, and note is logged with who did it and when.</td></tr>
+  <tr><td>Data-driven decisions</td><td>Reports page exports CSVs for deliveries, racks, stage durations, and dumpster billing — used for staffing and billing decisions.</td></tr>
+  <tr><td>Smooth weekly auction cycles</td><td>Auction colors and dates tie racks to specific auction runs; "Close Auction Cycle" archives completed work cleanly each week.</td></tr>
+  <tr><td>Works everywhere</td><td>Desktop for office staff, phone/tablet with camera scanning for warehouse floor staff.</td></tr>
+</table>
+
+<h2 id="s1-4">1.4 Core Concepts</h2>
+<p>These terms appear throughout FlowOps and this guide. Understanding them is the foundation for everything else.</p>
+
+<h3>The Pipeline (6 Stages)</h3>
+<p>Every rack moves through the same sequence of stages, left to right. A rack cannot skip a stage on its own — staff advance it manually using the <b>"Move to {Next Stage} →"</b> button as work is completed.</p>
+<table>
+  <tr><th>Stage</th><th>Badge</th><th>What happens here</th><th>Who works it</th><th>Typical time limit</th></tr>
+  <tr><td><b>Unpacking &amp; Sorting</b></td><td><span class="badge b-sky">Unpacking &amp; Sorting</span></td><td>Items are unloaded from the truck onto a rack and sorted into lots</td><td>Unpacker / Sorter</td><td>5 business days</td></tr>
+  <tr><td><b>Sorted</b></td><td><span class="badge b-teal">Sorted</span></td><td>Rack is fully sorted and waiting to be picked up for lotting</td><td>Sorter → Lotter</td><td>24 business hours</td></tr>
+  <tr><td><b>Lotting</b></td><td><span class="badge b-amber">Lotting</span></td><td>Items are being organized into auction lots</td><td>Lotter</td><td>16 business hours (~2 days)</td></tr>
+  <tr><td><b>Ready</b></td><td><span class="badge b-emerald">Ready</span></td><td>Lotted and waiting for its auction date (a "waiting" stage — expected to sit)</td><td>—</td><td>14 business days</td></tr>
+  <tr><td><b>Pickup</b></td><td><span class="badge b-violet">Pickup</span></td><td>Staged in the Pick-Up zone for the auction floor (a "waiting" stage)</td><td>Pickup</td><td>7 business days</td></tr>
+  <tr><td><b>Completed</b></td><td><span class="badge b-stone">Completed</span></td><td>Rack's job is done. Cleared at the next "Close Auction Cycle"</td><td>—</td><td>—</td></tr>
+</table>
+<p><b>Ready</b> and <b>Pickup</b> are called "waiting stages" — sitting in them is normal (the items are waiting for their scheduled auction), so they are excluded from bottleneck and overdue warnings. Every other stage has a time limit; exceeding it triggers a <b>Needs Attention</b> flag.</p>
+
+<h3>Racks</h3>
+<p>A <b>rack</b> is the basic unit FlowOps tracks — a physical cart/shelf of a consigner's items. Each rack has a unique <b>rack code</b> (e.g. <code>RC-0042</code>), a status (one of the six pipeline stages above), a priority, an optional zone (physical location), and a link back to the delivery and consigner it belongs to. A rack can occasionally hold items from more than one consigner — this is shown as a <span class="badge b-violet">mixed</span> tag.</p>
+
+<h3>Deliveries</h3>
+<p>A <b>delivery</b> represents one truck/drop-off event from a consigner. Deliveries are either:</p>
+<ul>
+  <li><b>Walk-in</b> — the truck has already arrived; created on the spot by Front Desk or Unpacking staff.</li>
+  <li><b>Scheduled</b> — booked ahead of time for a future date, then "arrives" later.</li>
+</ul>
+<p>Each delivery has a <b>delivery code</b> (e.g. <code>DEL-0008</code>) and moves through its own simple status sequence: <span class="badge b-gray">Scheduled</span> → <span class="badge b-sky">Arrived</span> → <span class="badge b-orange">Processing</span> → <span class="badge b-emerald">Complete</span>.</p>
+
+<h3>Consigners</h3>
+<p>A <b>consigner</b> is the customer who brought items in to be sold. Each consigner is identified by name and, usually, a <b>J-Number</b> (Quinn's internal customer/job number, e.g. <code>J-10294</code>). FlowOps automatically builds a consigner directory from delivery records, and tracks every consigner's history, active racks, and notes.</p>
+
+<h3>Zones</h3>
+<p>A <b>zone</b> is a physical location in the warehouse or gallery — e.g. <code>W4</code>, <code>G1</code>, <code>B</code> (Lotting Room), <code>C</code> (Sorting Room), <code>H</code> (Hallway), or <code>PU</code> (Pick-Up). Zones can be assigned a "purpose" — holding an active delivery, a scheduled delivery, an auction color staging area, or simply reserved. Racks are assigned to zones so anyone can find them physically.</p>
+
+<h3>Auction Colors</h3>
+<p>Quinn's runs auctions in color-coded cycles: <span class="badge b-red">Red</span> <span class="badge" style="background:#ea580c">Orange</span> <span class="badge" style="background:#ca8a04">Yellow</span> <span class="badge b-emerald">Green</span> <span class="badge b-blue">Blue</span> <span class="badge" style="background:#1c1917">Black</span>. A rack or a whole zone can be tagged with one of these colors to mark which auction run it belongs to, and each color can have a date set on the Dashboard so everyone knows the deadline for that run.</p>
+
+<h3>Priority, Hold &amp; Needs Attention</h3>
+<table>
+  <tr><th>Concept</th><th>Meaning</th></tr>
+  <tr><td><span class="badge b-amber">high</span> priority</td><td>Marked urgent — typically set when a rack moves to Sorted. Shown with an amber badge, or a pulsing red badge if it's also overdue.</td></tr>
+  <tr><td><span class="badge b-gray">low</span> priority</td><td>Lower urgency than normal — no rush.</td></tr>
+  <tr><td><span class="badge b-blue">HOLD</span></td><td>Work on this rack is intentionally paused, with a reason (e.g. "Waiting on remaining boxes," "Awaiting director review"). Held racks do <i>not</i> count as overdue.</td></tr>
+  <tr><td><span class="badge b-red">needs attention</span></td><td>The rack has been in its current stage longer than the allowed time limit (see pipeline table above). Shown red and pulsing if also high priority — the most urgent combination.</td></tr>
+</table>
+
+<h3>Notes &amp; Photos</h3>
+<p>Any rack, delivery, or consigner can have <b>operational notes</b> pinned to it — short messages visible to everyone (e.g. "Missing 2 boxes, consigner will drop off Friday"). Deliveries also support <b>photo uploads</b> for documenting condition on arrival or issues found during processing.</p>
+
+<h3>Labels, QR Codes &amp; the Print Queue</h3>
+<p>Every rack has a printable label containing its rack code, consigner/J-number, and a QR code linking back to the rack's page. Labels can be printed individually or queued up (the <b>Print Queue</b>) and printed in a batch. Scanning a rack's QR code with the <b>Scan</b> page opens that rack instantly — no typing required.</p>
+
+<!-- ============ PART 2 ============ -->
+<h1 class="part" id="part2"><span class="part-label">Part 2</span>User Roles</h1>
+
+<p>FlowOps has <b>six system roles</b>: Admin, Front Desk, Unpacker, Sorter, Lotter, and Pickup. A staff account can be granted one or more of these roles by an Administrator. This guide groups them into the five job categories used at Quinn's. <b>Note:</b> "Supervisors," "Managers," and "Administrators" all use the same underlying <b>Admin</b> system role — what differs is which parts of the system each job function uses day to day, not what the software allows them to click.</p>
+
+<h2 id="s2-1">2.1 Role Overview &amp; Permission Matrix</h2>
+<table>
+  <tr><th>Job Category</th><th>FlowOps System Role(s)</th><th>Home Page on Login</th><th>Primary Screens</th></tr>
+  <tr><td>Warehouse Staff</td><td>Unpacker, Sorter, Lotter, Pickup</td><td>Create Rack / Racks / Lotting / Pick-Up (varies)</td><td>Create Rack, Racks, Lotting, Pick-Up zone, Scan, Search</td></tr>
+  <tr><td>Coordinators</td><td>Front Desk</td><td>Front Desk Home</td><td>Front Desk Home, Deliveries, Consigners, Search</td></tr>
+  <tr><td>Supervisors</td><td>Admin</td><td>Dashboard</td><td>Dashboard, Racks (all stages), Zones, Needs Attention</td></tr>
+  <tr><td>Managers</td><td>Admin</td><td>Dashboard</td><td>Dashboard, Reports, Consigners, Dumpsters</td></tr>
+  <tr><td>Administrators</td><td>Admin</td><td>Dashboard</td><td>User Management, plus everything above</td></tr>
+</table>
+
+<h3>What Each System Role Can See and Do</h3>
+<table>
+  <tr><th>Page</th><th>Admin</th><th>Front Desk</th><th>Unpacker</th><th>Sorter</th><th>Lotter</th><th>Pickup</th></tr>
+  <tr><td>Dashboard (/)</td><td>✔</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr><td>Front Desk Home</td><td>—</td><td>✔</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr><td>Create Rack (Unpack)</td><td>✔</td><td>—</td><td>✔</td><td>✔</td><td>✔</td><td>—</td></tr>
+  <tr><td>Racks (filtered by stage)</td><td>all</td><td>all (view only)</td><td>Unpacking, Sorted</td><td>Unpacking, Ready</td><td>Sorted, Lotting, Ready</td><td>Ready, Pickup</td></tr>
+  <tr><td>Advance / revert / hold racks</td><td>✔</td><td>view only</td><td>✔</td><td>✔</td><td>✔</td><td>✔</td></tr>
+  <tr><td>Delete a rack</td><td>✔</td><td>—</td><td>✔</td><td>✔</td><td>✔</td><td>✔</td></tr>
+  <tr><td>Lotting Queue</td><td>✔</td><td>—</td><td>—</td><td>—</td><td>✔</td><td>—</td></tr>
+  <tr><td>Pick-Up zone</td><td>✔</td><td>—</td><td>—</td><td>—</td><td>—</td><td>✔</td></tr>
+  <tr><td>Zones</td><td>✔</td><td>✔</td><td>✔</td><td>✔</td><td>✔</td><td>✔</td></tr>
+  <tr><td>Deliveries</td><td>✔</td><td>✔</td><td>✔</td><td>✔</td><td>✔</td><td>✔</td></tr>
+  <tr><td>Delete a delivery</td><td>✔</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr><td>Consigners directory</td><td>✔</td><td>✔</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr><td>Dumpsters</td><td>✔</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr><td>Reports (CSV exports, close cycle)</td><td>✔</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr><td>User Management</td><td>✔</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr><td>Search, Scan, Labels</td><td>✔</td><td>Search only</td><td>✔</td><td>✔</td><td>✔</td><td>✔</td></tr>
+</table>
+
+<h2 id="s2-2">2.2 Warehouse Staff <span style="font-size:10pt;color:#78716c;">(Unpacker / Sorter / Lotter / Pickup)</span></h2>
+<p>Warehouse Staff are the hands-on roles that physically move and process racks. Most warehouse employees hold one role matching the station they work, though some are granted multiple roles (e.g. a cross-trained employee may have both Sorter and Lotter).</p>
+
+<h3>Unpacker</h3>
+<ul>
+  <li><b>Job:</b> Unload trucks, build new racks, attach them to the correct consigner/delivery, and print/queue labels.</li>
+  <li><b>Home page:</b> Create Rack (<code>/unpack</code>).</li>
+  <li><b>Sees in Racks queue:</b> Unpacking &amp; Sorting and Sorted racks only.</li>
+  <li><b>Can:</b> Create racks, advance racks, set hold/notes, print labels, scan QR codes.</li>
+</ul>
+
+<h3>Sorter</h3>
+<ul>
+  <li><b>Job:</b> Sort items within a rack into lots, mark a rack "Sorted" with the correct priority.</li>
+  <li><b>Home page:</b> Racks (<code>/racks</code>).</li>
+  <li><b>Sees in Racks queue:</b> Unpacking &amp; Sorting and Ready racks.</li>
+  <li><b>Can:</b> Create racks, advance racks (including the Sorted priority step), hold/notes, scan.</li>
+</ul>
+
+<h3>Lotter</h3>
+<ul>
+  <li><b>Job:</b> Pull racks from the Sorted queue, build auction lots, mark racks Ready.</li>
+  <li><b>Home page:</b> Lotting Queue (<code>/lotting</code>).</li>
+  <li><b>Sees in Racks queue:</b> Sorted, Lotting, Ready racks.</li>
+  <li><b>Can:</b> Create racks, advance racks, hold/notes, scan.</li>
+</ul>
+
+<h3>Pickup</h3>
+<ul>
+  <li><b>Job:</b> Stage racks in the Pick-Up zone for the auction floor and mark racks Completed when collected.</li>
+  <li><b>Home page:</b> Pick-Up (redirects to the <code>PU</code> zone).</li>
+  <li><b>Sees in Racks queue:</b> Ready and Pickup racks.</li>
+  <li><b>Can:</b> Advance/Complete racks, hold/notes, scan. (Cannot create racks.)</li>
+</ul>
+
+<div class="callout practice"><span class="label">Best Practice</span>Always use the <b>Scan</b> page on your phone to open a rack rather than searching by code — it's faster and avoids typos.</div>
+<div class="callout mistake"><span class="label">Common Mistake</span>Advancing a rack to the next stage before the physical work is actually done. FlowOps timestamps the move immediately — if the rack isn't really sorted/lotted yet, the next person in line wastes time looking for work that isn't ready.</div>
+
+<h2 id="s2-3">2.3 Coordinators <span style="font-size:10pt;color:#78716c;">(Front Desk)</span></h2>
+<p>Coordinators are the first point of contact when a consigner's truck arrives, and the people who answer "where is my stuff?" questions over the phone or at the counter.</p>
+<ul>
+  <li><b>Home page:</b> Front Desk Home (<code>/front-desk</code>).</li>
+  <li><b>Primary screens:</b> Front Desk Home, Deliveries, Consigners, Search.</li>
+  <li><b>Can:</b> Register walk-in and scheduled deliveries, look up consigners, view all racks and zones, edit delivery details, add notes/photos, add zones for deliveries.</li>
+  <li><b>Cannot:</b> Advance, revert, hold, or delete racks (view-only on rack cards and rack detail — no "Move to..." button appears). Cannot delete deliveries. Cannot access Dashboard, Reports, Dumpsters, or User Management.</li>
+</ul>
+<div class="callout tip"><span class="label">Tip</span>If a consigner calls asking about their items, use the <b>consigner lookup</b> search box on the Front Desk Home page — it searches by name or J-Number and shows their delivery status directly.</div>
+
+<h2 id="s2-4">2.4 Supervisors</h2>
+<p>Supervisors use the <b>Admin</b> role for day-to-day floor oversight. They are typically the people who resolve escalations from the <b>Needs Attention</b> page, rebalance zones, and step in when a stage becomes a bottleneck.</p>
+<ul>
+  <li><b>Home page:</b> Dashboard (<code>/</code>).</li>
+  <li><b>Primary screens:</b> Dashboard, Needs Attention, Racks (all stages), Zones, Lotting Queue.</li>
+  <li><b>Can do everything</b> a warehouse role can do, for <i>any</i> rack regardless of stage — including reverting a rack to a previous stage and deleting racks/deliveries.</li>
+  <li><b>Special responsibility:</b> Reviewing the Operational Alerts on the Dashboard each morning and reassigning staff/zones to clear bottlenecks.</li>
+</ul>
+
+<h2 id="s2-5">2.5 Managers</h2>
+<p>Managers also use the <b>Admin</b> role, with a focus on business-level oversight rather than moment-to-moment floor operations.</p>
+<ul>
+  <li><b>Home page:</b> Dashboard (<code>/</code>).</li>
+  <li><b>Primary screens:</b> Dashboard (KPIs, stage efficiency), Reports (CSV exports, weekly cycle close), Consigners (activity, quality flags), Dumpsters (trash billing).</li>
+  <li><b>Typical weekly tasks:</b> Export CSV reports for billing/analysis, review consigner "Frequently held" / "Slow to process" flags, close the auction cycle once a week's completed racks are archived.</li>
+</ul>
+
+<h2 id="s2-6">2.6 Administrators</h2>
+<p>Administrators hold the <b>Admin</b> role and additionally manage <b>User Management</b> — who has accounts and what roles they're granted. This is usually IT staff or operations leadership.</p>
+<ul>
+  <li><b>Home page:</b> Dashboard (<code>/</code>).</li>
+  <li><b>Primary screens:</b> User Management (<code>/admin/users</code>), plus full access to every page in the system.</li>
+  <li><b>Can:</b> Invite new users by email, assign/revoke any of the six roles per user, set each user's default role on login.</li>
+</ul>
+<div class="callout practice"><span class="label">Best Practice</span>Grant the minimum roles a person needs to do their job. Someone cross-trained on two stations (e.g. Sorter + Lotter) can be granted both roles and will get a role switcher in the header — but front desk staff should never be granted Admin just to "see more."</div>
+
+<!-- ============ PART 3 ============ -->
+<h1 class="part" id="part3"><span class="part-label">Part 3</span>System Navigation</h1>
+
+<h2 id="s3-1">3.1 Logging In &amp; Switching Roles</h2>
+<h3>Logging In</h3>
+<ol>
+  <li>Open FlowOps in a browser (or tap the installed app icon on a phone/tablet — it can be installed as a Progressive Web App for an app-like experience).</li>
+  <li>If not signed in, you'll see the login screen. Enter your work email and password.</li>
+  <li>New users receive an email invitation with a <b>magic link</b> to set their password the first time — click the link, set a password, and you're in.</li>
+  <li>After login, FlowOps takes you to your role's <b>home page</b> automatically (see the table in Part 2.1).</li>
+</ol>
+
+<h3>Switching Roles (multi-role users only)</h3>
+<p>If your account has been granted more than one role, a <b>role switcher</b> appears:</p>
+<ul>
+  <li><b>On desktop:</b> click your current role name in the top-right of the header (next to the bell icon) to open "Switch role," then pick the role you want — you'll be taken to that role's home page.</li>
+  <li><b>On mobile:</b> the bottom navigation bar includes a role button showing your current role; tap it to open the same switcher.</li>
+</ul>
+<p>If your account has only one role, no switcher is shown — you simply use that role's screens.</p>
+
+<h3>Profile Menu &amp; Signing Out</h3>
+<p>Click the circular initials avatar in the top-right corner to open the profile menu. It shows your email and current role. Administrators also see a <b>"Manage users"</b> link here. Everyone sees <b>"Sign out."</b></p>
+
+<h2 id="s3-2">3.2 The Dashboard at a Glance</h2>
+<p>The Dashboard (<code>/</code>) is the Admin home page — a live, real-time overview of the entire operation. It is covered in full in Section 4.1, but as a navigation landmark, it contains:</p>
+<ul>
+  <li><b>KPI cards</b> — Active Deliveries, In Pipeline, In Lotting, Ready for Pickup (each links to the relevant page).</li>
+  <li><b>Stage Efficiency</b> — one number showing overall health.</li>
+  <li><b>Auction Dates</b> panel — set/edit the date for each of the six auction colors.</li>
+  <li><b>Warehouse Floor map</b> — a clickable grid of every zone, color-coded by what's happening in it.</li>
+  <li><b>Pipeline Distribution</b> and <b>Stage Velocity</b> — visual breakdowns of where racks are and how fast they're moving.</li>
+  <li><b>Operational Alerts</b> — the single most important panel for Supervisors/Managers; it lists everything that currently needs action.</li>
+</ul>
+
+<h2 id="s3-3">3.3 Navigation Structure</h2>
+<h3>Header (Desktop Top Bar)</h3>
+<p>The header shows the FlowOps logo/title on the left, the role-specific navigation links in the center, and on the right: a notification bell, the role switcher (if applicable), and the profile avatar.</p>
+<table>
+  <tr><th>Role</th><th>Top Navigation Links</th></tr>
+  <tr><td>Admin</td><td>Dashboard, Zones, Racks, Deliveries, Consigners, Dumpsters, Reports, Search</td></tr>
+  <tr><td>Front Desk</td><td>Home, Deliveries, Consigners, Search</td></tr>
+  <tr><td>Unpacker / Sorter</td><td>Create Rack, Racks, Search</td></tr>
+  <tr><td>Lotter</td><td>Lotting, Racks, Search</td></tr>
+  <tr><td>Pickup</td><td>Pick-Up, Racks, Search</td></tr>
+</table>
+
+<h3>Bottom Navigation (Mobile)</h3>
+<p>On phones/tablets, a bottom bar replaces the header links. Every warehouse role (Unpacker, Sorter, Lotter, Pickup) and Admin gets a <b>Scan</b> icon for QR scanning — Front Desk does not, since they work at a desk station.</p>
+
+<h3>Notifications &amp; Print Queue</h3>
+<ul>
+  <li>The <b>bell icon</b> shows real-time alerts (e.g. a rack just became stuck, a bottleneck formed).</li>
+  <li>A floating <b>Print Queue badge</b> appears anywhere in the app once one or more rack labels have been queued for printing, with a count — tap it to jump to the Label Print Queue.</li>
+</ul>
+
+<h2 id="s3-4">3.4 Search &amp; Filtering</h2>
+<p>FlowOps offers two complementary ways to find things:</p>
+<h3>Universal Search</h3>
+<p>The <b>Search</b> page (<code>/search</code>) is available to every role. Press <code>/</code> from anywhere in the app to jump straight to it. Type any of the following and FlowOps will find matching results across Zones, Deliveries, and Racks:</p>
+<ul>
+  <li>A rack code (e.g. <code>RC-0042</code>)</li>
+  <li>A consigner name (e.g. <code>Smith Auctions</code>)</li>
+  <li>A delivery code or J-Number (e.g. <code>DEL-0008</code> or <code>J-10294</code>)</li>
+  <li>A zone name (e.g. <code>B</code>, <code>W4</code>, <code>Hall</code>)</li>
+</ul>
+<p>Use the filter pills (All / Zones / Racks / Deliveries) once you've typed something to narrow the result list.</p>
+
+<h3>List-Page Filters</h3>
+<p>The Racks, Deliveries, Lotting, and other list pages each have their own filter pills and search boxes scoped to that page — e.g. the Racks page lets you filter by pipeline stage, "Needs Attention," "Held," and auction color, in addition to a free-text search box. These are covered individually in Part 4.</p>
+
+<!-- ============ PART 4 ============ -->
+<h1 class="part" id="part4"><span class="part-label">Part 4</span>Feature Documentation</h1>
+<p>This part documents every page in FlowOps in detail: what it's for, what each button does, step-by-step instructions, real-world examples, and troubleshooting tips.</p>
+
+<h2 class="feature" id="s4-1"><span class="feature-num">4.1</span> Dashboard (Home)</h2>
+<div class="meta-box"><b>URL:</b> <code>/</code> &nbsp; <b>Who uses it:</b> Admin (Supervisors &amp; Managers). Other roles are automatically sent to their own home page.</div>
+
+<h3>Overview</h3>
+<p>The Dashboard is the live "mission control" view of the entire warehouse. It updates in real time as racks move through the pipeline, deliveries arrive, and alerts fire. The header shows "{N} racks completed today" or "Live warehouse overview," plus status pills for "{N} on hold" and "{N} need attention," and a connection indicator (Live / Connecting / Offline).</p>
+
+<h3>Main Functions</h3>
+<ul>
+  <li><b>KPI cards</b> (2×2 grid): Active Deliveries, In Pipeline, In Lotting, Ready for Pickup — each is clickable and jumps to the relevant list page.</li>
+  <li><b>Stage Efficiency card:</b> a percentage with a colored bar and a status chip — "On target" (90%+, green), "Moderate pressure" (80–89%, amber), "High pressure" (under 80%, red). This is the percentage of active racks that are <i>not</i> flagged Needs Attention.</li>
+  <li><b>Auction Dates panel:</b> lists all six auction colors with their assigned date (or "—"). "Set"/"Edit" opens a date picker with Save/Cancel; "✕" clears a date.</li>
+  <li><b>Warehouse Floor map:</b> a clickable grid of every Gallery (G1–G7, PU) and Warehouse (W1–W10, B, C, H) zone, color-coded by what's in it (see legend below). Clicking a cell opens that Zone Detail page.</li>
+  <li><b>Pipeline Distribution bar:</b> a horizontal multi-color bar showing the proportion of active racks in each stage, with a legend and "overloaded"/"busy" tags.</li>
+  <li><b>Stage Velocity panel:</b> one row per active stage with a progress bar (green=ok, amber=watch, orange=over) and the average time racks spend there vs. the limit.</li>
+  <li><b>Operational Alerts panel:</b> the action list — see below.</li>
+</ul>
+
+<h4>Floor map color legend</h4>
+<table>
+  <tr><th>Color</th><th>Meaning</th></tr>
+  <tr><td>Violet</td><td>The Pick-Up zone (PU)</td></tr>
+  <tr><td>Red</td><td>Delivery status "Arrived" — a truck is here and not yet being processed</td></tr>
+  <tr><td>Green</td><td>Delivery status "Processing" — actively being worked</td></tr>
+  <tr><td>Blue</td><td>Delivery status "Scheduled" — shows the scheduled date</td></tr>
+  <tr><td>Amber</td><td>Zone "Reserved" for future use</td></tr>
+  <tr><td>Stone with colored dot</td><td>Zone tagged with an auction color (staging for that auction run)</td></tr>
+  <tr><td>Dashed / faded</td><td>Empty zone, no purpose assigned</td></tr>
+</table>
+
+<h4>Operational Alerts — what each one means</h4>
+<table>
+  <tr><th>Alert</th><th>Severity</th><th>What it means / where it links</th></tr>
+  <tr><td>"{N} racks need attention"</td><td>Critical (red, pulsing)</td><td>Racks over their stage time limit → Needs Attention page</td></tr>
+  <tr><td>"{N} racks on hold"</td><td>Info (blue)</td><td>Racks intentionally paused → Racks page</td></tr>
+  <tr><td>"{J#}: N racks need Ready before auction"</td><td>Warning (amber)</td><td>A delivery's auction date is approaching and racks aren't Ready yet → Delivery detail</td></tr>
+  <tr><td>"Lotting queue high (N racks)"</td><td>Warning</td><td>More than 10 racks waiting on lotting → Lotting Queue</td></tr>
+  <tr><td>"Pickup overloaded (N/16 racks)"</td><td>Critical</td><td>Pickup zone at/over its 16-rack cycle capacity → Racks page</td></tr>
+  <tr><td>"Pickup near capacity (N/16 racks)"</td><td>Warning</td><td>13+ racks in Pickup → Racks page</td></tr>
+  <tr><td>"This week" forecast items</td><td>Info</td><td>Upcoming scheduled deliveries → Deliveries page</td></tr>
+</table>
+<p>If nothing needs action, a single green card reads <i>"All processing stages flowing."</i></p>
+
+<h3>Step-by-Step: Morning Dashboard Review</h3>
+<ol>
+  <li>Open the Dashboard. Check the connection indicator says "Live."</li>
+  <li>Read the <b>Operational Alerts</b> panel top to bottom — this is your priority list for the day.</li>
+  <li>For any "needs attention" alert, click "View →" to open Needs Attention and assign staff to clear the backlog.</li>
+  <li>Check <b>Stage Efficiency</b> — if it's "Moderate" or "High pressure," look at the Pipeline Distribution bar to see which stage is overloaded.</li>
+  <li>Scan the <b>Warehouse Floor map</b> for any zones that look wrong (e.g. a delivery still showing "Arrived" hours after it should be Processing).</li>
+  <li>Confirm <b>Auction Dates</b> are set for any colors with active racks — unset dates mean no countdown warnings will fire.</li>
+</ol>
+
+<div class="callout example"><span class="label">Example</span>The Dashboard shows "Pickup overloaded (16/16 racks)" in red and "Lotting queue high (12 racks)" in amber. A Supervisor clicks through to Racks filtered to Pickup, confirms the PU zone is genuinely full, and asks Front Desk to hold any new scheduled pickups until racks clear. Separately, they pull an extra Sorter into the Lotting room for the afternoon to bring the queue back under 10.</div>
+
+<h3>Troubleshooting</h3>
+<ul>
+  <li><b>Connection shows "Offline" or "Connecting":</b> check your internet connection; the Dashboard will reconnect automatically and refresh data once back online.</li>
+  <li><b>A KPI number looks wrong / doesn't match what you see on the floor:</b> remember KPIs count <i>active</i> (non-archived, non-completed where noted) racks/deliveries only — completed racks from a prior cycle that haven't been archived yet via "Close Auction Cycle" can skew counts. See Section 4.17.</li>
+  <li><b>Auction date alert isn't firing:</b> confirm the auction color is set on the Dashboard's Auction Dates panel AND the relevant delivery/rack has that auction color assigned.</li>
+</ul>
+
+<h2 class="feature" id="s4-2"><span class="feature-num">4.2</span> Front Desk Home</h2>
+<div class="meta-box"><b>URL:</b> <code>/front-desk</code> &nbsp; <b>Who uses it:</b> Coordinators (Front Desk role)</div>
+
+<h3>Overview</h3>
+<p>The Coordinator's home base for the day — greets staff with "Good morning/afternoon/evening" and today's date, then provides quick actions for registering deliveries and looking up consigners.</p>
+
+<h3>Main Functions</h3>
+<ul>
+  <li><b>Two big action buttons:</b> <b>"Walk-in"</b> ("Truck just arrived") and <b>"Schedule delivery"</b> ("Book future appointment").</li>
+  <li><b>Consigner lookup:</b> "Look up a consigner…" search box — typing 2+ characters shows up to 6 matching deliveries with status badges. A "View all results for '...'" link goes to the Consigners page.</li>
+  <li><b>Quick stats cards:</b> Arrived, Processing, Scheduled today (only shown if non-zero).</li>
+  <li><b>Today section:</b> all of today's active deliveries, sorted Processing → Arrived → Scheduled, each clickable to open its detail page.</li>
+  <li><b>Upcoming section:</b> up to 5 future scheduled deliveries with their dates.</li>
+</ul>
+
+<h3>Step-by-Step: Registering a Walk-In Truck</h3>
+<ol>
+  <li>Click <b>"Walk-in."</b></li>
+  <li>Type the consigner's name in <b>"Consigner name"</b> (required).</li>
+  <li>Enter their <b>"J-Number"</b> if known (optional, e.g. <code>J-10294</code>).</li>
+  <li>Click <b>"Create walk-in →"</b>. FlowOps creates the delivery (status "Arrived") and opens its detail page immediately.</li>
+</ol>
+
+<h3>Step-by-Step: Scheduling a Future Delivery</h3>
+<ol>
+  <li>Click <b>"Schedule delivery."</b></li>
+  <li>Enter the consigner's name and J-Number (optional).</li>
+  <li>Pick the date (defaults to today — change it to the expected drop-off date).</li>
+  <li>Click <b>"Schedule delivery."</b> You stay on the Front Desk Home; the new delivery appears in "Upcoming."</li>
+</ol>
+
+<div class="callout example"><span class="label">Example</span>A regular consigner, "Whitmore Estates," calls to say they'll drop off a truckload next Tuesday. The Coordinator clicks "Schedule delivery," types "Whitmore Estates," enters their J-Number, picks next Tuesday's date, and clicks "Schedule delivery." When the truck actually arrives Tuesday, the Coordinator finds it under "Today," opens it, and clicks "Mark arrived."</div>
+
+<div class="callout mistake"><span class="label">Common Mistake</span>Creating a brand-new consigner record for someone who has consigned before, because their name was typed slightly differently. Always check the suggestion card that appears under "Consigner name" — if a close match shows "X past deliveries · last [date]," click it to reuse the existing consigner instead of creating a duplicate.</div>
+
+<h3>Troubleshooting</h3>
+<ul>
+  <li><b>Can't find a consigner in lookup:</b> try searching by J-Number instead of name, or use the full Consigners directory (Section 4.5) which supports broader sorting/search.</li>
+  <li><b>Created a delivery with the wrong consigner name:</b> open the delivery, click "Edit," fix the name, and "Save."</li>
+</ul>
+
+<h2 class="feature" id="s4-3"><span class="feature-num">4.3</span> Deliveries (List)</h2>
+<div class="meta-box"><b>URL:</b> <code>/deliveries</code> &nbsp; <b>Who uses it:</b> All roles (full edit rights for Admin &amp; Front Desk)</div>
+
+<h3>Overview</h3>
+<p>The master log of every delivery — walk-in and scheduled, past and present. This is where new deliveries are created from anywhere in the app (not just Front Desk Home), and where you track each delivery's overall status.</p>
+
+<h3>Main Functions</h3>
+<ul>
+  <li><b>"New delivery"</b> button toggles an inline form with two tabs:
+    <ul>
+      <li><b>Walk-in tab:</b> Consigner name (autofocus, with duplicate-consigner suggestions), J-Number (optional). Submit: <b>"Create walk-in →"</b> — jumps straight to the new delivery's detail page.</li>
+      <li><b>Scheduled tab:</b> same fields plus a date picker (defaults to today). Submit: <b>"Create delivery"</b> — stays on the list.</li>
+    </ul>
+  </li>
+  <li><b>Filter pills:</b> All / Arrived / Processing / Done (saved in the URL so you can bookmark/share a filtered view).</li>
+  <li><b>Delivery cards</b> — sorted with your last-visited delivery pinned to the top, then grouped Processing → Arrived → Scheduled → Complete, then by rack count. Each card shows the J-Number/code, status badge, "walk-in" tag, "recent" tag, "N notes" tag, consigner name, date/zone info, and a colored left border by status.</li>
+  <li><b>Next-status action button</b> on each card (e.g. "Mark arrived," "Start processing," "Mark complete") — advances the delivery one stage without opening it.</li>
+</ul>
+
+<h4>Delivery status reference</h4>
+<table>
+  <tr><th>Status</th><th>Badge</th><th>Meaning</th><th>Next action button</th></tr>
+  <tr><td>Scheduled</td><td><span class="badge b-stone">Scheduled</span></td><td>Booked, not yet arrived</td><td>"Mark arrived"</td></tr>
+  <tr><td>Arrived</td><td><span class="badge b-sky">Arrived</span></td><td>Truck is here, work not started</td><td>"Start processing"</td></tr>
+  <tr><td>Processing</td><td><span class="badge b-orange">Processing</span></td><td>Actively being unpacked/sorted</td><td>"Mark complete"</td></tr>
+  <tr><td>Complete</td><td><span class="badge b-emerald">Complete</span></td><td>All work for this delivery is done</td><td>(none)</td></tr>
+</table>
+
+<h3>Step-by-Step: Finding a Delivery</h3>
+<ol>
+  <li>Use the filter pills to narrow by status, or scroll the list (most active deliveries are at the top).</li>
+  <li>Click a card to open the full Delivery Detail page (Section 4.4).</li>
+</ol>
+
+<div class="callout mistake"><span class="label">Common Mistake</span>Clicking "Mark complete" on a delivery while racks are still in Unpacking &amp; Sorting. FlowOps blocks this and shows "N racks still in Unpacking &amp; Sorting — finish sorting before completing." Finish sorting those racks first, or move them to the correct rack/delivery if they were logged under the wrong delivery.</div>
+
+<h3>Troubleshooting</h3>
+<ul>
+  <li><b>Empty list:</b> "No deliveries yet — Register a walk-in when a truck arrives, or schedule a delivery before it shows up."</li>
+  <li><b>Can't mark complete:</b> see the Common Mistake above — finish or reassign remaining Unpacking &amp; Sorting racks.</li>
+</ul>
+
+<h2 class="feature" id="s4-4"><span class="feature-num">4.4</span> Delivery Detail</h2>
+<div class="meta-box"><b>URL:</b> <code>/deliveries/[id]</code> &nbsp; <b>Who uses it:</b> All roles (delete is Admin/Supervisor only)</div>
+
+<h3>Overview</h3>
+<p>The complete working record for one delivery: its status, every rack it contains, notes, photos, zones, and donation/trash outcome percentages.</p>
+
+<h3>Main Functions</h3>
+<ul>
+  <li><b>Header:</b> J-Number/code, status badge, "walk-in" tag, consigner name, arrival date. <b>"Edit"</b> opens a form for consigner name and J-Number (Save/Cancel/Clear). <b>Delete</b> (trash icon, Admin/Supervisor only) requires confirming "Yes, delete."</li>
+  <li><b>Next-status button</b> — same as the list page (Mark arrived / Start processing / Mark complete), with the same "racks still in Unpacking &amp; Sorting" guard.</li>
+  <li><b>"← Move back to [previous status]"</b> — lets you undo an accidental status change, with confirmation.</li>
+  <li><b>Metadata grid:</b> Arrived/Scheduled date, Completed date, Racks count ("X confirmed" if some still unsorted), and <b>Zones</b> — chips for each assigned zone (removable with ×) plus a <b>"+ Add zone"</b> dropdown of unassigned zones.</li>
+  <li><b>Outcome section:</b> <b>"Set outcome"</b>/"Edit" opens a "Donation %" field (0–100). Trash % is read-only here (set on the Dumpsters page). Once set, shows a stacked bar (green=donation, red=trash) and three stats: Donation %, Trash/Dump %, Sellable %. Save is blocked if donation + trash exceeds 100%.</li>
+  <li><b>Operational Notes:</b> "Pin a note…" + "Pin" button (or press Enter). Notes show as amber cards with text, optional linked rack, author, time, and a delete icon.</li>
+  <li><b>Photos:</b> "Caption (optional)" + "Upload photo" — uploads to a grid; click to preview full-screen; hover to delete.</li>
+  <li><b>Progress section:</b> a segmented bar plus a 7-column breakdown of rack counts per stage.</li>
+  <li><b>Racks panel (right side):</b> "Racks (N)" with <b>"+ Add rack"</b> toggle. The add-rack form has: "Rack ID (optional — auto-generated if blank)," a Zone dropdown (optional), and an "Add to print queue" checkbox (checked by default). Each rack row shows its code, HOLD/high/mixed badges, time-ago, a stage progress strip, and a <b>"Next →"</b> button to advance it.</li>
+</ul>
+
+<h3>Step-by-Step: Processing an Arrived Delivery</h3>
+<ol>
+  <li>Open the delivery from the Deliveries list or Front Desk Home.</li>
+  <li>Click <b>"Start processing"</b> to move status from Arrived → Processing.</li>
+  <li>As unpacking staff build racks (Section 4.7), they'll appear automatically in the Racks panel here — or use <b>"+ Add rack"</b> directly from this page if you already know how many racks and want to pre-create them.</li>
+  <li>Assign one or more <b>Zones</b> via "+ Add zone" so anyone can find where this delivery's racks are physically.</li>
+  <li>Add any <b>notes</b> (e.g. "2 boxes still on the truck, will drop tomorrow") and <b>photos</b> (e.g. condition of arrival) as work progresses.</li>
+  <li>Once every rack has moved past Unpacking &amp; Sorting, click <b>"Mark complete."</b></li>
+  <li>When the consigner's outcome is known (donation/trash split), use <b>"Set outcome"</b> to record Donation % — Trash % is filled in automatically from the Dumpsters page.</li>
+</ol>
+
+<div class="callout example"><span class="label">Example</span>Delivery <code>J-10294</code> (Whitmore Estates) arrives with 6 racks worth of furniture. Front Desk marks it "Arrived," then Unpacking starts — "Start processing." As unpackers build racks RC-0301 through RC-0306, each appears in the Racks panel. One rack (RC-0304) is mostly broken items destined for the dumpster — staff log that on the Dumpsters page, which fills in the Trash % here automatically. Once all 6 racks pass Unpacking &amp; Sorting, the delivery is "Mark complete," and the Manager later sets Donation % to 10 after the consigner confirms a charity pickup for unsold items.</div>
+
+<h3>Troubleshooting</h3>
+<ul>
+  <li><b>Photo upload fails with a storage error:</b> the photo storage bucket may not be configured — notify an Administrator.</li>
+  <li><b>Can't add a zone:</b> the dropdown only shows <i>unassigned</i> zones — if the zone you want is already attached to another delivery, free it up first (Section 4.13) or pick a different zone.</li>
+  <li><b>Outcome won't save:</b> donation % + trash % cannot exceed 100. Check the Dumpsters page for the trash % already on record for this delivery.</li>
+</ul>
+
+<h2 class="feature" id="s4-5"><span class="feature-num">4.5</span> Consigners (Directory)</h2>
+<div class="meta-box"><b>URL:</b> <code>/consigners</code> &nbsp; <b>Who uses it:</b> Admin, Front Desk</div>
+
+<h3>Overview</h3>
+<p>A searchable directory of every consigner FlowOps knows about, built automatically from delivery records, plus any standalone consigners added manually. The subtitle shows "N consigners · M currently active."</p>
+
+<h3>Main Functions</h3>
+<ul>
+  <li><b>Search box:</b> "Search consigners or J-numbers…"</li>
+  <li><b>Sort dropdown:</b> Most active / Most racks / Newest / Name A–Z.</li>
+  <li><b>"New consigner"</b> button opens an inline form: "Consigner name," "J number (optional)," "Add consigner" — creates a standalone consigner not yet tied to any delivery (useful for pre-registering a customer before their first drop-off).</li>
+  <li><b>Consigner cards</b> show: name, J-Number, an "active" pulsing pill if they have an arrived/processing delivery, "N deliveries," "N active racks," "avg Xd to complete," "last [date]," and quality tags:
+    <ul>
+      <li><b>"Frequently held"</b> (amber) — 2+ of their racks have had hold reasons. Often signals a consigner whose paperwork/items are routinely incomplete.</li>
+      <li><b>"Slow to process"</b> (orange) — average processing time over 7 days. Useful for spotting consigners whose deliveries need more attention or staffing.</li>
+    </ul>
+  </li>
+</ul>
+
+<h3>Step-by-Step: Pre-Registering a New Consigner</h3>
+<ol>
+  <li>Click <b>"New consigner."</b></li>
+  <li>Enter their name and J-Number (if assigned already).</li>
+  <li>Click <b>"Add consigner."</b> They'll now appear in lookups and suggestions when Front Desk creates their first delivery.</li>
+</ol>
+
+<div class="callout tip"><span class="label">Tip</span>Use the "Slow to process" and "Frequently held" tags as a coaching tool — Managers can review these consigners' notes/history to identify recurring issues (e.g. always missing paperwork) and address them at intake next time.</div>
+
+<h3>Troubleshooting</h3>
+<ul>
+  <li><b>"No consigners yet":</b> consigners appear automatically once deliveries are created — this is normal for a brand-new system.</li>
+  <li><b>"No consigners match":</b> check spelling, or try searching by J-Number instead of name.</li>
+</ul>
+
+<h2 class="feature" id="s4-6"><span class="feature-num">4.6</span> Consigner Profile</h2>
+<div class="meta-box"><b>URL:</b> <code>/consigners/[name]</code> &nbsp; <b>Who uses it:</b> Admin, Front Desk</div>
+
+<h3>Overview</h3>
+<p>A single consigner's complete history in one place — every delivery, every active rack, and notes. This is the page Front Desk uses to answer "where's my stuff?"</p>
+
+<h3>Main Functions</h3>
+<ul>
+  <li><b>Header stats:</b> Deliveries (with active count in orange), Total racks (with active count), Avg processing time (highlighted amber if over 7 days).</li>
+  <li><b>Active deliveries:</b> cards for each in-progress delivery, with status, "Arrived X"/"Scheduled X," zone, active rack count, and auction date if set.</li>
+  <li><b>Operational notes:</b> pin a note, optionally attached to a specific active rack via a dropdown ("No specific rack (delivery-level)" or a specific rack code).</li>
+  <li><b>Delivery history:</b> up to 10 most recent completed deliveries, with a "+N earlier deliveries" expander.</li>
+  <li><b>Active racks (right column):</b> every currently-active rack for this consigner, showing its stage badge or "HOLD" badge, time in current status, parent delivery, and zone. Blue left border = on hold.</li>
+</ul>
+
+<h3>Step-by-Step: Answering "Where Are My Items?"</h3>
+<ol>
+  <li>From Consigners, search the customer's name or J-Number and open their profile.</li>
+  <li>Check <b>Active racks</b> — each shows its current stage and zone (physical location).</li>
+  <li>If a rack shows <b>HOLD</b>, the note/hold reason explains why it isn't moving — relay that to the customer.</li>
+  <li>If "No active racks," everything from this consigner is completed — check Delivery history for when it was completed.</li>
+</ol>
+
+<div class="callout example"><span class="label">Example</span>A consigner calls asking if their items made it into Friday's Green auction. Front Desk opens their profile, sees 3 active racks all showing the Green auction-color dot and stage "Ready," and confirms they're staged correctly for Friday.</div>
+
+<h2 class="feature" id="s4-7"><span class="feature-num">4.7</span> Create Rack (Unpack)</h2>
+<div class="meta-box"><b>URL:</b> <code>/unpack</code> &nbsp; <b>Who uses it:</b> Unpacker, Sorter, Lotter, Admin</div>
+
+<h3>Overview</h3>
+<p>The page used to register a brand-new rack as items come off the truck — link it to the right consigner, set its starting stage and priority, give it a code, and queue its label for printing.</p>
+
+<h3>Main Functions — Step 1: Select Consigner</h3>
+<ul>
+  <li><b>Search box:</b> "Search consigner or delivery…" — filters today's/walk-in deliveries first, then alphabetically.</li>
+  <li><b>"No consigner"</b> — proceed without linking to anyone (rare; used for operational/internal racks).</li>
+  <li><b>"+ Add consigner"</b> — inline form: "Consigner name" (required), "J number (optional)," "Confirm" — creates a standalone consigner for this rack on the spot.</li>
+  <li>Once chosen, the step collapses to a green checkmark chip showing your selection — click it to change your mind.</li>
+</ul>
+
+<h3>Main Functions — Step 2: Create Rack</h3>
+<ul>
+  <li><b>Auction color picker</b> — tag the rack with Red/Orange/Yellow/Green/Blue/Black to mark its auction run.</li>
+  <li><b>Status</b> — button grid for the rack's starting stage. Default is <span class="badge b-sky">Unpacking &amp; Sorting</span>; "Sorted" is also a primary option. An <b>"More statuses"</b> toggle reveals Lotting and Ready for less common cases (e.g. re-entering a rack that skipped steps).</li>
+  <li><b>Rack ID (optional)</b> — text field, auto-uppercases. Placeholder example: <code>Yellow/Red</code>. Pressing space auto-inserts "/" (up to 2 slashes total), then literal spaces — this builds location-style codes. Leave blank to auto-generate a code (e.g. <code>RC-0042</code>).</li>
+  <li>If the Rack ID you typed <b>already exists</b>, an amber "duplicate rack" card appears showing the existing rack's consigner and age, with a <b>"Delete"</b> button to remove the duplicate before retrying.</li>
+  <li><b>"Create rack &amp; add to print queue"</b> — creates the rack, queues its label, and links the J-Number if a custom consigner was entered.</li>
+  <li><b>"Created this session"</b> list — every rack you've created during this visit, with its status badge and a "View →" link to its detail page.</li>
+  <li>If labels are queued, a <b>"Print N label(s)"</b> button appears, linking to the Label Print Queue.</li>
+</ul>
+
+<h3>Step-by-Step: Creating a Rack for an Arriving Delivery</h3>
+<ol>
+  <li>Go to <b>Create Rack</b>.</li>
+  <li>In Step 1, search for the consigner's name or delivery code and select it (or "+ Add consigner" if they're new and not yet in a delivery).</li>
+  <li>In Step 2, pick the <b>auction color</b> if this auction run is already known.</li>
+  <li>Leave <b>Status</b> at "Unpacking &amp; Sorting" (the normal starting point).</li>
+  <li>Type a <b>Rack ID</b> if your warehouse uses location-based codes (e.g. typing "Yellow Red" becomes <code>YELLOW/RED</code>), or leave blank for an auto code.</li>
+  <li>Click <b>"Create rack &amp; add to print queue."</b></li>
+  <li>Repeat for each rack from this delivery — they'll all appear in "Created this session."</li>
+  <li>When done, click <b>"Print N label(s)"</b> to print all queued labels at once.</li>
+</ol>
+
+<div class="callout mistake"><span class="label">Common Mistake</span>Typing a Rack ID that's already in use without checking the duplicate warning. If the amber "duplicate rack" card appears, don't ignore it — either pick a different ID, or if the existing rack was created in error, use its "Delete" button first.</div>
+
+<div class="callout practice"><span class="label">Best Practice</span>Always select the correct delivery/consigner in Step 1 before creating racks. Racks created with "No consigner" are much harder to trace later — use "+ Add consigner" instead if the consigner exists but isn't linked to a delivery yet.</div>
+
+<h3>Troubleshooting</h3>
+<ul>
+  <li><b>Can't find the delivery in Step 1 search:</b> confirm Front Desk has registered the delivery (Section 4.2/4.3) — racks can't be linked to a delivery that doesn't exist yet. Use "+ Add consigner" as a fallback if you need to start unpacking immediately.</li>
+  <li><b>Rack ID won't format the way you expect:</b> remember spacebar inserts "/" only for the first two spaces; after that, spaces are literal. Plan codes like "Yellow/Red Section3" accordingly.</li>
+</ul>
+<h2 class="feature" id="s4-8"><span class="feature-num">4.8</span> Racks (Queue)</h2>
+<div class="meta-box"><b>URL:</b> <code>/racks</code> &nbsp; <b>Who uses it:</b> Everyone — the main working queue for warehouse staff</div>
+
+<h3>Overview</h3>
+<p>A searchable, filterable list of all racks. This is the page most warehouse staff live in day-to-day — what shows up depends on your role (see Section 2.1).</p>
+
+<h3>Main Functions</h3>
+<ul>
+  <li><b>"Create rack"</b> button (→ Create Rack page) — shown to Admin, Unpacker, Sorter, Lotter (not Front Desk or Pickup).</li>
+  <li><b>Filter pills:</b> All, Unpacking &amp; Sorting, Sorted, Lotting, Ready, Pickup, Needs Attention, Held. Only the pills relevant to your role appear.</li>
+  <li><b>Color filter dots:</b> six small circles for the auction colors — click to filter to that color, click again to clear.</li>
+  <li><b>Search box:</b> "Search racks, consigners, zones…" — matches rack code, consigner name, zone, delivery code, delivery consigner name, or hold reason.</li>
+  <li><b>Rack cards</b> show, top to bottom: auction-color dot + date, rack code, status badges (HOLD / needs attention / high / low / mixed), time-ago, consigner name + J-Number, hold reason (if held), a mini pipeline progress strip with stage label, note count, time-in-stage, zone link, and action buttons:
+    <ul>
+      <li><b>"Move to {Next Stage} →"</b> — red if critical/overdue, orange otherwise. Hidden for Front Desk (view-only).</li>
+      <li><b>"Queue"/"Queued"</b> toggle — add/remove this rack's label from the print queue.</li>
+    </ul>
+  </li>
+</ul>
+
+<h3>Step-by-Step: Working Your Queue</h3>
+<ol>
+  <li>Open Racks — it's pre-filtered to the stages relevant to your role.</li>
+  <li>Work from the top down (most urgent/oldest first within most views).</li>
+  <li>When you finish the physical work for a rack, click <b>"Move to {Next Stage} →"</b> on its card — or open the rack for more detail/options (Section 4.9).</li>
+  <li>If a rack can't proceed (missing items, awaiting decision), open it and set a <b>Hold</b> instead of leaving it sitting unmoved.</li>
+</ol>
+
+<div class="callout example"><span class="label">Example</span>A Sorter opens Racks (pre-filtered to Unpacking &amp; Sorting + Ready for their role). They finish sorting RC-0301 and click "Move to Sorted →" directly from the card — no need to open the rack detail page for a routine advance.</div>
+
+<div class="callout mistake"><span class="label">Common Mistake</span>Searching for a rack by typing its full code with the wrong prefix/format. The search matches partial text — try just the numeric portion (e.g. "0301") if the full code doesn't return results.</div>
+
+<h3>Troubleshooting</h3>
+<ul>
+  <li><b>Empty queue with a friendly message</b> (e.g. "Queue clear — all racks sorted," "Nothing to lot right now," "No racks ready for pickup"): this is normal — it means your stage has no backlog right now.</li>
+  <li><b>No "Move to..." button on a card:</b> either you're Front Desk (view-only) or the rack is already Completed.</li>
+</ul>
+
+<h2 class="feature" id="s4-9"><span class="feature-num">4.9</span> Rack Detail</h2>
+<div class="meta-box"><b>URL:</b> <code>/racks/[id]</code> &nbsp; <b>Who uses it:</b> Everyone — the core working screen for a single rack</div>
+
+<h3>Overview</h3>
+<p>Everything about one rack: its identity, current stage, history, notes, hold status, zone, and every action available to move it forward.</p>
+
+<h3>Main Functions</h3>
+<ul>
+  <li><b>Header:</b> auction-color dot (click to change color), rack code, auction date chip, status badge, urgency badge (HOLD / Needs attention), consigner name + J-Number, "created {time ago}."</li>
+  <li><b>"Edit"</b> — opens a form to change the Rack ID and/or re-link the rack to a different delivery/consigner (search by consigner, J-Number, or code; or pick "— Custom consigner (no delivery) —"). Save / Cancel / Clear.</li>
+  <li><b>Priority picker</b> — appears only when advancing from Unpacking &amp; Sorting → Sorted: checkbox "High priority," then "Confirm Sorted" / "Cancel."</li>
+  <li><b>Revert ("←")</b> — moves the rack back one stage. Admin and advance-capable roles only; requires "← Confirm."</li>
+  <li><b>"Move to {Next Stage} →"</b> — the primary advance action (red if critical, orange otherwise). Hidden for Front Desk.</li>
+  <li><b>Delete (trash icon)</b> — requires "Confirm." Hidden for Front Desk.</li>
+  <li><b>Zone quick-pick:</b> three one-click buttons for the fixed zones <b>"C"</b> (Sorting Room), <b>"B"</b> (Lotting Room), <b>"H"</b> (Hallway) — click to assign, click again to clear — plus a dropdown for any other zone (shows occupancy count) with a "— Clear zone —" option.</li>
+  <li><b>Hold section:</b> if held, shows a blue "On Hold" panel with the reason, "since {time}," and "Clear hold." To start a hold, pick a reason from the dropdown (Waiting on remaining boxes, Awaiting director review, Donation/sell decision, Mixed inventory, Space issue, Pickup blocked, Other) and click "Apply Hold."</li>
+  <li><b>Operational Notes:</b> pinned amber note cards with timestamps and delete icons.</li>
+  <li><b>Secondary actions row:</b>
+    <ul>
+      <li><b>"Print label"</b> → opens the Print Label page (Section 4.10).</li>
+      <li><b>"Hold"/"Clear Hold"</b> toggle (hidden for Front Desk).</li>
+      <li><b>"Note"</b> toggle — type into "Pin a note…" and press Enter or "Pin" (Escape to close).</li>
+      <li><b>"Consigner +"/"Consigner (N)"</b> dropdown — add additional consigners to this rack (creates a <span class="badge b-violet">mixed</span> rack), each with its own "Print label" link and "×" to remove.</li>
+    </ul>
+  </li>
+  <li><b>Pipeline Progress</b> — a horizontal 6-step diagram; current stage highlighted orange.</li>
+  <li><b>Time Per Stage</b> — every stage the rack has passed through (or is in now) with its duration; tags "current"/"delayed"/"over {threshold}" as relevant.</li>
+  <li><b>History (right column)</b> — chronological log: "{From} → {To}", who did it, and when. "No status changes yet" if brand new.</li>
+</ul>
+
+<h3>Step-by-Step: Advancing a Rack with High Priority</h3>
+<ol>
+  <li>Open the rack (e.g. by scanning its label).</li>
+  <li>Click <b>"Move to Sorted →"</b>.</li>
+  <li>The priority picker appears — check <b>"High priority"</b> if this consigner's items need to be expedited.</li>
+  <li>Click <b>"Confirm Sorted."</b> The rack now shows an amber "high" badge everywhere it appears.</li>
+</ol>
+
+<h3>Step-by-Step: Placing a Rack on Hold</h3>
+<ol>
+  <li>Open the rack and click <b>"Hold."</b></li>
+  <li>Choose the most accurate reason from the dropdown (e.g. "Awaiting director review").</li>
+  <li>Click <b>"Apply Hold."</b> The rack now shows a blue HOLD badge everywhere and is excluded from "needs attention" counts.</li>
+  <li>When the blocker is resolved, return to the rack and click <b>"Clear Hold."</b></li>
+</ol>
+
+<div class="callout example"><span class="label">Example</span>RC-0312 contains a mix of two estates that arrived on the same truck and got loaded onto one rack by mistake. Staff use <b>"Consigner +"</b> to add the second consigner, creating a "mixed" rack, and print a separate label for each consigner so both can be tracked and billed correctly.</div>
+
+<div class="callout practice"><span class="label">Best Practice</span>Use the zone quick-pick buttons (C/B/H) for racks that are physically in the Sorting Room, Lotting Room, or Hallway — it's one click instead of searching the full zone dropdown.</div>
+
+<h3>Troubleshooting</h3>
+<ul>
+  <li><b>No "Move to..." button:</b> Front Desk role is view-only on racks, or the rack is already Completed.</li>
+  <li><b>Accidentally advanced a rack too far:</b> use the <b>"←"</b> revert button (requires confirmation) — note this is hidden for Front Desk.</li>
+  <li><b>Rack shows red "Needs attention" but work is actually blocked, not forgotten:</b> apply a <b>Hold</b> with the correct reason — this removes it from the urgent overdue list and documents <i>why</i> for anyone reviewing it later.</li>
+</ul>
+
+<h2 class="feature" id="s4-10"><span class="feature-num">4.10</span> Print Label</h2>
+<div class="meta-box"><b>URL:</b> <code>/racks/[id]/label</code> &nbsp; <b>Who uses it:</b> Everyone (reached from Create Rack, Racks, or Rack Detail)</div>
+
+<h3>Overview</h3>
+<p>A print-friendly label for one rack, including its QR code, rack code, consigner/J-Number, and delivery info — for physical tagging.</p>
+
+<h3>Main Functions</h3>
+<ul>
+  <li><b>"← Back"</b> — returns to the previous page.</li>
+  <li><b>"Print label"</b> — opens your browser/device print dialog.</li>
+  <li><b>"Add to queue" / "In print queue"</b> toggle — add or remove this label from the batch Print Queue (Section 4.20). Not shown when viewing an "extra consigner" label variant (for mixed racks) — instead shows "Extra consigner label — {name}."</li>
+  <li><b>Helper text:</b> "Set scale to 100% and disable headers/footers in your print dialog."</li>
+</ul>
+
+<h3>Step-by-Step: Printing a Single Label</h3>
+<ol>
+  <li>From a rack, click <b>"Print label."</b></li>
+  <li>Click <b>"Print label"</b> on this page.</li>
+  <li>In the browser's print dialog, set scale to <b>100%</b> and turn off headers/footers, then print.</li>
+</ol>
+
+<div class="callout tip"><span class="label">Tip</span>If you're labeling several racks at once, use <b>"Add to queue"</b> on each and print them all together from the Label Print Queue (Section 4.20) instead of printing one at a time.</div>
+
+<h3>Troubleshooting</h3>
+<ul>
+  <li><b>Label prints with extra margins/headers:</b> adjust your print dialog settings — scale to 100%, headers/footers off, as noted on the page.</li>
+  <li><b>QR code doesn't scan:</b> reprint at 100% scale — scaling down can shrink the QR code below a scannable size.</li>
+</ul>
+
+<h2 class="feature" id="s4-11"><span class="feature-num">4.11</span> Needs Attention</h2>
+<div class="meta-box"><b>URL:</b> <code>/racks/needs-attention</code> &nbsp; <b>Who uses it:</b> Everyone, but primarily Supervisors</div>
+
+<h3>Overview</h3>
+<p>A dedicated escalation list of every rack that has exceeded its stage time limit (excluding held and completed racks) — the single best page for "what's falling behind?"</p>
+
+<h3>Main Functions</h3>
+<ul>
+  <li><b>Header:</b> "{N} racks over their stage time limit" or "All racks are within time limits." <b>"← All racks"</b> returns to the Racks queue.</li>
+  <li><b>Empty state:</b> green checkmark, "All racks are on track."</li>
+  <li><b>Grouped list:</b> racks grouped by current stage (in pipeline order); each group shows the stage badge, count, and "(scheduled wait)" note if the stage is Ready or Pickup.</li>
+  <li><b>Rack cards:</b> rack code, red pulsing "high" tag if also high priority, consigner name, a link to the parent delivery, and on the right — time spent in stage (red if high-priority/critical, amber otherwise) labeled "in stage." Sorted longest-overdue first within each group.</li>
+</ul>
+
+<h3>Step-by-Step: Clearing the Needs Attention List</h3>
+<ol>
+  <li>Open Needs Attention from the Dashboard alert or the Racks page's "Needs Attention" pill.</li>
+  <li>Work through each group, starting with the stage that has the most racks or the longest times.</li>
+  <li>For each rack: open it, determine why it's stuck.
+    <ul>
+      <li>If it's genuinely behind — assign staff to do the work and advance it.</li>
+      <li>If it's blocked for a legitimate reason — apply a <b>Hold</b> with the correct reason so it stops appearing here.</li>
+    </ul>
+  </li>
+  <li>Re-check the list after each batch of work — it updates live.</li>
+</ol>
+
+<div class="callout example"><span class="label">Example</span>Needs Attention shows 4 racks in "Lotting" all over 16 hours. A Supervisor pulls a second Lotter onto the floor for the afternoon; by end of day the group is empty.</div>
+
+<h3>Troubleshooting</h3>
+<ul>
+  <li><b>A rack that's clearly being worked on still shows here:</b> the time limit is based on when it <i>entered</i> the current stage, not active work time — if it's genuinely in progress but will take longer, consider a Hold with a note explaining the delay.</li>
+  <li><b>"Ready"/"Pickup" racks showing here unexpectedly:</b> these are "waiting stages" with longer limits (14 and 7 business days respectively) — if they appear, they've been waiting an unusually long time and likely need a decision (e.g. missed their auction date).</li>
+</ul>
+
+<h2 class="feature" id="s4-12"><span class="feature-num">4.12</span> Zones (Floor Plan)</h2>
+<div class="meta-box"><b>URL:</b> <code>/zones</code> &nbsp; <b>Who uses it:</b> Everyone</div>
+
+<h3>Overview</h3>
+<p>A visual map of the entire warehouse and gallery, showing what's happening in every physical zone at a glance.</p>
+
+<h3>Main Functions</h3>
+<ul>
+  <li><b>"Add zone"/"Cancel"</b> toggle — form with "Zone code (e.g. A3, C2)" and "Description (optional)," button "Create zone." Validates non-blank, non-duplicate names.</li>
+  <li><b>Floor plan layout:</b> two sections — <b>"Gallery"</b> (G4–G7, PU, G2, G1, with hallway dividers) and <b>"Warehouse"</b> (W1–W10, B, C, H, with hallway dividers), separated by a "court" divider.</li>
+  <li><b>Zone cells</b> (clickable → Zone Detail), color-coded:
+    <ul>
+      <li><b>Fixed utility zones (H, B, C):</b> gray, with fixed labels "Warehouse Hallway," "Lotting Room," "Sorting Room" + rack chips.</li>
+      <li><b>PU:</b> violet "Pick-Up" cell with rack chips.</li>
+      <li><b>Delivery "Arrived":</b> sky-blue, "Arrived" badge + J-Number/consigner + rack chips.</li>
+      <li><b>Delivery "Processing":</b> emerald, "Processing" badge + consigner info + rack chips.</li>
+      <li><b>Delivery "Scheduled":</b> blue, "Scheduled" badge + consigner info + date.</li>
+      <li><b>Reserved:</b> amber, with the reservation reason.</li>
+      <li><b>Auction color set:</b> stone background with a colored dot + auction date.</li>
+      <li><b>Empty:</b> dashed border, faded, zone name only.</li>
+    </ul>
+  </li>
+  <li><b>Rack chips:</b> small colored tags showing rack codes (colored by auction color if set), capped at 6 with "+N" overflow.</li>
+</ul>
+
+<h3>Step-by-Step: Adding a New Zone</h3>
+<ol>
+  <li>Click <b>"Add zone."</b></li>
+  <li>Enter a unique zone code (e.g. <code>W11</code>) and an optional description.</li>
+  <li>Click <b>"Create zone."</b> It appears on the floor plan, empty/faded, ready to be assigned a purpose.</li>
+</ol>
+
+<h2 class="feature" id="s4-13"><span class="feature-num">4.13</span> Zone Detail &amp; Pick-Up Layout</h2>
+<div class="meta-box"><b>URL:</b> <code>/zones/[id]</code> &nbsp; <b>Who uses it:</b> Everyone</div>
+
+<h3>Overview</h3>
+<p>Manage what a single zone is being used for, and see/manage every rack stored there. The Pick-Up zone (<code>PU</code>) has a special drag-and-drop layout instead of the standard view.</p>
+
+<h3>Main Functions — Standard Zones</h3>
+<ul>
+  <li><b>Header:</b> "← Zones" back link, zone name, subtitle (fixed label or assigned consigner). <b>"Edit"</b> toggles the purpose-editing panel.</li>
+  <li><b>Purpose picker</b> (shown for empty zones or when editing) — four cards:
+    <ul>
+      <li><b>"Active delivery"</b> — pick from a dropdown of arrived/processing deliveries, then <b>"Assign."</b></li>
+      <li><b>"Scheduled"</b> — enter "Consigner name," "J-Number (optional)," "Scheduled date (optional)," then <b>"Schedule"</b> — creates a new scheduled delivery and assigns it to this zone.</li>
+      <li><b>"Auction"</b> — pick an auction color, then <b>"Set auction"</b> — marks this zone as staging for that auction run.</li>
+      <li><b>"Reserved"</b> — optional "Reason (optional — e.g. Holding for Whitmore)," then <b>"Reserve zone."</b></li>
+    </ul>
+  </li>
+  <li><b>Current purpose pill</b> shows "Reserved · {reason}" and/or "Auction · {date}." <b>"Clear purpose"</b> removes the assignment.</li>
+  <li><b>Rack list</b> "Racks in {zone} (N)": header links <b>"+ Delivery"</b> (→ Deliveries) and <b>"+ Rack"</b> (→ Racks, pre-filtered to this zone). Each rack card shows auction-color dot, code, delayed/high tags, consigner + J-Number, stage progress strip, status badge, "Edit," and <b>"Next"</b> to advance.</li>
+</ul>
+
+<h3>Main Functions — PU (Pick-Up) Zone</h3>
+<p>Opening the zone named <code>PU</code> shows a full-screen, two-panel drag-and-drop layout:</p>
+<ul>
+  <li><b>Top bar:</b> "← Zones," "Pick-Up" title, rack count badge, and an <b>Auction color picker</b> applying a global color to the whole zone.</li>
+  <li><b>Left panel:</b> "Search rack…" box, and every active rack as a draggable card. Each card has a <b>"Complete"</b> button (advances the rack out of Pickup) and a link icon to open its detail page. Search matches pulse/highlight in violet.</li>
+  <li><b>Right panel "Pick-Up Layout":</b> a grid of labeled physical slots (R1–R6, sub-positions like R6·1, plus combined footer slots "R5-R4" and "R2-R1"). <b>Drag</b> a rack card onto a slot to place it physically; an <b>"✕"</b> on a placed rack removes it. Dropping onto an occupied slot evicts the previous rack.</li>
+</ul>
+
+<h3>Step-by-Step: Assigning a Zone to an Arriving Delivery</h3>
+<ol>
+  <li>Open the empty zone closest to where the delivery will be unloaded.</li>
+  <li>Click <b>"Edit"</b> (or it may already show the purpose picker if empty).</li>
+  <li>Choose <b>"Active delivery,"</b> select the delivery from the dropdown, and click <b>"Assign."</b></li>
+  <li>The zone now shows the delivery's status and consigner — racks created for this delivery can be assigned here via the rack's zone quick-pick or dropdown.</li>
+</ol>
+
+<h3>Step-by-Step: Organizing the Pick-Up Floor</h3>
+<ol>
+  <li>Open the <code>PU</code> zone from the Zones map.</li>
+  <li>Use <b>"Search rack…"</b> to find a specific rack in the left panel.</li>
+  <li><b>Drag</b> its card onto the physical slot (e.g. R3) where it's actually been placed on the floor.</li>
+  <li>When a rack is collected for the auction, click <b>"Complete"</b> on its card — it advances out of Pickup and disappears from the layout.</li>
+</ol>
+
+<div class="callout example"><span class="label">Example</span>Before Friday's auction, the Pickup team drags each "Green" auction-color rack from the left panel into slots R1 through R6 in the order they'll be loaded onto the truck, matching the physical staging order on the floor.</div>
+
+<div class="callout mistake"><span class="label">Common Mistake</span>Dragging a rack onto a slot that already has a rack in it. This silently evicts the previous rack from that slot (it returns to the unplaced list) — always check a slot is empty, or intentionally swap, before dropping.</div>
+
+<h3>Troubleshooting</h3>
+<ul>
+  <li><b>Can't add a zone's "Active delivery"</b> — the dropdown only lists deliveries with status Arrived or Processing; Scheduled deliveries aren't eligible until they arrive.</li>
+  <li><b>PU layout drag-and-drop not working on mobile:</b> try a larger screen/tablet — drag-and-drop layouts work best with more screen space; you can still use "Complete" and search without dragging.</li>
+</ul>
+
+<h2 class="feature" id="s4-14"><span class="feature-num">4.14</span> Lotting Queue</h2>
+<div class="meta-box"><b>URL:</b> <code>/lotting</code> &nbsp; <b>Who uses it:</b> Lotter, Admin</div>
+
+<h3>Overview</h3>
+<p>Shows racks ready to be lotted and racks currently being lotted, ordered by urgency and wait time — the Lotter's home page.</p>
+
+<h3>Main Functions</h3>
+<ul>
+  <li><b>Header:</b> "Lotting queue" + a pill with the total rack count.</li>
+  <li><b>Operational alerts</b> (only if triggered):
+    <ul>
+      <li><b>Critical (red):</b> "Lotting queue overloaded — N racks" if total exceeds 15, with "Exceeds max daily capacity. Add staff or extend hours."</li>
+      <li><b>Warning (amber):</b> "Lotting queue high — N racks" if above the recommended daily threshold (10).</li>
+    </ul>
+  </li>
+  <li><b>Empty state:</b> green checkmark, "Lotting queue is clear — No racks waiting to be lotted."</li>
+  <li><b>"Ready to lot" section</b> (status = Sorted): numbered cards (#1, #2…) with rack code, consigner, zone, time in "Sorted," delivery link, and urgency badges. <b>"Start lotting"</b> advances Sorted → Lotting with a toast confirmation.</li>
+  <li><b>"Currently lotting" section</b> (status = Lotting): same layout, shows "In lotting [time]." <b>"Mark ready"</b> advances Lotting → Ready.</li>
+  <li>Cards have a colored left border: red = needs attention, amber = high priority, orange = normal, gray = low priority.</li>
+</ul>
+
+<h3>Step-by-Step: Working the Lotting Queue</h3>
+<ol>
+  <li>Open Lotting — your home page.</li>
+  <li>If a red/amber alert banner is showing, flag it to a Supervisor (it may need extra staffing).</li>
+  <li>Work <b>"Ready to lot"</b> top to bottom (it's pre-sorted by urgency/wait time). Click <b>"Start lotting"</b> when you begin physical work on a rack.</li>
+  <li>When a rack's lots are fully built, click <b>"Mark ready"</b> in the "Currently lotting" section.</li>
+</ol>
+
+<div class="callout practice"><span class="label">Best Practice</span>Click "Start lotting" when you <i>begin</i> working a rack, not after — this keeps the "Currently lotting" section accurate for anyone checking progress, and keeps Stage Velocity numbers meaningful for Managers.</div>
+
+<h3>Troubleshooting</h3>
+<ul>
+  <li><b>Queue overloaded alert:</b> escalate to a Supervisor — this is exactly the situation the alert exists to catch early.</li>
+  <li><b>A rack I started is missing from "Currently lotting":</b> confirm you clicked "Start lotting" (not just opened the rack) — only that action moves it from Sorted to Lotting.</li>
+</ul>
+<h2 class="feature" id="s4-15"><span class="feature-num">4.15</span> Pick-Up Page</h2>
+<div class="meta-box"><b>URL:</b> <code>/pickup</code> &nbsp; <b>Who uses it:</b> Pickup, Admin</div>
+
+<h3>Overview</h3>
+<p>This page is a simple redirect — the Pickup role's "Pick-Up" link automatically forwards to the Zone Detail page for the zone named <code>PU</code> (Section 4.13), where the drag-and-drop layout and "Complete" buttons live. You'll briefly see "Loading Pick-Up zone…" before being redirected.</p>
+
+<h3>Troubleshooting</h3>
+<ul>
+  <li><b>"Pick-Up zone not found. Ask an admin to create a zone named 'PU'."</b> — An Administrator needs to create a zone with the exact code <code>PU</code> on the Zones page (Section 4.12) for this redirect to work.</li>
+</ul>
+
+<h2 class="feature" id="s4-16"><span class="feature-num">4.16</span> Dumpsters</h2>
+<div class="meta-box"><b>URL:</b> <code>/dumpsters</code> &nbsp; <b>Who uses it:</b> Admin (Managers)</div>
+
+<h3>Overview</h3>
+<p>Tracks fill levels of trash dumpsters for customer trash billing — logs how much of a dumpster's capacity each consigner's discarded items use, and records dumpster swaps.</p>
+
+<h3>Main Functions</h3>
+<ul>
+  <li><b>Dumpster cards:</b> name, "Arrived [date] · Nd in service," fill percentage (green ≤50%, amber 51–80%, red &gt;80%), a visual roll-off graphic with a fill bar, and <b>"+ Add"</b> / <b>"Swap dumpster"</b> buttons.</li>
+  <li><b>"+ Add" form:</b>
+    <ul>
+      <li>Filter pills: Active / Completed / All (filters the delivery picker below).</li>
+      <li>"Search consigner or delivery code…" box.</li>
+      <li>A scrollable list of deliveries, plus <b>"Operational use — not tied to a delivery"</b> at the top. Each row shows consigner, J-Number/code, and a status dot.</li>
+      <li>The dumpster graphic becomes <b>draggable</b> — drag upward to set the fill % to add (shown as an orange "+X% new" overlay), or type the percent directly.</li>
+      <li><b>"Add"</b> / "Cancel." Validation: "Select a delivery, or choose Operational use." / "Drag the dumpster (or enter a percent) to add."</li>
+    </ul>
+  </li>
+  <li><b>"Swap dumpster":</b> shows <b>"Confirm swap"</b> (red) / "Cancel." Confirming resets the dumpster to empty and logs a "swap" entry.</li>
+  <li><b>Activity log:</b> chronological entries — "Add" (gray badge, e.g. "Whitmore Estates +15% → Dumpster 2") or "Swap" (blue badge, e.g. "Dumpster 2 swapped at 92%"), each with time-ago and a delete icon.</li>
+</ul>
+
+<h3>Step-by-Step: Logging Trash from a Delivery</h3>
+<ol>
+  <li>Open <b>Dumpsters</b> and find the dumpster the items went into.</li>
+  <li>Click <b>"+ Add."</b></li>
+  <li>Search for and select the relevant delivery (or "Operational use" for warehouse trash not tied to a customer).</li>
+  <li>Drag the dumpster graphic up to estimate the % of space used, or type the number directly.</li>
+  <li>Click <b>"Add."</b> This percentage now also appears as "Trash %" on that delivery's Outcome section (Section 4.4).</li>
+</ol>
+
+<h3>Step-by-Step: Swapping a Full Dumpster</h3>
+<ol>
+  <li>When a dumpster is hauled away and replaced, click <b>"Swap dumpster"</b> on its card.</li>
+  <li>Click <b>"Confirm swap."</b> The dumpster resets to 0% and "Nd in service" restarts; the activity log records the swap at its prior fill %.</li>
+</ol>
+
+<div class="callout example"><span class="label">Example</span>Dumpster 1 sits at 92% (red). The hauling company swaps it Monday morning. The Manager clicks "Swap dumpster" → "Confirm swap" — the card resets to 0% and the activity log shows "Dumpster 1 swapped at 92%" for the records.</div>
+
+<div class="callout practice"><span class="label">Best Practice</span>Log dumpster additions as they happen, attributed to the correct delivery — this is the data source for customer trash billing. Use "Operational use" only for genuinely non-customer trash (packing materials, broken pallets, etc.).</div>
+
+<h2 class="feature" id="s4-17"><span class="feature-num">4.17</span> Reports</h2>
+<div class="meta-box"><b>URL:</b> <code>/reports</code> &nbsp; <b>Who uses it:</b> Admin only (Managers/Administrators) — others are redirected away</div>
+
+<h3>Overview</h3>
+<p>The CSV export hub and weekly auction-cycle management page.</p>
+
+<h3>Main Functions — Operational Exports</h3>
+<table>
+  <tr><th>Export</th><th>Description</th><th>Columns</th></tr>
+  <tr><td><b>All Deliveries</b></td><td>Delivery summary with progress and rack counts. Shows an "active" count badge.</td><td>delivery code, consigner, type, status, date, completed, auction date, expected racks, linked, done, progress %</td></tr>
+  <tr><td><b>Dumpsters</b></td><td>Every fill addition and swap, for trash-charge billing. Shows an "entries" count.</td><td>date, dumpster, type, consigner, j-number, percent, logged by</td></tr>
+</table>
+
+<h3>Main Functions — Detailed Exports</h3>
+<table>
+  <tr><th>Export</th><th>Description</th><th>Columns</th></tr>
+  <tr><td><b>All Racks</b></td><td>Full rack list with current status, priority, zone, and stuck flag. Shows an "active" count badge.</td><td>rack code, consigner, status, priority, zone, delivery, created, updated, time in stage, stuck</td></tr>
+  <tr><td><b>Stage Durations</b></td><td>Per-rack breakdown of time spent at each pipeline stage — one row per stage per rack.</td><td>rack code, consigner, stage, entered, exited, duration, threshold, over threshold</td></tr>
+</table>
+<p>Click <b>"Export"</b> on any card to download its CSV.</p>
+
+<h3>Main Functions — Cycle Management</h3>
+<ul>
+  <li><b>"Close Auction Cycle" card</b> shows a "N completed" badge if any racks are completed.</li>
+  <li>Description: "Archives all completed racks, clearing them from active operational views. Archived racks are preserved for historical reporting. Run this at the end of each weekly auction cycle."</li>
+  <li><b>"Close cycle"</b> → amber confirmation bar: "Archive N completed rack(s)? This cannot be undone." with <b>"Confirm"</b> / "Cancel."</li>
+  <li>After confirming: green success message "Auction cycle closed — N rack(s) archived." (or "No completed racks to archive.")</li>
+</ul>
+
+<h3>Step-by-Step: Weekly Reporting Routine</h3>
+<ol>
+  <li>Before closing the cycle, export <b>"All Racks"</b> and <b>"Stage Durations"</b> for the week's performance review.</li>
+  <li>Export <b>"Dumpsters"</b> for billing.</li>
+  <li>Export <b>"All Deliveries"</b> if needed for customer-facing summaries.</li>
+  <li>Once all of the week's completed racks have been reviewed/exported, click <b>"Close cycle"</b> → <b>"Confirm"</b> to archive them.</li>
+</ol>
+
+<div class="callout fix"><span class="label">Important</span>Closing the auction cycle <b>cannot be undone</b>. Export any reports you need <i>before</i> confirming — archived racks no longer appear in active dashboards/exports of "active" data, though they remain in the database for historical reporting.</div>
+
+<div class="callout mistake"><span class="label">Common Mistake</span>Closing the cycle mid-week because the "N completed" badge looks high. Completed racks don't cause problems sitting in the active view — only close the cycle on your normal weekly schedule, after exporting whatever reports you need for that week.</div>
+
+<h2 class="feature" id="s4-18"><span class="feature-num">4.18</span> Search</h2>
+<div class="meta-box"><b>URL:</b> <code>/search</code> &nbsp; <b>Who uses it:</b> Everyone</div>
+
+<h3>Overview</h3>
+<p>Universal search across Zones, Deliveries, and Racks. Press <code>/</code> from anywhere to jump here with the search box focused.</p>
+
+<h3>Main Functions</h3>
+<ul>
+  <li><b>Search box:</b> "Search racks, consigners, deliveries, zones…"</li>
+  <li><b>Filter pills</b> (once typing): All / Zones / Racks / Deliveries.</li>
+  <li><b>Empty state</b> (no query): "Quick access" links — All racks, Lotting queue, Deliveries, Zones — plus a "Search by" example grid: rack code (<code>RC-0042</code>), consigner (<code>Smith Auctions</code>), delivery (<code>DEL-0008</code>), zone (<code>B</code>, <code>OVF</code>, <code>Hall</code>).</li>
+  <li><b>No results:</b> "No results for '[query]'" with a tip to check spelling or try a code/name.</li>
+  <li><b>Results</b> grouped by Zones, Deliveries, Racks with counts:
+    <ul>
+      <li>Zone rows → Zone Detail.</li>
+      <li>Delivery rows (J-Number/code, status, consigner, rack count) → Delivery Detail.</li>
+      <li>Rack rows (code, status, time in stage, delivery link, urgency tags) → Rack Detail.</li>
+    </ul>
+  </li>
+</ul>
+
+<div class="callout tip"><span class="label">Tip</span>Press <code>/</code> on your keyboard from any page to jump straight into Search with the cursor ready — faster than clicking the nav link.</div>
+
+<h2 class="feature" id="s4-19"><span class="feature-num">4.19</span> Scan</h2>
+<div class="meta-box"><b>URL:</b> <code>/scan</code> &nbsp; <b>Who uses it:</b> All warehouse roles (Unpacker, Sorter, Lotter, Pickup, Admin) — mobile only</div>
+
+<h3>Overview</h3>
+<p>A camera-based QR scanner for opening a rack's detail page by scanning its printed label — the fastest way to pull up a rack on the floor.</p>
+
+<h3>Main Functions</h3>
+<ul>
+  <li><b>"Scan Rack"</b> header — "Point camera at a rack label QR code."</li>
+  <li><b>Camera viewfinder:</b> live feed with a scan target box.
+    <ul>
+      <li>"Starting camera…" spinner while initializing.</li>
+      <li>"Scanning…" pill while actively looking for a code.</li>
+      <li>Green checkmark "Detected" overlay on success — auto-opens the rack's page after ~350ms.</li>
+      <li>"Camera access denied" — instructions to allow camera access in device settings.</li>
+      <li>"Unable to start camera" — for other camera errors.</li>
+    </ul>
+  </li>
+  <li><b>"Scanned this session"</b> list — every rack you've scanned this visit (code, consigner, time-ago), each linking to its detail page.</li>
+</ul>
+<p>Only QR codes that encode a link to a rack's page are recognized — other QR codes are ignored.</p>
+
+<h3>Step-by-Step: Scanning a Rack</h3>
+<ol>
+  <li>Open <b>Scan</b> from the bottom navigation bar.</li>
+  <li>Allow camera access if prompted (first time only).</li>
+  <li>Point your camera at the rack's printed QR label until "Detected" appears.</li>
+  <li>You'll be taken straight to that rack's detail page.</li>
+</ol>
+
+<h3>Troubleshooting</h3>
+<ul>
+  <li><b>"Camera access denied":</b> go to your device's Settings → app/browser permissions → enable Camera for FlowOps, then reopen Scan.</li>
+  <li><b>Won't detect the label:</b> ensure good lighting and that the label was printed at 100% scale (Section 4.10) — undersized QR codes are hard to read.</li>
+  <li><b>Scanned the wrong thing / nothing happens:</b> Scan only recognizes FlowOps rack QR codes — other barcodes/QR codes are ignored.</li>
+</ul>
+
+<h2 class="feature" id="s4-20"><span class="feature-num">4.20</span> Label Print Queue</h2>
+<div class="meta-box"><b>URL:</b> <code>/labels/queue</code> &nbsp; <b>Who uses it:</b> Everyone who prints labels (Unpacker, Sorter, Lotter, Admin)</div>
+
+<h3>Overview</h3>
+<p>A holding area for rack labels queued from the Create Rack page or any rack's "Queue"/"Add to queue" button — print them all in one batch.</p>
+
+<h3>Main Functions</h3>
+<ul>
+  <li><b>Header:</b> "Print Queue" + "No labels queued" or "N label(s) ready to print."</li>
+  <li><b>"Clear all"</b> — empties the queue.</li>
+  <li><b>"Print all"</b> — opens the print dialog with all queued labels, one per page.</li>
+  <li><b>Queue list:</b> each row shows an auction-color dot (if set), rack code, consigner + J-Number, and:
+    <ul>
+      <li><b>"Print"</b> — prints just that one label.</li>
+      <li><b>"Remove"</b> — removes it from the queue without printing.</li>
+    </ul>
+  </li>
+  <li><b>Empty state:</b> "Queue is empty" with instructions to check "Add to print queue" when creating racks, or use the queue button on a rack detail page; "Go to racks →" link.</li>
+  <li><b>Bottom hint</b> (when non-empty): "Set scale to 100% and disable headers/footers in your print dialog," plus another "Print all" button.</li>
+</ul>
+
+<h3>Step-by-Step: Batch-Printing Labels After an Unpacking Session</h3>
+<ol>
+  <li>While creating racks on the Create Rack page, leave "Add to print queue" checked for each (it's checked by default).</li>
+  <li>When you're done for this batch, tap the floating <b>Print Queue badge</b> or navigate to <b>Label Print Queue</b>.</li>
+  <li>Review the list — use "Remove" on any rack you don't need a label for right now.</li>
+  <li>Click <b>"Print all,"</b> set scale to 100% and disable headers/footers, then print.</li>
+  <li>The queue clears automatically as labels are printed, or click <b>"Clear all"</b> to empty it manually.</li>
+</ol>
+
+<h2 class="feature" id="s4-21"><span class="feature-num">4.21</span> User Management (Admin)</h2>
+<div class="meta-box"><b>URL:</b> <code>/admin/users</code> &nbsp; <b>Who uses it:</b> Administrators only</div>
+
+<h3>Overview</h3>
+<p>Manage who can sign in to FlowOps and which roles they're granted.</p>
+
+<h3>Main Functions</h3>
+<ul>
+  <li><b>Header:</b> "User management" + user count, with an <b>"Invite user"</b> button.</li>
+  <li><b>User table:</b> columns User (email), Roles (colored chips — Admin red, Front Desk sky, Unpacker violet, Sorter teal, Lotter amber, Pickup emerald), Last sign-in date, and an <b>"Edit"</b> link per row.</li>
+  <li><b>"Invite user" modal:</b>
+    <ul>
+      <li>"Email address" (placeholder <code>worker@warehouse.com</code>).</li>
+      <li>"Roles" — toggleable chips, multi-select, for all six roles.</li>
+      <li>"Default role" — appears once 2+ roles are selected; choose which page they land on after login.</li>
+      <li><b>"Send invite"</b> — shows "Invite sent!" on success. The user receives a magic link to set their password.</li>
+      <li>"Cancel" closes the modal.</li>
+    </ul>
+  </li>
+  <li><b>"Edit" modal</b> (per user): shows the user's email, "Edit role assignments."
+    <ul>
+      <li>"Granted roles" — same role-toggle chips.</li>
+      <li>"Default role (on login)" — pick among currently granted roles (checkmark shows current).</li>
+      <li><b>"Save"</b> — updates roles/default role. Validation: must have at least one role and a default role.</li>
+      <li>"Cancel" closes without saving.</li>
+    </ul>
+  </li>
+</ul>
+
+<h3>Step-by-Step: Onboarding a New Warehouse Employee</h3>
+<ol>
+  <li>Go to <b>User Management</b> and click <b>"Invite user."</b></li>
+  <li>Enter their work email.</li>
+  <li>Select the role(s) matching their job (e.g. just <b>"Unpacker"</b> for a new unpacking hand).</li>
+  <li>If you selected more than one role, choose their <b>Default role</b> — the one they'll land on at login.</li>
+  <li>Click <b>"Send invite."</b> They'll receive an email with a magic link to set their password.</li>
+</ol>
+
+<h3>Step-by-Step: Changing Someone's Roles (e.g. Promotion to Supervisor)</h3>
+<ol>
+  <li>Find their row in the user table and click <b>"Edit."</b></li>
+  <li>Toggle on <b>"Admin"</b> (and toggle off prior roles if they should no longer use them).</li>
+  <li>Set the <b>Default role</b> to "Admin" so they land on the Dashboard.</li>
+  <li>Click <b>"Save."</b></li>
+</ol>
+
+<div class="callout practice"><span class="label">Best Practice</span>Grant the minimum roles needed. A Sorter who occasionally helps with lotting can be given both "Sorter" and "Lotter" — they'll get a role switcher in the header to flip between the two queues, without needing Admin access.</div>
+
+<h3>Troubleshooting</h3>
+<ul>
+  <li><b>"Save" is disabled / shows an error:</b> every user needs at least one role AND a default role selected — if you removed their only role, add one back or remove the user instead (contact your Supabase administrator for account removal, which is outside this app).</li>
+  <li><b>Invited user never got the email:</b> check spam folders; confirm the email address was typed correctly before re-inviting.</li>
+  <li><b>User says they don't see the page they expect:</b> check their granted roles and default role here — their navigation and home page are entirely determined by their roles (Part 2).</li>
+</ul>
+
+<h2 class="feature" id="s4-22"><span class="feature-num">4.22</span> Backup &amp; Restore</h2>
+<div class="meta-box"><b>URL:</b> <code>/reports</code> (bottom section) &nbsp; <b>Who uses it:</b> Administrators only</div>
+
+<h3>Overview</h3>
+<p>A full-data safety net, separate from the CSV exports above. "Back up now" downloads one JSON file containing every zone, delivery, rack, status-history event, note, consigner record, dumpster, dumpster log entry, and auction color — everything needed to reconstruct FlowOps's operational data. "Restore from backup" loads one of those files back in.</p>
+
+<h3>Main Functions</h3>
+<ul>
+  <li><b>"Back up now"</b> — downloads <code>flowops-backup-YYYY-MM-DD-HHMM.json</code> to your device's downloads folder.</li>
+  <li><b>"Choose backup file…"</b> — opens a file picker. Selecting a valid FlowOps backup shows an amber confirmation bar with the file name and the date it was exported.</li>
+  <li><b>"Confirm restore"</b> — loads the file's data back into FlowOps. Existing records with matching IDs are updated in place; nothing is deleted. After it finishes, click <b>"Reload now"</b> to refresh the app with the restored data.</li>
+  <li><b>"Cancel"</b> — discards the selected file without restoring anything.</li>
+</ul>
+
+<h3>What's Backed Up — and What Isn't</h3>
+<table>
+  <tr><th>Included</th><th>Not Included</th></tr>
+  <tr><td>Zones, deliveries, racks (including archived), status history, notes, consigner records, dumpsters &amp; entries, auction colors</td><td>Delivery photos (image files live in cloud storage — back those up separately if needed)</td></tr>
+  <tr><td></td><td>User accounts and role assignments (managed on <b>User Management</b>, 4.21)</td></tr>
+</table>
+
+<h3>Step-by-Step: Making "Smart" Backups a Habit</h3>
+<ol>
+  <li>Pick a cadence that matches how much you'd hate to redo it — daily for a busy warehouse, weekly or biweekly for lighter operations. Many sites tie it to an existing routine, e.g. <b>right before the weekly "Close cycle"</b> (4.17).</li>
+  <li>Click <b>"Back up now"</b> and save the downloaded file somewhere durable — a shared drive or cloud storage folder, not just one laptop's downloads folder.</li>
+  <li>Name/organize files by date (the filename already includes a timestamp) and keep a few recent backups, not just the latest one — that way a bad restore or a mistake noticed a few days later can still be recovered from an earlier point.</li>
+</ol>
+
+<h3>Step-by-Step: Restoring After Data Loss</h3>
+<ol>
+  <li>On <b>Reports → Backup &amp; Restore</b>, click <b>"Choose backup file…"</b> and pick your most recent good backup.</li>
+  <li>Check the confirmation bar's export date — make sure it's the snapshot you intend to restore.</li>
+  <li>Click <b>"Confirm restore."</b> Wait for the success message.</li>
+  <li>Click <b>"Reload now"</b> so every page reflects the restored data.</li>
+</ol>
+
+<div class="callout fix"><span class="label">Important</span>Restoring overwrites any current record that shares an ID with the backup — if changes were made <i>after</i> the backup was taken, those changes are lost for that record. Restore is for recovering from data loss, not for everyday undo.</div>
+
+<div class="callout practice"><span class="label">Best Practice</span>A backup taken right before a risky action (like "Close Auction Cycle," 4.17) gives you a clean rollback point if something looks wrong afterward.</div>
+
+<!-- ============ PART 5 ============ -->
+<h1 class="part" id="part5"><span class="part-label">Part 5</span>Daily Workflows</h1>
+<p>This part walks through the most common end-to-end workflows, showing how the individual pages from Part 4 fit together across a real day.</p>
+
+<h2 id="s5-1">5.1 Starting a Workday</h2>
+<table>
+  <tr><th>Role</th><th>Lands on</th><th>First things to check</th></tr>
+  <tr><td>Front Desk</td><td>Front Desk Home (4.2)</td><td>Today's scheduled deliveries (Upcoming section); any overnight notes on active deliveries.</td></tr>
+  <tr><td>Unpacker / Sorter</td><td>Create Rack / Racks (4.7 / 4.8)</td><td>Racks page filtered to your stages — anything left over from yesterday at the top of the queue.</td></tr>
+  <tr><td>Lotter</td><td>Lotting Queue (4.14)</td><td>Check for an overload alert banner first — it tells you if you need help today before you start.</td></tr>
+  <tr><td>Pickup</td><td>Pick-Up zone (4.13 / 4.15)</td><td>Review the Pick-Up Layout for racks already placed; check "Ready" racks waiting to move into Pickup.</td></tr>
+  <tr><td>Supervisor / Manager / Admin</td><td>Dashboard (4.1)</td><td>Operational Alerts panel top to bottom — this is your priority list for the day (see 5.5).</td></tr>
+</table>
+<div class="callout practice"><span class="label">Best Practice</span>Everyone should glance at the <b>Racks → Held</b> filter at the start of the day — held racks don't show up as "needs attention," so they're easy to forget. A quick scan ensures nothing is sitting on hold for a reason that's already been resolved.</div>
+
+<h2 id="s5-2">5.2 Assigning Deliveries</h2>
+<p>This is the entry point for everything else — no racks can exist without a delivery (or a standalone consigner record).</p>
+<ol>
+  <li><b>Truck arrives unannounced (walk-in):</b> Front Desk uses the <b>"Walk-in"</b> button on Front Desk Home (4.2) or <b>"New delivery" → Walk-in tab</b> on the Deliveries list (4.3). Status starts at "Arrived."</li>
+  <li><b>Truck is expected later:</b> Front Desk uses <b>"Schedule delivery"</b> with a future date. Status starts at "Scheduled," and it shows up under "Upcoming" and on the Dashboard's "This week" forecast.</li>
+  <li><b>When a scheduled truck actually arrives:</b> open the delivery (it'll be in "Today" on Front Desk Home) and click <b>"Mark arrived."</b></li>
+  <li><b>When unpacking begins:</b> click <b>"Start processing"</b> on the delivery — this is the signal for warehouse staff that racks can now be created against it.</li>
+</ol>
+<div class="callout example"><span class="label">Example</span>"Hargrove Antiques" calls Wednesday to book a drop-off for Friday. Front Desk schedules it for Friday. Friday morning the truck arrives early — Front Desk finds it under "Today" (it shows as "Scheduled" with today's date), opens it, and clicks "Mark arrived," then "Start processing" once unloading begins.</div>
+
+<h2 id="s5-3">5.3 Assigning Racks</h2>
+<ol>
+  <li>Once a delivery is "Processing," Unpacking/Sorting staff go to <b>Create Rack (4.7)</b>.</li>
+  <li>In Step 1, search for and select the delivery (or its consigner).</li>
+  <li>In Step 2, set the auction color (if known), leave Status at "Unpacking &amp; Sorting," optionally enter a location-style Rack ID, and click <b>"Create rack &amp; add to print queue."</b></li>
+  <li>Repeat for every rack from this delivery — alternatively, racks can be pre-created from the delivery's own <b>"+ Add rack"</b> panel (4.4).</li>
+  <li>Assign each rack to a physical <b>zone</b> — either via the Rack Detail zone quick-pick (C/B/H buttons or dropdown, 4.9) or from the Zone Detail "+ Rack" link (4.13).</li>
+  <li>Print labels in a batch from the <b>Label Print Queue (4.20)</b> and physically attach them to each rack.</li>
+</ol>
+<div class="callout practice"><span class="label">Best Practice</span>Assign a zone to a rack as soon as it's physically placed, not at the end of the day from memory — anyone searching for that rack (including Front Desk answering a customer call) relies on the zone being accurate in real time.</div>
+
+<h2 id="s5-4">5.4 Managing Zones</h2>
+<ol>
+  <li><b>Before a delivery arrives:</b> a Supervisor or Front Desk can pre-assign an empty zone as that delivery's staging area — open the zone (4.13), choose <b>"Active delivery"</b> or <b>"Scheduled,"</b> and assign/schedule it.</li>
+  <li><b>During processing:</b> racks get assigned to that zone (or to the fixed C/B/H rooms as they move through Sorting/Lotting/Hallway) as described in 5.3.</li>
+  <li><b>For auction staging:</b> once a batch of racks is ready for a specific auction run, a zone can be set to that <b>Auction color</b> so everyone can see at a glance which run it's staging for.</li>
+  <li><b>Freeing a zone:</b> once a delivery is complete and its racks have moved to Pickup/Completed, use <b>"Clear purpose"</b> on the zone so it's available for the next delivery.</li>
+  <li><b>The Pick-Up zone (PU)</b> is managed separately via its drag-and-drop layout (4.13) — Pickup staff arrange racks into physical slots as they're staged for the auction floor, and click <b>"Complete"</b> as each rack is collected.</li>
+</ol>
+<div class="callout mistake"><span class="label">Common Mistake</span>Leaving a zone's purpose set to a completed delivery. The zone then looks "occupied" on the floor map and in the "+ Add zone" dropdown for other deliveries, even though it's physically empty. Always "Clear purpose" once a delivery's racks have all moved on.</div>
+
+<h2 id="s5-5">5.5 Monitoring Progress</h2>
+<p>This is primarily a Supervisor/Manager workflow, built around the Dashboard.</p>
+<ol>
+  <li>Start at the <b>Dashboard's Operational Alerts panel (4.1)</b> — it's ordered roughly by severity (critical/red first).</li>
+  <li>For "{N} racks need attention," click through to <b>Needs Attention (4.11)</b> and work the groups (4.11 step-by-step).</li>
+  <li>For "Lotting queue high/overloaded," check the <b>Lotting Queue (4.14)</b> and consider reassigning staff.</li>
+  <li>For "Pickup near capacity/overloaded," check the <b>PU zone (4.13)</b> — confirm racks are actually being collected on schedule, and consider pausing new racks moving to Pickup until space frees up.</li>
+  <li>For auction-date warnings ("{J#}: N racks need Ready before auction"), open that delivery and confirm with the Lotting team that those racks are prioritized.</li>
+  <li>Check <b>Stage Velocity</b> and <b>Pipeline Distribution</b> for early warning signs even when no alert has fired yet — a stage trending toward "watch"/"busy" today may be tomorrow's alert.</li>
+</ol>
+
+<h2 id="s5-6">5.6 Completing Work</h2>
+<ol>
+  <li><b>Per rack:</b> as work finishes at each stage, staff click <b>"Move to {Next Stage} →"</b> (from the Racks queue, Rack Detail, or Lotting Queue's "Start lotting"/"Mark ready" buttons) until the rack reaches <span class="badge b-stone">Completed</span> (typically via "Complete" in the Pick-Up layout, 4.13).</li>
+  <li><b>Per delivery:</b> once every rack from a delivery has moved past Unpacking &amp; Sorting, click <b>"Mark complete"</b> on the delivery (4.3/4.4). If any racks are still in Unpacking &amp; Sorting, FlowOps blocks this with a warning — finish those first.</li>
+  <li><b>Record the outcome:</b> on the completed delivery, use <b>"Set outcome"</b> to enter Donation % (Trash % comes from the Dumpsters page) — this gives Managers a Sellable % for reporting.</li>
+  <li><b>Per auction cycle (weekly):</b> once a week's worth of racks have reached Completed and been reviewed/exported, an Admin runs <b>"Close cycle"</b> on the Reports page (4.17) to archive them.</li>
+</ol>
+
+<h2 id="s5-7">5.7 Reviewing Metrics</h2>
+<ol>
+  <li>Admins/Managers open <b>Reports (4.17)</b>.</li>
+  <li>Export <b>"All Racks"</b> and <b>"Stage Durations"</b> to review how long items spent at each stage this cycle — useful for staffing decisions.</li>
+  <li>Export <b>"Dumpsters"</b> for trash billing reconciliation.</li>
+  <li>Export <b>"All Deliveries"</b> for a cycle summary.</li>
+  <li>Cross-reference with the <b>Consigners directory (4.5)</b> — review "Frequently held" and "Slow to process" tags for any consigner-specific process issues.</li>
+  <li>Once exports are done, run <b>"Close cycle"</b> to archive the week's completed racks (4.17).</li>
+</ol>
+
+<!-- ============ PART 6 ============ -->
+<h1 class="part" id="part6"><span class="part-label">Part 6</span>Frequently Asked Questions</h1>
+
+<h3>Q: What's the difference between a "delivery" and a "rack"?</h3>
+<p>A delivery is the truck/drop-off event (one consigner, one visit). A rack is a physical unit of items from that delivery. One delivery usually produces several racks.</p>
+
+<h3>Q: What does the J-Number mean, and do I always need one?</h3>
+<p>The J-Number is Quinn's internal customer/job number (e.g. <code>J-10294</code>). It's optional when creating a delivery or consigner — FlowOps will generate its own delivery/rack codes either way — but entering it whenever known makes consigner lookups and billing much easier.</p>
+
+<h3>Q: I have more than one role — how do I switch?</h3>
+<p>Click your role name in the header (desktop, top-right) or the role button in the bottom nav (mobile) and choose "Switch role." See Section 3.1.</p>
+
+<h3>Q: What does the blue "HOLD" badge mean, and who can clear it?</h3>
+<p>It means a rack is intentionally paused, with a recorded reason. Any role except Front Desk can apply or clear a hold from the Rack Detail page (4.9). Held racks don't count as "needs attention."</p>
+
+<h3>Q: A rack shows a red, pulsing "needs attention" badge — what should I do?</h3>
+<p>It's overdue for its current stage <i>and</i> high priority — the most urgent combination. Open it, do the work if possible, or apply a Hold with the real reason if it's genuinely blocked (4.9, 4.11).</p>
+
+<h3>Q: What's a "mixed" rack?</h3>
+<p>A rack containing items from more than one consigner. Use "Consigner +" on Rack Detail (4.9) to add additional consigners — each gets its own printable label.</p>
+
+<h3>Q: How do auction colors work — do I have to set one?</h3>
+<p>No, it's optional, but if your warehouse uses weekly color-coded auction runs, tag racks/zones with the relevant color (Red/Orange/Yellow/Green/Blue/Black) so the Dashboard's Auction Dates panel and countdown warnings work correctly (4.1).</p>
+
+<h3>Q: I created a rack with the wrong consigner — can I fix it?</h3>
+<p>Yes. Open the rack, click "Edit," and search for the correct delivery/consigner, or pick "— Custom consigner (no delivery) —" (4.9).</p>
+
+<h3>Q: What happens if I click "Move to {Next Stage}" by mistake?</h3>
+<p>Use the "←" revert button on Rack Detail to move it back one stage (requires confirmation). This isn't available to Front Desk. For deliveries, use "← Move back to [previous status]" (4.4).</p>
+
+<h3>Q: Why can't I mark a delivery "Complete"?</h3>
+<p>FlowOps blocks this if any of its racks are still in Unpacking &amp; Sorting. Finish sorting those racks (or fix their delivery assignment if they were logged incorrectly) first (4.3/4.4).</p>
+
+<h3>Q: How do I print labels for several racks at once?</h3>
+<p>Leave "Add to print queue" checked when creating racks (4.7), or use the "Queue"/"Add to queue" button on any rack. Then go to the Label Print Queue (4.20) and click "Print all."</p>
+
+<h3>Q: The Scan page won't open my camera — what's wrong?</h3>
+<p>Your browser/device needs camera permission for FlowOps. Allow it in your device settings, then reopen Scan (4.19).</p>
+
+<h3>Q: What's the difference between "Ready" and "Pickup" stages?</h3>
+<p>Both are "waiting stages" — it's normal for racks to sit there. "Ready" means lotted and waiting for its auction date; "Pickup" means physically staged in the Pick-Up zone for the auction floor. Neither triggers "needs attention" on the same short timelines as the active stages.</p>
+
+<h3>Q: Why does the Pickup zone have a 16-rack limit?</h3>
+<p>16 racks is the Pick-Up zone's capacity for a full auction cycle (matching the Pick-Up Layout's slot count). The Dashboard warns at 13 ("near capacity") and 16 ("overloaded") so staff can react before the floor is physically full (4.1, 4.13).</p>
+
+<h3>Q: Where do I record trash/donation amounts?</h3>
+<p>Trash % is logged per-delivery on the Dumpsters page (4.16), which automatically appears as "Trash %" on that delivery's Outcome section. Donation % is entered directly on the delivery (4.4).</p>
+
+<h3>Q: Can Front Desk staff move racks between stages?</h3>
+<p>No. Front Desk has view-only access to racks — no "Move to...", revert, hold, or delete buttons appear for them. They can still create/edit deliveries, add zones, notes, and photos.</p>
+
+<h3>Q: What does "Close Auction Cycle" actually do, and is it reversible?</h3>
+<p>It archives every <span class="badge b-stone">Completed</span> rack, removing them from active dashboards/lists while preserving them for historical reporting. <b>It cannot be undone</b> — export any CSVs you need first (4.17).</p>
+
+<h3>Q: How do I get a new employee set up?</h3>
+<p>An Administrator goes to User Management (4.21), clicks "Invite user," enters their email, selects the role(s) matching their job, and sends the invite. The employee receives a magic-link email to set their password.</p>
+
+<!-- ============ PART 7 ============ -->
+<h1 class="part" id="part7"><span class="part-label">Part 7</span>Troubleshooting Guide</h1>
+<p>A quick-reference table of common problems, their likely cause, and how to fix them. For page-specific troubleshooting, see the relevant section in Part 4.</p>
+
+<table>
+  <tr><th>Symptom</th><th>Likely Cause</th><th>Fix</th></tr>
+  <tr><td>Can't sign in</td><td>Wrong password, or account not yet activated</td><td>Use the magic-link email to set/reset your password; ask an Administrator to re-send an invite if needed (4.21).</td></tr>
+  <tr><td>I'm logged in but don't see the page I expect</td><td>Your account's roles or default role are set incorrectly</td><td>Ask an Administrator to check your roles/default role in User Management (4.21). Your navigation is entirely role-driven (Part 2).</td></tr>
+  <tr><td>No "Move to..." / revert / hold / delete buttons on a rack</td><td>You're signed in as Front Desk (view-only on racks) or the rack is already Completed</td><td>If you need to advance the rack, ask a warehouse-role user, or check whether you've been granted the wrong role (4.21).</td></tr>
+  <tr><td>Dashboard says "Offline" or "Connecting"</td><td>Internet connection dropped</td><td>Check your network; the Dashboard reconnects and refreshes automatically (4.1).</td></tr>
+  <tr><td>Amber "duplicate rack" warning when creating a rack</td><td>The Rack ID you typed already exists</td><td>Use a different ID, or if the existing rack was created in error, delete it from the warning card first (4.7).</td></tr>
+  <tr><td>"Camera access denied" on Scan</td><td>Browser/device camera permission not granted</td><td>Enable camera permission for FlowOps in device settings, then reopen Scan (4.19).</td></tr>
+  <tr><td>Scanned a QR code but nothing happens</td><td>The code isn't a FlowOps rack label</td><td>Only FlowOps rack QR codes are recognized — reprint/locate the correct rack label (4.10, 4.19).</td></tr>
+  <tr><td>Printed label has extra margins, or QR won't scan</td><td>Print dialog scale/headers not set correctly</td><td>Set print scale to 100% and disable headers/footers (4.10, 4.20).</td></tr>
+  <tr><td>Can't mark a delivery "Complete"</td><td>One or more racks are still in Unpacking &amp; Sorting</td><td>Finish sorting those racks, or correct their delivery assignment if logged under the wrong delivery (4.3, 4.4).</td></tr>
+  <tr><td>Can't save an Outcome on a delivery</td><td>Donation % + Trash % exceeds 100</td><td>Check the Trash % already logged on Dumpsters (4.16) before entering Donation % (4.4).</td></tr>
+  <tr><td>Can't add a zone to a delivery ("+ Add zone" dropdown is empty/missing the zone I want)</td><td>The zone is already assigned to another delivery, or only Arrived/Processing deliveries are eligible for "Active delivery" assignment</td><td>Free up the zone via "Clear purpose" on its Zone Detail page (4.13), or pick a different zone.</td></tr>
+  <tr><td>A rack stuck "Needs attention" but the work is genuinely in progress</td><td>The time limit counts from when the rack entered its current stage, not active work time</td><td>Apply a Hold with an accurate reason so it's clear to everyone why it's delayed (4.9, 4.11).</td></tr>
+  <tr><td>Dashboard KPI numbers look too high / don't match the floor</td><td>Completed racks from a prior cycle haven't been archived yet</td><td>An Administrator should run "Close Auction Cycle" on Reports once that cycle's reporting is done (4.17).</td></tr>
+  <tr><td>Pick-Up zone (PU) page says "Pick-Up zone not found"</td><td>No zone named exactly <code>PU</code> exists yet</td><td>An Administrator creates a zone with code <code>PU</code> on the Zones page (4.12, 4.15).</td></tr>
+  <tr><td>Dragging a rack in the Pick-Up Layout replaced another rack unexpectedly</td><td>Dropping onto an occupied slot evicts the previous rack</td><td>Check the slot is empty before dropping, or re-drag the evicted rack back into place (4.13).</td></tr>
+  <tr><td>"Invite sent!" but the new employee never received an email</td><td>Email typo, or it landed in spam</td><td>Verify the email address in User Management and re-send if needed (4.21).</td></tr>
+  <tr><td>Closed the auction cycle but now need a report from before</td><td>"Close Auction Cycle" is irreversible — archived racks no longer appear in active views/exports</td><td>Always export CSVs <i>before</i> closing the cycle (4.17). Archived data is preserved in the database for historical reporting — contact an Administrator for recovery needs.</td></tr>
+  <tr><td>Data was deleted or badly corrupted by mistake</td><td>No regular full-data backups were being taken, or the most recent one is out of date</td><td>An Administrator restores the most recent <b>Backup &amp; Restore (4.22)</b> file on Reports. Going forward, back up on a regular schedule.</td></tr>
+</table>
+
+<!-- ============ PART 8 ============ -->
+<h1 class="part" id="part8"><span class="part-label">Part 8</span>Administrator Guide</h1>
+<p>This part is for Administrators — the people responsible for accounts, system-wide setup, and weekly cycle maintenance. It assumes familiarity with Parts 1-5.</p>
+
+<h2>8.1 Managing Users &amp; Roles</h2>
+<p>All user/role management happens on <b>User Management (4.21)</b>, restricted to Admin accounts.</p>
+<h3>Designing Role Assignments</h3>
+<table>
+  <tr><th>Job</th><th>Recommended role(s)</th><th>Default role</th></tr>
+  <tr><td>Unpacking-only staff</td><td>Unpacker</td><td>Unpacker</td></tr>
+  <tr><td>Cross-trained Unpacker/Sorter</td><td>Unpacker, Sorter</td><td>whichever they start their day doing</td></tr>
+  <tr><td>Lotting room staff</td><td>Lotter</td><td>Lotter</td></tr>
+  <tr><td>Pick-up crew</td><td>Pickup</td><td>Pickup</td></tr>
+  <tr><td>Front desk / coordinator</td><td>Front Desk</td><td>Front Desk</td></tr>
+  <tr><td>Floor supervisor</td><td>Admin (+ a warehouse role if they also work the floor)</td><td>Admin</td></tr>
+  <tr><td>Operations manager</td><td>Admin</td><td>Admin</td></tr>
+  <tr><td>IT / system administrator</td><td>Admin</td><td>Admin</td></tr>
+</table>
+<div class="callout practice"><span class="label">Best Practice</span>Avoid granting Admin "just in case." Admin unlocks the Dashboard, Reports, Dumpsters, Consigners directory, and User Management — these contain business data (billing, staffing metrics, account management) that most warehouse staff don't need and shouldn't have visibility into.</div>
+
+<h3>Removing/Disabling a User</h3>
+<p>User Management lets you edit roles, but full account removal is handled at the Supabase project level (outside this app). If someone leaves, at minimum remove all of their roles via "Edit" so they can no longer reach any operational page, then arrange account deactivation with whoever manages the Supabase project.</p>
+
+<h2>8.2 Zone Setup &amp; Maintenance</h2>
+<ul>
+  <li>New physical areas (new shelving, a newly cleared room) should be added as zones via <b>"Add zone"</b> on the Zones page (4.12) using a code consistent with existing naming (e.g. <code>W11</code> for a new warehouse bay, <code>G8</code> for a new gallery bay).</li>
+  <li>The fixed utility zones <code>B</code> (Lotting Room), <code>C</code> (Sorting Room), <code>H</code> (Hallway), and <code>PU</code> (Pick-Up) are referenced by name throughout the app (e.g. the rack-detail zone quick-pick buttons, and the Pickup role's redirect). <b>Do not rename or delete these</b> without updating staff expectations — if <code>PU</code> doesn't exist, the Pickup role's home page will show an error (4.15).</li>
+  <li>Periodically audit the Zones floor plan for stale "Reserved" or delivery-linked zones that should have been cleared (5.4) — these make the floor map misleading for everyone.</li>
+</ul>
+
+<h2>8.3 Auction Colors &amp; Dates</h2>
+<ul>
+  <li>The six auction colors (Red, Orange, Yellow, Green, Blue, Black) are fixed in the system — they represent Quinn's recurring weekly auction-run naming convention.</li>
+  <li>Each week, set or update the <b>date</b> for the colors currently in use via the Dashboard's Auction Dates panel (4.1). This date drives the Dashboard's auction-deadline warnings ("{J#}: N racks need Ready before auction").</li>
+  <li>Clear a color's date ("✕") once that auction has passed and before reusing the color for a future cycle, to avoid stale countdowns.</li>
+</ul>
+
+<h2>8.4 Weekly Auction Cycle — Close-Out Checklist</h2>
+<ol>
+  <li>Confirm all racks that should be Completed for this cycle actually show <span class="badge b-stone">Completed</span> status (check Racks, filtered, and/or the PU layout for any racks not yet marked "Complete").</li>
+  <li>On <b>Reports (4.17)</b>, export <b>All Racks</b> and <b>Stage Durations</b> for this cycle's performance data.</li>
+  <li>Export <b>Dumpsters</b> for trash billing.</li>
+  <li>Export <b>All Deliveries</b> if a customer-facing or management summary is needed.</li>
+  <li>Review <b>Consigners</b> "Frequently held" / "Slow to process" flags for any process follow-ups.</li>
+  <li>Update <b>Auction Dates</b> (8.3) for the next cycle's colors.</li>
+  <li>Click <b>"Close cycle" → "Confirm"</b> on Reports to archive this cycle's completed racks.</li>
+  <li>Audit and clear stale <b>Zone</b> purposes (8.2) so the floor map is accurate for the new cycle.</li>
+</ol>
+<div class="callout fix"><span class="label">Important</span>Steps 2-5 (exports/reviews) must happen <i>before</i> step 7 (close cycle) — closing the cycle is irreversible and archived racks no longer appear in the active "All Racks"/"Stage Durations" exports.</div>
+
+<h2>8.5 Data Model Overview (for Advanced Troubleshooting)</h2>
+<p>Understanding how records relate to each other helps diagnose unusual situations:</p>
+<table>
+  <tr><th>Record</th><th>Identified by</th><th>Linked to</th></tr>
+  <tr><td>Consigner</td><td>Name + J-Number</td><td>One or more Deliveries; Notes</td></tr>
+  <tr><td>Delivery</td><td>Delivery code (e.g. <code>DEL-0008</code>) or J-Number</td><td>One Consigner; one or more Racks; Zones (via assignment); Photos; Notes; Dumpster activity entries</td></tr>
+  <tr><td>Rack</td><td>Rack code (e.g. <code>RC-0042</code>)</td><td>One Delivery (or a "custom"/no-delivery consigner, possibly multiple for "mixed" racks); optional Zone; Notes; History events; an auction color/date</td></tr>
+  <tr><td>Zone</td><td>Zone code (e.g. <code>W4</code>, <code>B</code>, <code>PU</code>)</td><td>Racks assigned to it; an optional "purpose" (active/scheduled delivery, auction color, or reserved)</td></tr>
+  <tr><td>History Event</td><td>Timestamp</td><td>One Rack — records every status change ("From → To") and who made it</td></tr>
+</table>
+<p>Most "data looks wrong" issues trace back to one of these links being set incorrectly — e.g. a rack linked to the wrong delivery (fix via Rack Detail "Edit," 4.9), or a zone still pointing at a completed delivery (fix via "Clear purpose," 4.13).</p>
+
+<h2>8.6 Backup &amp; Restore Schedule</h2>
+<p>FlowOps does not back itself up automatically — <b>Backup &amp; Restore (4.22)</b> on the Reports page is a manual export/import that an Administrator runs.</p>
+<table>
+  <tr><th>Cadence</th><th>When it fits</th></tr>
+  <tr><td>Daily</td><td>Busy warehouses with high volume — minimizes how much work could be lost if something goes wrong overnight or mid-week.</td></tr>
+  <tr><td>Weekly</td><td>Pairs naturally with the cycle close-out checklist (8.4) — back up <i>before</i> running "Close cycle," since that step is irreversible.</td></tr>
+  <tr><td>Biweekly</td><td>Lighter operations where data changes slowly; still gives a recovery point within a couple weeks of any incident.</td></tr>
+</table>
+<ul>
+  <li>Store downloaded backup files outside of any single device — a shared drive or cloud storage folder that multiple Administrators can access.</li>
+  <li>Keep more than one recent backup. If a problem isn't noticed immediately, the most recent backup may already include the bad data — an older one may be needed instead.</li>
+  <li>Delivery photos and user/role accounts are <b>not</b> included in these backups (4.22) — they're managed separately (Supabase Storage and User Management, 4.21).</li>
+</ul>
+
+<!-- ============ PART 9 ============ -->
+<h1 class="part" id="part9"><span class="part-label">Part 9</span>Quick Start Cheat Sheet</h1>
+<p>Print this part and keep it at your station. Each card below covers the essentials for one job category.</p>
+
+<div class="cheat-grid">
+  <div class="cheat-card">
+    <h4>Warehouse Staff — Unpacker</h4>
+    <p><b>Home:</b> Create Rack</p>
+    <ul>
+      <li>New rack: Create Rack → pick consigner → set status/color → "Create rack &amp; add to print queue"</li>
+      <li>Print labels: Label Print Queue → "Print all"</li>
+      <li>Find a rack fast: Scan (camera) or Search (press "/")</li>
+      <li>Stuck rack: open it → "Hold" → pick reason</li>
+    </ul>
+  </div>
+  <div class="cheat-card">
+    <h4>Warehouse Staff — Sorter</h4>
+    <p><b>Home:</b> Racks</p>
+    <ul>
+      <li>Sort an item rack, then click "Move to Sorted →"</li>
+      <li>Set "High priority" if asked to confirm Sorted</li>
+      <li>Queue clear? Check the "Held" filter for paused racks</li>
+    </ul>
+  </div>
+  <div class="cheat-card">
+    <h4>Warehouse Staff — Lotter</h4>
+    <p><b>Home:</b> Lotting Queue</p>
+    <ul>
+      <li>"Start lotting" when you begin a rack</li>
+      <li>"Mark ready" when lots are built</li>
+      <li>Red/amber banner = queue overloaded → tell a Supervisor</li>
+    </ul>
+  </div>
+  <div class="cheat-card">
+    <h4>Warehouse Staff — Pickup</h4>
+    <p><b>Home:</b> Pick-Up zone</p>
+    <ul>
+      <li>Drag racks from the left list into floor slots (R1-R6)</li>
+      <li>Click "Complete" when a rack leaves for the auction floor</li>
+      <li>Use "Search rack…" to find a specific rack fast</li>
+    </ul>
+  </div>
+  <div class="cheat-card">
+    <h4>Coordinators (Front Desk)</h4>
+    <p><b>Home:</b> Front Desk Home</p>
+    <ul>
+      <li>Truck here now: "Walk-in" → name + J-Number → "Create walk-in"</li>
+      <li>Future drop-off: "Schedule delivery" → pick date</li>
+      <li>"Where's my stuff?": search consigner → check Active racks &amp; stage</li>
+      <li>You cannot move/hold/delete racks — view only</li>
+    </ul>
+  </div>
+  <div class="cheat-card">
+    <h4>Supervisors</h4>
+    <p><b>Home:</b> Dashboard</p>
+    <ul>
+      <li>Start with Operational Alerts panel, top to bottom</li>
+      <li>Red alerts → Needs Attention page</li>
+      <li>Can advance/revert/hold/delete any rack, any stage</li>
+      <li>Watch Stage Pressure/Velocity for early warnings</li>
+    </ul>
+  </div>
+  <div class="cheat-card">
+    <h4>Managers</h4>
+    <p><b>Home:</b> Dashboard</p>
+    <ul>
+      <li>Reports → export CSVs (Deliveries, Racks, Stage Durations, Dumpsters)</li>
+      <li>Consigners → review "Frequently held" / "Slow to process" tags</li>
+      <li>Dumpsters → log trash %, track billing</li>
+      <li>Weekly: run "Close cycle" after exports are done</li>
+    </ul>
+  </div>
+  <div class="cheat-card">
+    <h4>Administrators</h4>
+    <p><b>Home:</b> Dashboard</p>
+    <ul>
+      <li>User Management → "Invite user" → set role(s) + default role</li>
+      <li>Promote: "Edit" user → toggle "Admin" → set default role → "Save"</li>
+      <li>Ensure a zone named exactly "PU" exists for the Pickup role</li>
+      <li>Keep auction dates current on the Dashboard</li>
+      <li>Reports → "Back up now" on a regular schedule (daily/weekly/biweekly)</li>
+    </ul>
+  </div>
+</div>
+
+<h3>Status Badge Legend</h3>
+<table>
+  <tr><th>Badge</th><th>Meaning</th></tr>
+  <tr><td><span class="badge b-sky">Unpacking &amp; Sorting</span></td><td>Pipeline stage 1 — being unloaded/sorted</td></tr>
+  <tr><td><span class="badge b-teal">Sorted</span></td><td>Pipeline stage 2 — waiting for lotting</td></tr>
+  <tr><td><span class="badge b-amber">Lotting</span></td><td>Pipeline stage 3 — lots being built</td></tr>
+  <tr><td><span class="badge b-emerald">Ready</span></td><td>Pipeline stage 4 — waiting for auction date (normal to wait)</td></tr>
+  <tr><td><span class="badge b-violet">Pickup</span></td><td>Pipeline stage 5 — staged for auction floor (normal to wait)</td></tr>
+  <tr><td><span class="badge b-stone">Completed</span></td><td>Pipeline stage 6 — done, archived at cycle close</td></tr>
+  <tr><td><span class="badge b-blue">HOLD</span></td><td>Intentionally paused, with a reason</td></tr>
+  <tr><td><span class="badge b-amber">high</span></td><td>High priority</td></tr>
+  <tr><td><span class="badge b-gray">low</span></td><td>Low priority</td></tr>
+  <tr><td><span class="badge b-red">needs attention</span></td><td>Over the stage time limit — action needed</td></tr>
+  <tr><td><span class="badge b-violet">mixed</span></td><td>Rack contains items from more than one consigner</td></tr>
+</table>
+
+<h3>Keyboard Shortcut</h3>
+<p>Press <code>/</code> anywhere in FlowOps to jump to <b>Search</b> with the cursor ready.</p>
+
+<div class="footer-note">FlowOps User Guide v1.0 — Quinn's Auction House — For internal training use.</div>
+
+</body>
+</html>
