@@ -158,15 +158,6 @@ export default function Header() {
                       Manage users
                     </Link>
                   )}
-                  <a
-                    href="/FlowOps-User-Guide.pdf"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => setProfileOpen(false)}
-                    className="block px-4 py-2.5 text-sm text-stone-600 hover:bg-stone-50 hover:text-stone-900 transition-colors"
-                  >
-                    User guide
-                  </a>
                   <button
                     onClick={() => { setProfileOpen(false); signOut(); }}
                     className="w-full text-left px-4 py-2.5 text-sm text-stone-600 hover:bg-stone-50 hover:text-stone-900 transition-colors"
