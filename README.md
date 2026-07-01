@@ -1,16 +1,16 @@
 # FlowOps
 
-**A five-person warehouse coordination chain that ran on verbal relay and whiteboards now runs on a shared system — ~50% reduction in coordination overhead, $33,280/year in recovered labor time.**
+**A working warehouse coordination system, built end-to-end for a real consignment operation to replace verbal relay and whiteboards with a shared, role-specific system.**
 
-Built for Quinn's Auction Galleries, a consignment and donation-resale warehouse operation. Six weeks, 94 commits, in active use.
+Built for Quinn's Auction Galleries, a consignment and donation-resale warehouse operation. Six weeks, 94 commits. The system is complete and deployment-ready, but Quinn's did not move forward with adoption — it has not run in live production. This project is presented here as a technical build and case study, not as a deployed product with measured results.
 
 ---
 
-## The problem it solves
+## The problem it's built to solve
 
 Throughput in a consignment warehouse is capped by how fast information travels between people, not by how fast people work. Before FlowOps: a manager walked the floor to tell each role what to do next, staff walked the floor to find consigner goods or check rack status, and nothing surfaced a stalled rack until it was visibly in the way. Auction deadlines were tracked by memory. Trash billing had no audit trail.
 
-FlowOps replaces that coordination with a live, role-specific shared system — each of the six jobs on the floor gets its own filtered queue showing exactly what needs doing next, and the system flags problems automatically instead of waiting for someone to notice.
+FlowOps is designed to replace that coordination with a live, role-specific shared system — each job on the floor gets its own filtered queue showing exactly what needs doing next, with problems flagged automatically instead of waiting for someone to notice.
 
 ---
 
@@ -73,9 +73,9 @@ No separate backend service. Business logic lives in the Next.js client and Post
 
 ## Documentation
 
-- **[Case Study](docs/case-study.md)** — problem framing, discovery process, design decisions, results, and roadmap
-- **[Impact Report](docs/impact-report.md)** — one-page business summary with measured result and stakeholder reference
-- **[Development Log](docs/development-log.md)** — 13 build sessions reconstructed from git history
+- **[Case Study](docs/case-study.md)** — problem framing, discovery process, design decisions, and roadmap
+- **[Impact Report](docs/impact-report.md)** — one-page business summary with projected/estimated impact, not a measured result
+- **[Development Log](docs/development-log.md)** — 13 build sessions reconstructed from git history, including the honest outcome (see Session 14)
 
 ---
 

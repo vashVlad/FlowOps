@@ -1,13 +1,16 @@
 # FlowOps — Case Study
 
-**A warehouse operations system that replaced tribal knowledge with a live, role-specific pipeline —
-built in six weeks of direct iteration against a live consignment/donation-resale operation.**
+**A warehouse operations system built to replace tribal knowledge with a live, role-specific pipeline —
+built in six weeks of direct iteration against a real consignment/donation-resale operation.**
 
 > **Bottom line:** A five-person coordination chain (manager → front desk → unpacker → lotter →
-> pickup) that ran on verbal relay, whiteboards, and floor-walks now runs on a shared system that
-> tells each role exactly what needs doing next, flags stalled racks automatically, and gives
+> pickup) that ran on verbal relay, whiteboards, and floor-walks was given a shared system designed
+> to tell each role exactly what needs doing next, flag stalled racks automatically, and give
 > management a real-time view of where the warehouse stands — without anyone having to ask.
-> Conservative estimate: **$33,280/year** in recovered coordination time across 8 staff.
+> The system was never adopted on the floor (see §6), so this is a description of what was built
+> and validated technically, not a deployed result. A modeled, unmeasured estimate of the labor
+> time it was designed to recover: **$33,280/year** across 8 staff — see §5 for how that number
+> was derived and why it isn't a measured outcome.
 
 ![FlowOps Operations Dashboard](screenshots/dashboard.png)
 *The admin dashboard: live KPIs, warehouse floor map, pipeline distribution, stage velocity vs. thresholds, and operational alerts — all in one view.*
@@ -158,7 +161,12 @@ Storage + Auth) · Zustand · Framer Motion · Tailwind v4 · html5-qrcode + qrc
 
 ---
 
-## 5. Results and validation — what measurably changed
+## 5. Designed impact — what the system is built to change
+
+**None of this was measured in live use — the tool was never adopted at Quinn's (see §6).** The
+table below describes what the built system does and is capable of, verified through development
+and manual testing. It is not a before/after result from real floor operations, and should not be
+read as one.
 
 ![Racks List with Needs Attention](screenshots/racks-list.png)
 *The racks list: pipeline stage, time in stage, and automatic "needs attention" flags surfaced without anyone having to check.*
@@ -166,7 +174,7 @@ Storage + Auth) · Zustand · Framer Motion · Tailwind v4 · html5-qrcode + qrc
 ![Rack Detail Timeline](screenshots/rack-detail-timeline.png)
 *Rack detail: full pipeline progress, per-stage time vs. threshold, "needs attention" flag, and complete stage history.*
 
-| Dimension | Before FlowOps | After FlowOps |
+| Dimension | Before FlowOps | What FlowOps is built to do |
 |---|---|---|
 | Where a given rack is | Requires walking the floor | Looked up in one search, or scanned via QR in <2 seconds |
 | Detecting a stalled rack | Only when it visibly piles up | Automatic, per-stage, business-hours-aware alert (5 stage-specific thresholds enforced continuously) |
@@ -183,15 +191,20 @@ Storage + Auth) · Zustand · Framer Motion · Tailwind v4 · html5-qrcode + qrc
 ![Dumpsters Page](screenshots/dumpsters-page.png)
 *Dumpster fill tracking with timestamped, per-consigner activity log — the billing audit trail.*
 
-**Conservative labor estimate:** 4 hours/week recovered per staff member × $20/hr × 8 staff ×
-52 weeks = **$33,280/year** in coordination time alone — before counting throughput gains from
-racks moving faster because they're no longer waiting on a person to notice or relay their status.
+**Modeled labor estimate (not measured):** 4 hours/week recovered per staff member × $20/hr ×
+8 staff × 52 weeks = **$33,280/year** in coordination time, if the system performed as designed at
+full adoption — before counting any throughput gains from racks moving faster. This is a planning
+estimate built from assumptions about time recovered per stage, not a measurement of an actual
+before/after change, because the system was never run in live production. Treat it as a hypothesis
+the next deployment should test, not a proven result.
 
-**Build-process evidence of validation-in-the-loop:** the system was iterated in 94 commits over
-six weeks with near-daily, sometimes same-day, follow-up fixes targeting observed friction. The
-clearest single validation signal: a structural pipeline change made in week two in direct response
-to the tool not matching how staff actually worked — evidence the system was being used for real,
-not just demoed.
+**What *was* validated: the build process itself, against real floor conditions during
+development.** The system was iterated in 94 commits over six weeks with near-daily, sometimes
+same-day, follow-up fixes targeting friction observed while building alongside the floor — for
+example, the structural pipeline change in week two, made because the originally-modeled stages
+didn't match how staff actually worked. That's evidence the design was tested against reality
+during development. It is not evidence of a sustained, adopted, measured deployment — that
+distinction is the core lesson in §6.
 
 ---
 
